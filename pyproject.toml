@@ -1,7 +1,7 @@
 [project]
 name = "korbpuls"
 dynamic = ["version"]
-description = "korbpuls.de — FastAPI web application"
+description = "Basketball league dashboard — standings, schedules & predictions powered by korb"
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"

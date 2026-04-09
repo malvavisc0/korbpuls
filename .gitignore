@@ -1,0 +1,11 @@
+.venv/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+.git/
+.env
+files/
+plans/
+.vscode/
+uv.lock
