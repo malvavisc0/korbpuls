@@ -1,5 +1,11 @@
 {% extends "base.html" %}
 
+{% block head %}
+{% if ai_enabled and not ai_explanation and generating %}
+<meta http-equiv="refresh" content="10">
+{% endif %}
+{% endblock %}
+
 {% block title %}{{ liga_name }} — Saisonprognose{% endblock %}
 
 {% block main %}
@@ -93,6 +99,31 @@
             </tbody>
         </table>
     </section>
+
+    {% if ai_enabled %}
+    <section class="ai-narrative">
+        <h2>KI-Erklärung</h2>
+        {% if ai_explanation %}
+            <p>{{ ai_explanation }}</p>
+            {% if ai_table %}
+            <pre>{{ ai_table }}</pre>
+            {% endif %}
+            <form method="POST"
+                  action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse"
+                  style="display:inline">
+                <button type="submit">⟳ Neu generieren</button>
+            </form>
+        {% elif generating %}
+            <p><em>KI-Erklärung wird generiert… Seite lädt automatisch neu.</em></p>
+        {% else %}
+            <form method="POST"
+                  action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse"
+                  style="display:inline">
+                <button type="submit">KI-Erklärung generieren</button>
+            </form>
+        {% endif %}
+    </section>
+    {% endif %}
     {% endif %}
 </article>
 {% endblock %}

@@ -102,6 +102,9 @@ class TeamView(BaseModel):
     metrics: TeamMetrics
     results: list[GameResult]
     upcoming_games: list[ScheduleGame]
+    is_finished: bool = False
+    ai_analysis: str | None = None
+    ai_enabled: bool = False
 
 
 class PredictionGame(BaseModel):
@@ -142,6 +145,9 @@ class PredictionView(BaseModel):
     is_finished: bool
     predictions: list[PredictionGame]
     standings: list[PredictionStandingsRow]
+    ai_table: str | None = None
+    ai_explanation: str | None = None
+    ai_enabled: bool = False
 
 
 _RESULT_MAP = {"W": "Sieg", "L": "Niederlage", "D": "Unentschieden"}
@@ -470,12 +476,13 @@ def present_standings(ligaid: str) -> StandingsView:
     )
 
 
-def present_team(ligaid: str, team_slug: str) -> TeamView:
+def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> TeamView:
     """Build view model for team page.
 
     Args:
         ligaid: League ID
         team_slug: Team slug string
+        ai_enabled: Whether AI features are enabled
 
     Returns:
         TeamView for template rendering
@@ -500,6 +507,16 @@ def present_team(ligaid: str, team_slug: str) -> TeamView:
     schedule_data = cache.read_json("schedule.json")
     upcoming = _get_upcoming_games(schedule_data, team_name)
 
+    # Check if season is finished
+    all_schedule_games = [
+        _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
+    ]
+    is_finished = _is_season_finished(all_schedule_games)
+
+    ai_analysis = None
+    if ai_enabled:
+        ai_analysis = cache.read_ai_analysis(team_slug)
+
     return TeamView(
         team_name=team_name,
         team_slug=team_slug,
@@ -513,6 +530,9 @@ def present_team(ligaid: str, team_slug: str) -> TeamView:
         metrics=metrics,
         results=results,
         upcoming_games=upcoming,
+        is_finished=is_finished,
+        ai_analysis=ai_analysis,
+        ai_enabled=ai_enabled,
     )
 
 
@@ -543,11 +563,12 @@ def present_schedule(ligaid: str) -> ScheduleView:
     )
 
 
-def present_prediction(ligaid: str) -> PredictionView:
+def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionView:
     """Build view model for prediction page.
 
     Args:
         ligaid: League ID
+        ai_enabled: Whether AI features are enabled
 
     Returns:
         PredictionView for template rendering
@@ -598,6 +619,15 @@ def present_prediction(ligaid: str) -> PredictionView:
         for rank, t in enumerate(data.get("standings", []), start=1)
     ]
 
+    ai_table = None
+    ai_explanation = None
+    # Only load AI prediction if season is still active
+    if ai_enabled and not is_finished:
+        narrative = cache.read_ai_prediction()
+        if narrative:
+            ai_table = narrative.get("table")
+            ai_explanation = narrative.get("explanation")
+
     return PredictionView(
         liga_name=meta.league_name,
         liga_slug=meta.liga_slug,
@@ -606,4 +636,7 @@ def present_prediction(ligaid: str) -> PredictionView:
         is_finished=is_finished,
         predictions=predictions,
         standings=standings,
+        ai_table=ai_table,
+        ai_explanation=ai_explanation,
+        ai_enabled=ai_enabled,
     )

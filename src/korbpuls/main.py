@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import time
 from datetime import datetime
@@ -25,6 +26,8 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from korbpuls import presenters
+from korbpuls.ai import AIConfig
+from korbpuls.ai.agents import LeaguePrediction, TeamAnalysis, get_analyst, get_oracle
 from korbpuls.auth import validate_api_key
 from korbpuls.cache import CacheDir, CacheMiss, LigaMeta
 from korbpuls.korb_client import (
@@ -36,6 +39,8 @@ from korbpuls.korb_client import (
 from korbpuls.korb_client import run_standings as korb_standings
 from korbpuls.korb_client import run_team as korb_team
 from korbpuls.slugify import slugify
+
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
 app = FastAPI(title="korbPuls")
@@ -129,6 +134,49 @@ def fetch_and_cache_league(ligaid: str) -> None:
         cache_dir.write_status("error", str(e))
     except Exception as e:
         cache_dir.write_status("error", f"Unerwarteter Fehler: {e}")
+
+
+async def _run_team_analysis(
+    config: AIConfig, ligaid: str, team_slug: str, team_name: str
+) -> None:
+    """Background task: generate AI team analysis."""
+    cache = CacheDir(ligaid)
+    try:
+        analyst = get_analyst(
+            api_base=config.api_base,
+            api_key=config.api_key,
+            model=config.model,
+        )
+        prompt = (
+            f"Analysiere das Team '{team_name}' in der Liga mit ID {ligaid}. "
+            f"Sprache: de"
+        )
+        response = await analyst.run(prompt)
+        result: TeamAnalysis = response.get_pydantic_model(TeamAnalysis)
+
+        cache.write_ai_analysis(team_slug, result.conclusion)
+    except Exception:
+        logger.exception("AI team analysis failed for %s/%s", ligaid, team_slug)
+
+
+async def _run_prediction_narrative(config: AIConfig, ligaid: str) -> None:
+    """Background task: generate AI prediction narrative."""
+    cache = CacheDir(ligaid)
+    try:
+        oracle = get_oracle(
+            api_base=config.api_base,
+            api_key=config.api_key,
+            model=config.model,
+        )
+        prompt = (
+            f"Erstelle eine Ligaprognose für die Liga mit ID {ligaid}. " f"Sprache: de"
+        )
+        response = await oracle.run(prompt)
+        result: LeaguePrediction = response.get_pydantic_model(LeaguePrediction)
+
+        cache.write_ai_prediction(result.table, result.explanation)
+    except Exception:
+        logger.exception("AI prediction narrative failed for %s", ligaid)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -318,18 +366,21 @@ async def team_page(
     team_slug: str = URLPath(...),
 ) -> HTMLResponse:
     """Render team detail page."""
+    ai_enabled = AIConfig.from_env() is not None
     try:
-        view = presenters.present_team(ligaid, team_slug)
+        view = presenters.present_team(ligaid, team_slug, ai_enabled=ai_enabled)
     except CacheMiss as e:
         raise HTTPException(
             status_code=404,
             detail="Team nicht gefunden",
         ) from e
 
+    ctx = view.model_dump()
+    ctx["generating"] = request.query_params.get("generating") == "1"
     return templates.TemplateResponse(
         request,
         "team.html",
-        view.model_dump(),
+        ctx,
     )
 
 
@@ -368,19 +419,81 @@ async def prediction_page(
     liga_slug: str = URLPath(...),
 ) -> HTMLResponse:
     """Render prediction page."""
+    ai_enabled = AIConfig.from_env() is not None
     try:
-        view = presenters.present_prediction(ligaid)
+        view = presenters.present_prediction(ligaid, ai_enabled=ai_enabled)
     except CacheMiss as e:
         raise HTTPException(
             status_code=404,
             detail="Daten nicht gefunden",
         ) from e
 
+    ctx = view.model_dump()
+    ctx["generating"] = request.query_params.get("generating") == "1"
     return templates.TemplateResponse(
         request,
         "prediction.html",
-        view.model_dump(),
+        ctx,
     )
+
+
+@app.post(
+    "/liga/{ligaid}/{liga_slug}/team/{team_slug}/ki-analyse",
+    response_class=RedirectResponse,
+)
+async def generate_team_ai(
+    background_tasks: BackgroundTasks,
+    ligaid: str = URLPath(..., pattern=r"\d+"),
+    liga_slug: str = URLPath(...),
+    team_slug: str = URLPath(...),
+) -> RedirectResponse:
+    """Trigger AI team analysis generation."""
+    config = AIConfig.from_env()
+    if config is None:
+        raise HTTPException(status_code=503, detail="KI-Funktion nicht konfiguriert")
+
+    cache = CacheDir(ligaid)
+    team_url = f"/liga/{ligaid}/{liga_slug}/team/{team_slug}"
+
+    # Cache-first: return cached if data hasn't changed
+    if cache.is_ai_analysis_fresh(team_slug):
+        return RedirectResponse(url=team_url, status_code=302)
+
+    # Resolve team name from meta
+    meta = cache.read_meta()
+    team_name = meta.team_slugs.get(team_slug)
+    if not team_name:
+        raise HTTPException(status_code=404, detail="Team nicht gefunden")
+
+    background_tasks.add_task(_run_team_analysis, config, ligaid, team_slug, team_name)
+
+    return RedirectResponse(url=f"{team_url}?generating=1", status_code=302)
+
+
+@app.post(
+    "/liga/{ligaid}/{liga_slug}/prognose/ki-analyse",
+    response_class=RedirectResponse,
+)
+async def generate_prediction_ai(
+    background_tasks: BackgroundTasks,
+    ligaid: str = URLPath(..., pattern=r"\d+"),
+    liga_slug: str = URLPath(...),
+) -> RedirectResponse:
+    """Trigger AI prediction narrative generation."""
+    config = AIConfig.from_env()
+    if config is None:
+        raise HTTPException(status_code=503, detail="KI-Funktion nicht konfiguriert")
+
+    cache = CacheDir(ligaid)
+    prediction_url = f"/liga/{ligaid}/{liga_slug}/prognose"
+
+    # Cache-first: return cached if data hasn't changed
+    if cache.is_ai_prediction_fresh():
+        return RedirectResponse(url=prediction_url, status_code=302)
+
+    background_tasks.add_task(_run_prediction_narrative, config, ligaid)
+
+    return RedirectResponse(url=f"{prediction_url}?generating=1", status_code=302)
 
 
 @app.exception_handler(HTTPException)

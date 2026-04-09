@@ -1,5 +1,11 @@
 {% extends "base.html" %}
 
+{% block head %}
+{% if ai_enabled and not ai_analysis and generating %}
+<meta http-equiv="refresh" content="10">
+{% endif %}
+{% endblock %}
+
 {% block title %}{{ team_name }} — Teamübersicht{% endblock %}
 
 {% block main %}
@@ -42,6 +48,30 @@
             <dd>{{ metrics.last_5 }}</dd>
         </dl>
     </section>
+
+    {% if ai_enabled %}
+    <section class="ai-analysis">
+        <h2>KI-Analyse</h2>
+        {% if ai_analysis %}
+            <p>{{ ai_analysis }}</p>
+            {% if not is_finished %}
+            <form method="POST"
+                  action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse"
+                  style="display:inline">
+                <button type="submit">⟳ Neu generieren</button>
+            </form>
+            {% endif %}
+        {% elif generating %}
+            <p><em>KI-Analyse wird generiert… Seite lädt automatisch neu.</em></p>
+        {% else %}
+            <form method="POST"
+                  action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse"
+                  style="display:inline">
+                <button type="submit">KI-Analyse generieren</button>
+            </form>
+        {% endif %}
+    </section>
+    {% endif %}
 
     <section class="results">
         <h2>Spiele</h2>

@@ -4,11 +4,14 @@ services:
     ports:
       - "${PORT:-8000}:8000"
     environment:
-      - KORBPULS_API_KEY
-      - KORB_CMD=korb
-      - CACHE_DIR=/data/cache
-      - WORKERS=2
-      - RUNNER=
+      KORBPULS_API_KEY: ${KORBPULS_API_KEY}
+      KORB_CMD: korb
+      CACHE_DIR: /data/cache
+      WORKERS: 2
+      # AI settings (leave empty to disable)
+      OPENAILIKE_API_BASE: ${OPENAILIKE_API_BASE:-}
+      OPENAILIKE_API_KEY: ${OPENAILIKE_API_KEY:-}
+      OPENAILIKE_LLM: ${OPENAILIKE_LLM:-}
     volumes:
       - cache-data:/data/cache
     restart: unless-stopped

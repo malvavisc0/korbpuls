@@ -201,3 +201,73 @@ class CacheDir:
             return False
         mtime = meta_path.stat().st_mtime
         return (time.time() - mtime) < ttl_seconds
+
+    def read_ai_analysis(self, team_slug: str) -> str | None:
+        """Read cached AI team analysis.
+
+        Returns:
+            Analysis paragraph or None if not cached
+        """
+        path = self.teams_path / f"{team_slug}_analysis.json"
+        if not path.exists():
+            return None
+        data = json.loads(path.read_text())
+        return data.get("analysis")
+
+    def write_ai_analysis(self, team_slug: str, analysis: str) -> None:
+        """Write AI team analysis to cache."""
+        path = self.teams_path / f"{team_slug}_analysis.json"
+        path.write_text(
+            json.dumps(
+                {"analysis": analysis},
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+
+    def is_ai_analysis_fresh(self, team_slug: str) -> bool:
+        """Check if AI analysis cache is fresh (newer than league data).
+
+        Returns True if analysis exists AND meta.json hasn't been
+        updated since the analysis was generated. This means the
+        underlying league data hasn't changed.
+        """
+        ai_path = self.teams_path / f"{team_slug}_analysis.json"
+        meta_path = self.base_path / "meta.json"
+        if not ai_path.exists() or not meta_path.exists():
+            return False
+        return ai_path.stat().st_mtime >= meta_path.stat().st_mtime
+
+    def read_ai_prediction(self) -> dict[str, str] | None:
+        """Read cached AI prediction narrative.
+
+        Returns:
+            Dict with 'table' and 'explanation' keys, or None
+        """
+        path = self.base_path / "prediction_narrative.json"
+        if not path.exists():
+            return None
+        return cast(dict[str, str], json.loads(path.read_text()))
+
+    def write_ai_prediction(self, table: str, explanation: str) -> None:
+        """Write AI prediction narrative to cache."""
+        path = self.base_path / "prediction_narrative.json"
+        path.write_text(
+            json.dumps(
+                {"table": table, "explanation": explanation},
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+
+    def is_ai_prediction_fresh(self) -> bool:
+        """Check if AI prediction cache is fresh (newer than league data).
+
+        Returns True if prediction exists AND meta.json hasn't been
+        updated since the prediction was generated.
+        """
+        ai_path = self.base_path / "prediction_narrative.json"
+        meta_path = self.base_path / "meta.json"
+        if not ai_path.exists() or not meta_path.exists():
+            return False
+        return ai_path.stat().st_mtime >= meta_path.stat().st_mtime
