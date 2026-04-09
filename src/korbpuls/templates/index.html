@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}korbPuls — Basketball-Ligen einfach auswerten{% endblock %}
+
+{% block main %}
+<section>
+    <h1>korbPuls</h1>
+    <p>Basketball-Ligen einfach auswerten</p>
+
+    <form method="POST" action="/">
+        <label for="ligaid">Liga-ID</label>
+        <input type="number" id="ligaid" name="ligaid" required placeholder="51491">
+        <button type="submit">Laden</button>
+    </form>
+
+    <p class="hint">
+        Hinweis: Die Liga-ID steht in der URL der basketball-bund.net Ligaseite.<br>
+        Beispiel: ...liga_id=51491
+    </p>
+</section>
+{% endblock %}

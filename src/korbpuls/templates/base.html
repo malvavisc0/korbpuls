@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block head %}{% endblock %}
+    <title>{% block title %}korbPuls{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="/">korbPuls</a>
+            {% if liga_name %}
+            <span class="liga-name">{{ liga_name }}</span>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main>
+        {% block main %}{% endblock %}
+    </main>
+
+    <footer>
+        {% block footer %}
+        <a href="/">← Zur Startseite</a>
+        {% endblock %}
+    </footer>
+</body>
+</html>

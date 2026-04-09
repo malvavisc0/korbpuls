@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}{{ liga_name }} — Tabelle{% endblock %}
+
+{% block main %}
+<article>
+    <header>
+        <h1>Tabelle</h1>
+        <p class="meta">
+            {{ liga_name }}<br>
+            Zuletzt aktualisiert: {{ cached_at }}
+        </p>
+    </header>
+
+    <nav class="actions">
+        <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan</a>
+        <a href="/liga/{{ ligaid }}/{{ liga_slug }}/prognose">Prognose</a>
+        <form method="POST" action="/liga/{{ ligaid }}/aktualisieren" style="display:inline">
+            <button type="submit">⟳ Aktualisieren</button>
+        </form>
+    </nav>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Team</th>
+                <th>Sp</th>
+                <th>S</th>
+                <th>N</th>
+                <th>U</th>
+                <th>PF</th>
+                <th>PA</th>
+                <th>Diff</th>
+                <th>Pkt</th>
+                <th>Ø PF</th>
+                <th>Ø PA</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>{{ row.rank }}</td>
+                <td>
+                    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ row.slug }}">
+                        {{ row.name }}
+                    </a>
+                </td>
+                <td>{{ row.gp }}</td>
+                <td>{{ row.w }}</td>
+                <td>{{ row.losses }}</td>
+                <td>{{ row.d }}</td>
+                <td>{{ row.pf }}</td>
+                <td>{{ row.pa }}</td>
+                <td>{{ row.diff }}</td>
+                <td>{{ row.pts }}</td>
+                <td>{{ row.avg_pf }}</td>
+                <td>{{ row.avg_pa }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p class="note">Klick auf ein Team öffnet die Teamübersicht.</p>
+</article>
+{% endblock %}

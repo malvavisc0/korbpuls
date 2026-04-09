@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{{ liga_name }} — Saisonprognose{% endblock %}
+
+{% block main %}
+<article>
+    <header>
+        <h1>Saisonprognose</h1>
+        <p class="liga">{{ liga_name }}</p>
+        <p class="meta">Stand: {{ cached_at }}</p>
+    </header>
+
+    {% if is_finished %}
+    <section class="finished">
+        <p>Die Saison ist bereits abgeschlossen.</p>
+        <p>Eine Prognose ist deshalb nicht mehr verfügbar.</p>
+        <p>Die endgültige Tabelle finden Sie auf der <a href="/liga/{{ ligaid }}/{{ liga_slug }}">Tabellenseite</a>.</p>
+    </section>
+    {% else %}
+    <section class="predictions">
+        <h2>Vorhergesagte Spiele</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Heim</th>
+                    <th>Ergebnis</th>
+                    <th>Gast</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in predictions %}
+                <tr>
+                    <td>
+                        {% if game.winner == 'home' %}
+                        <strong>{{ game.home }}</strong>
+                        {% else %}
+                        {{ game.home }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if game.winner == 'home' %}
+                        * {{ game.home_score }} : {{ game.away_score }}
+                        {% else %}
+                        {{ game.home_score }} : {{ game.away_score }} *
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if game.winner == 'away' %}
+                        <strong>{{ game.away }}</strong>
+                        {% else %}
+                        {{ game.away }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="note">* = vorhergesagter Gewinner</p>
+    </section>
+
+    <section class="standings">
+        <h2>Erwartete Abschlusstabelle</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Team</th>
+                    <th>Sp</th>
+                    <th>S</th>
+                    <th>N</th>
+                    <th>U</th>
+                    <th>PF</th>
+                    <th>PA</th>
+                    <th>Diff</th>
+                    <th>Pkt</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in standings %}
+                <tr>
+                    <td>{{ row.rank }}</td>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.gp }}</td>
+                    <td>{{ row.w }}</td>
+                    <td>{{ row.losses }}</td>
+                    <td>{{ row.d }}</td>
+                    <td>{{ row.pf }}</td>
+                    <td>{{ row.pa }}</td>
+                    <td>{{ row.diff }}</td>
+                    <td>{{ row.pts }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+</article>
+{% endblock %}
+
+{% block footer %}
+<a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Zurück zur Tabelle</a>
+{% endblock %}

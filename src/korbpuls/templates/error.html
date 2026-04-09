@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Fehler — korbPuls{% endblock %}
+
+{% block main %}
+<article class="error">
+    <h1>Fehler</h1>
+    <p class="message">{{ message }}</p>
+    <p class="hint">{{ hint }}</p>
+</article>
+{% endblock %}
+
+{% block footer %}
+{% if retry_url %}
+<form method="POST" action="{{ retry_url }}" style="display:inline">
+    <button type="submit">↻ Erneut versuchen</button>
+</form>
+{% endif %}
+<a href="/">← Zur Startseite</a>
+{% endblock %}

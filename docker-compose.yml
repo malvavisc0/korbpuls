@@ -1,0 +1,17 @@
+services:
+  web:
+    build: .
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - KORBPULS_API_KEY
+      - KORB_CMD=korb
+      - CACHE_DIR=/data/cache
+      - WORKERS=2
+      - RUNNER=
+    volumes:
+      - cache-data:/data/cache
+    restart: unless-stopped
+
+volumes:
+  cache-data:

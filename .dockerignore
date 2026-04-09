@@ -1,0 +1,13 @@
+.venv/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+.env
+files/
+plans/
+.vscode/
+README.md
+uv.lock

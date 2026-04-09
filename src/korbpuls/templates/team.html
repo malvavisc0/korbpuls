@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team_name }} — Teamübersicht{% endblock %}
+
+{% block main %}
+<article>
+    <header>
+        <h1>Teamübersicht: {{ team_name }}</h1>
+        <p class="liga">{{ liga_name }}</p>
+    </header>
+
+    <section class="summary">
+        <p><strong>Bilanz:</strong> {{ record }}</p>
+        <p><strong>Punkte:</strong> {{ points_summary }}</p>
+        <p><strong>Schnitt:</strong> {{ avg_summary }}</p>
+    </section>
+
+    <section class="form">
+        <h2>Formkurve</h2>
+        <pre>{{ form_curve }}</pre>
+    </section>
+
+    <section class="metrics">
+        <h2>Qualität</h2>
+        <dl>
+            <dt>Siegquote:</dt>
+            <dd>{{ "%.1f"|format(metrics.win_rate) }}%</dd>
+
+            <dt>Ø Siegmarge:</dt>
+            <dd>{{ "%.1f"|format(metrics.avg_win_margin) }}</dd>
+
+            <dt>Ø Niederlagemarge:</dt>
+            <dd>{{ "%.1f"|format(metrics.avg_loss_margin) }}</dd>
+
+            <dt>Deutliche Siege >=15:</dt>
+            <dd>{{ metrics.blowouts }}</dd>
+
+            <dt>Knappe Spiele <=5:</dt>
+            <dd>{{ metrics.close_games }}</dd>
+
+            <dt>Letzte 5:</dt>
+            <dd>{{ metrics.last_5 }}</dd>
+        </dl>
+    </section>
+
+    <section class="results">
+        <h2>Spiele</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Gegner</th>
+                    <th>H/A</th>
+                    <th>Ergebnis</th>
+                    <th>Diff</th>
+                    <th>Ausgang</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in results %}
+                <tr>
+                    <td>
+                        <a href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.opponent_slug }}">
+                            {{ game.opponent }}
+                        </a>
+                    </td>
+                    <td>{{ game.home_away }}</td>
+                    <td>{{ game.our_score }} : {{ game.opp_score }}</td>
+                    <td>{{ game.diff }}</td>
+                    <td>{{ game.result }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    {% if upcoming_games %}
+    <section class="upcoming">
+        <h2>Nächste Spiele</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Heim</th>
+                    <th>Gast</th>
+                    <th>Halle</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in upcoming_games %}
+                <tr>
+                    <td>{{ game.date }}</td>
+                    <td>{{ game.home }}</td>
+                    <td>{{ game.away }}</td>
+                    <td>{{ game.venue }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+</article>
+{% endblock %}
+
+{% block footer %}
+<a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Zurück zur Tabelle</a>
+{% endblock %}

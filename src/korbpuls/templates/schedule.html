@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}{{ liga_name }} — Spielplan{% endblock %}
+
+{% block main %}
+<article>
+    <header>
+        <h1>Spielplan</h1>
+        <p class="liga">{{ liga_name }}</p>
+    </header>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Heim</th>
+                <th>Gast</th>
+                <th>Halle</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for game in games %}
+            <tr>
+                <td>{{ game.date }}</td>
+                <td>
+                    {% if game.cancelled %}
+                    <del>{{ game.home }}</del>
+                    {% else %}
+                    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.home_slug }}">
+                        {{ game.home }}
+                    </a>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if game.cancelled %}
+                    <del>{{ game.away }}</del>
+                    {% else %}
+                    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.away_slug }}">
+                        {{ game.away }}
+                    </a>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if game.cancelled %}
+                    <span class="cancelled">Abgesagt</span>
+                    {% else %}
+                    {{ game.venue }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</article>
+{% endblock %}
+
+{% block footer %}
+<a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Zurück zur Tabelle</a>
+{% endblock %}
