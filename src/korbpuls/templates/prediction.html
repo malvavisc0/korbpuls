@@ -9,116 +9,151 @@
 {% block title %}{{ liga_name }} — Saisonprognose{% endblock %}
 
 {% block main %}
-<article>
-    <header>
+<article class="page">
+    <header class="page-intro">
+        <p class="eyebrow">Saisonverlauf</p>
         <h1>Saisonprognose</h1>
-        <p class="liga">{{ liga_name }}</p>
-        <p class="meta">Stand: {{ cached_at }}</p>
+        <p class="page-meta">{{ liga_name }}<br>Stand: {{ cached_at }}</p>
     </header>
 
     {% if is_finished %}
-    <section class="finished">
+    <section class="surface finished-note">
         <p>Die Saison ist bereits abgeschlossen.</p>
         <p>Eine Prognose ist deshalb nicht mehr verfügbar.</p>
         <p>Die endgültige Tabelle finden Sie auf der <a href="/liga/{{ ligaid }}/{{ liga_slug }}">Tabellenseite</a>.</p>
     </section>
     {% else %}
-    <section class="predictions">
-        <h2>Vorhergesagte Spiele</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Heim</th>
-                    <th>Ergebnis</th>
-                    <th>Gast</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for game in predictions %}
-                <tr>
-                    <td>
-                        {% if game.winner == 'home' %}
-                        <strong>{{ game.home }}</strong>
-                        {% else %}
-                        {{ game.home }}
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if game.winner == 'home' %}
-                        * {{ game.home_score }} : {{ game.away_score }}
-                        {% else %}
-                        {{ game.home_score }} : {{ game.away_score }} *
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if game.winner == 'away' %}
-                        <strong>{{ game.away }}</strong>
-                        {% else %}
-                        {{ game.away }}
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <section class="table-shell">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Modellierte Ergebnisse</p>
+                <h2>Vorhergesagte Spiele</h2>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Heim</th>
+                        <th class="col-score">Ergebnis</th>
+                        <th>Gast</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for game in predictions %}
+                    <tr>
+                        <td>
+                            {% if game.winner == 'home' %}
+                            <strong>{{ game.home }}</strong>
+                            {% else %}
+                            {{ game.home }}
+                            {% endif %}
+                        </td>
+                        <td class="col-score">
+                            <span class="prediction-score">
+                                {% if game.winner == 'home' %}
+                                <span class="winner-badge">Tipp</span>
+                                {% endif %}
+                                <span>{{ game.home_score }} : {{ game.away_score }}</span>
+                                {% if game.winner == 'away' %}
+                                <span class="winner-badge">Tipp</span>
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            {% if game.winner == 'away' %}
+                            <strong>{{ game.away }}</strong>
+                            {% else %}
+                            {{ game.away }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         <p class="note">* = vorhergesagter Gewinner</p>
     </section>
 
-    <section class="standings">
-        <h2>Erwartete Abschlusstabelle</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Team</th>
-                    <th>Sp</th>
-                    <th>S</th>
-                    <th>N</th>
-                    <th>U</th>
-                    <th>PF</th>
-                    <th>PA</th>
-                    <th>Diff</th>
-                    <th>Pkt</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in standings %}
-                <tr>
-                    <td>{{ row.rank }}</td>
-                    <td>{{ row.name }}</td>
-                    <td>{{ row.gp }}</td>
-                    <td>{{ row.w }}</td>
-                    <td>{{ row.losses }}</td>
-                    <td>{{ row.d }}</td>
-                    <td>{{ row.pf }}</td>
-                    <td>{{ row.pa }}</td>
-                    <td>{{ row.diff }}</td>
-                    <td>{{ row.pts }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <section class="table-shell">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Tabellenbild</p>
+                <h2>Erwartete Abschlusstabelle</h2>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="col-short">#</th>
+                        <th>Team</th>
+                        <th class="col-short">Sp</th>
+                        <th class="col-short">S</th>
+                        <th class="col-short">N</th>
+                        <th class="col-short">U</th>
+                        <th class="col-number">PF</th>
+                        <th class="col-number">PA</th>
+                        <th class="col-diff">Diff</th>
+                        <th class="col-points">Pkt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in standings %}
+                    <tr>
+                        <td class="col-short">{{ row.rank }}</td>
+                        <td>{{ row.name }}</td>
+                        <td class="col-short">{{ row.gp }}</td>
+                        <td class="col-short">{{ row.w }}</td>
+                        <td class="col-short">{{ row.losses }}</td>
+                        <td class="col-short">{{ row.d }}</td>
+                        <td class="col-number">{{ row.pf }}</td>
+                        <td class="col-number">{{ row.pa }}</td>
+                        <td class="col-diff {% if row.diff > 0 %}diff-positive{% elif row.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ row.diff }}</td>
+                        <td class="col-points"><strong>{{ row.pts }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </section>
 
     {% if ai_enabled %}
-    <section class="ai-narrative">
-        <h2>KI-Erklärung</h2>
-        {% if ai_explanation %}
-            <p>{{ ai_explanation }}</p>
-            {% if ai_table %}
-            <pre>{{ ai_table }}</pre>
-            {% endif %}
-            <form method="POST"
-                  action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse"
-                  style="display:inline">
-                <button type="submit">⟳ Neu generieren</button>
+    <section class="ai-panel">
+        <div class="ai-panel__header">
+            <div>
+                <p class="ai-panel__eyebrow">Automatisch erzeugte Prognose-Einordnung</p>
+                <h2>KI-Erklärung</h2>
+            </div>
+            {% if ai_explanation %}
+            <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
+                <button class="secondary-button" type="submit">⟳ Neu generieren</button>
             </form>
+            {% endif %}
+        </div>
+        {% if ai_explanation %}
+            <div class="ai-panel__body">
+                <p>{{ ai_explanation }}</p>
+            </div>
+            {% if ai_table %}
+            <div class="ai-panel__supplement">
+                <details class="ai-details">
+                    <summary>Zusätzliche KI-Ausgabe</summary>
+                    <pre class="ai-output-raw">{{ ai_table }}</pre>
+                </details>
+            </div>
+            {% endif %}
+            <div class="ai-panel__footer">
+                <p class="disclosure">Die KI-Ausgabe ist ergänzend und kann sprachliche oder strukturelle Ungenauigkeiten enthalten.</p>
+            </div>
         {% elif generating %}
-            <p><em>KI-Erklärung wird generiert… Seite lädt automatisch neu.</em></p>
+            <div class="ai-panel__body">
+                <p><em>KI-Erklärung wird generiert… Seite lädt automatisch neu.</em></p>
+            </div>
         {% else %}
-            <form method="POST"
-                  action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse"
-                  style="display:inline">
+            <form class="inline-form"
+                  method="POST"
+                  action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
                 <button type="submit">KI-Erklärung generieren</button>
             </form>
         {% endif %}
@@ -129,5 +164,7 @@
 {% endblock %}
 
 {% block footer %}
-<a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Zurück zur Tabelle</a>
+<div class="footer-actions">
+    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Zurück zur Tabelle</a>
+</div>
 {% endblock %}

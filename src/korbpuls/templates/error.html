@@ -3,18 +3,23 @@
 {% block title %}Fehler — korbPuls{% endblock %}
 
 {% block main %}
-<article class="error">
-    <h1>Fehler</h1>
-    <p class="message">{{ message }}</p>
-    <p class="hint">{{ hint }}</p>
-</article>
+<section class="page--narrow">
+    <article class="error-card">
+        <p class="eyebrow">Fehlerzustand</p>
+        <h1>Fehler</h1>
+        <p class="message">{{ message }}</p>
+        <p class="hint">{{ hint }}</p>
+    </article>
+</section>
 {% endblock %}
 
 {% block footer %}
-{% if retry_url %}
-<form method="POST" action="{{ retry_url }}" style="display:inline">
-    <button type="submit">↻ Erneut versuchen</button>
-</form>
-{% endif %}
-<a href="/">← Zur Startseite</a>
+<div class="footer-actions">
+    {% if retry_url %}
+    <form class="inline-form" method="POST" action="{{ retry_url }}">
+        <button type="submit">↻ Erneut versuchen</button>
+    </form>
+    {% endif %}
+    <a href="/">← Zur Startseite</a>
+</div>
 {% endblock %}

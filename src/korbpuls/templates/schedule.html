@@ -3,57 +3,64 @@
 {% block title %}{{ liga_name }} — Spielplan{% endblock %}
 
 {% block main %}
-<article>
-    <header>
+<article class="page">
+    <header class="page-intro">
+        <p class="eyebrow">Spielbetrieb</p>
         <h1>Spielplan</h1>
-        <p class="liga">{{ liga_name }}</p>
+        <p class="page-meta">{{ liga_name }}</p>
     </header>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Datum</th>
-                <th>Heim</th>
-                <th>Gast</th>
-                <th>Halle</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for game in games %}
-            <tr>
-                <td>{{ game.date }}</td>
-                <td>
-                    {% if game.cancelled %}
-                    <del>{{ game.home }}</del>
-                    {% else %}
-                    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.home_slug }}">
-                        {{ game.home }}
-                    </a>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if game.cancelled %}
-                    <del>{{ game.away }}</del>
-                    {% else %}
-                    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.away_slug }}">
-                        {{ game.away }}
-                    </a>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if game.cancelled %}
-                    <span class="cancelled">Abgesagt</span>
-                    {% else %}
-                    {{ game.venue }}
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <section class="table-shell">
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Heim</th>
+                        <th>Gast</th>
+                        <th>Halle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for game in games %}
+                    <tr>
+                        <td>{{ game.date }}</td>
+                        <td>
+                            {% if game.cancelled %}
+                            <del>{{ game.home }}</del>
+                            {% else %}
+                            <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.home_slug }}">
+                                {{ game.home }}
+                            </a>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if game.cancelled %}
+                            <del>{{ game.away }}</del>
+                            {% else %}
+                            <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.away_slug }}">
+                                {{ game.away }}
+                            </a>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if game.cancelled %}
+                            <span class="cancelled-badge">Abgesagt</span>
+                            {% else %}
+                            <span class="muted">{{ game.venue }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </article>
 {% endblock %}
 
 {% block footer %}
-<a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Zurück zur Tabelle</a>
+<div class="footer-actions">
+    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Zurück zur Tabelle</a>
+</div>
 {% endblock %}

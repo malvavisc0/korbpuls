@@ -3,27 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    >
+    <link rel="stylesheet" href="/static/app.css">
     {% block head %}{% endblock %}
     <title>{% block title %}korbPuls{% endblock %}</title>
 </head>
-<body>
-    <header>
-        <nav>
-            <a href="/">korbPuls</a>
-            {% if liga_name %}
-            <span class="liga-name">{{ liga_name }}</span>
-            {% endif %}
-        </nav>
+<body class="app-shell">
+    <header class="site-header">
+        <div class="container site-header__inner">
+            <nav class="site-nav">
+                <a class="brand" href="/">
+                    <span class="brand__mark">korbPuls</span>
+                    <span class="brand__tagline">Basketball-Ligen einfach auswerten</span>
+                </a>
+                {% if liga_name %}
+                <span class="league-pill">{{ liga_name }}</span>
+                {% endif %}
+            </nav>
+        </div>
     </header>
 
-    <main>
-        {% block main %}{% endblock %}
+    <main class="site-main">
+        <div class="container page-shell">
+            {% block main %}{% endblock %}
+        </div>
     </main>
 
-    <footer>
-        {% block footer %}
-        <a href="/">← Zur Startseite</a>
-        {% endblock %}
+    <footer class="site-footer">
+        <div class="container site-footer__inner">
+            {% block footer %}
+            <a href="/">← Zur Startseite</a>
+            {% endblock %}
+        </div>
     </footer>
 </body>
 </html>

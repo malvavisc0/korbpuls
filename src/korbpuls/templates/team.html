@@ -9,128 +9,188 @@
 {% block title %}{{ team_name }} — Teamübersicht{% endblock %}
 
 {% block main %}
-<article>
-    <header>
+<article class="page">
+    <header class="page-intro">
+        <p class="eyebrow">Teamdetail</p>
         <h1>Teamübersicht: {{ team_name }}</h1>
-        <p class="liga">{{ liga_name }}</p>
+        <p class="page-meta">{{ liga_name }}</p>
     </header>
 
-    <section class="summary">
-        <p><strong>Bilanz:</strong> {{ record }}</p>
-        <p><strong>Punkte:</strong> {{ points_summary }}</p>
-        <p><strong>Schnitt:</strong> {{ avg_summary }}</p>
+    <section class="stats-grid" aria-label="Zusammenfassung">
+        <article class="stat-card">
+            <span class="stat-card__label">Bilanz</span>
+            <span class="stat-card__value">{{ record }}</span>
+            <p class="stat-card__detail">Saisonstand des Teams</p>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">Punkte</span>
+            <span class="stat-card__value">{{ points_summary }}</span>
+            <p class="stat-card__detail">Erzielt, kassiert und Differenz</p>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">Schnitt</span>
+            <span class="stat-card__value">{{ avg_summary }}</span>
+            <p class="stat-card__detail">Durchschnitt pro Spiel</p>
+        </article>
     </section>
 
-    <section class="form">
-        <h2>Formkurve</h2>
-        <pre>{{ form_curve }}</pre>
+    <section class="form-panel">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Momentum</p>
+                <h2>Formkurve</h2>
+            </div>
+        </div>
+        <pre class="form-curve">{{ form_curve }}</pre>
     </section>
 
-    <section class="metrics">
-        <h2>Qualität</h2>
-        <dl>
-            <dt>Siegquote:</dt>
-            <dd>{{ "%.1f"|format(metrics.win_rate) }}%</dd>
-
-            <dt>Ø Siegmarge:</dt>
-            <dd>{{ "%.1f"|format(metrics.avg_win_margin) }}</dd>
-
-            <dt>Ø Niederlagemarge:</dt>
-            <dd>{{ "%.1f"|format(metrics.avg_loss_margin) }}</dd>
-
-            <dt>Deutliche Siege >=15:</dt>
-            <dd>{{ metrics.blowouts }}</dd>
-
-            <dt>Knappe Spiele <=5:</dt>
-            <dd>{{ metrics.close_games }}</dd>
-
-            <dt>Letzte 5:</dt>
-            <dd>{{ metrics.last_5 }}</dd>
-        </dl>
+    <section class="surface">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Qualität</p>
+                <h2>Leistungskennzahlen</h2>
+            </div>
+        </div>
+        <div class="metric-grid">
+            <article class="metric-card">
+                <span class="metric-card__label">Siegquote</span>
+                <span class="metric-card__value">{{ "%.1f"|format(metrics.win_rate) }}%</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__label">Ø Siegmarge</span>
+                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_win_margin) }}</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__label">Ø Niederlagemarge</span>
+                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_loss_margin) }}</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__label">Deutliche Siege ≥15</span>
+                <span class="metric-card__value">{{ metrics.blowouts }}</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__label">Knappe Spiele ≤5</span>
+                <span class="metric-card__value">{{ metrics.close_games }}</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__label">Letzte 5</span>
+                <span class="metric-card__value">{{ metrics.last_5 }}</span>
+            </article>
+        </div>
     </section>
 
     {% if ai_enabled %}
-    <section class="ai-analysis">
-        <h2>KI-Analyse</h2>
-        {% if ai_analysis %}
-            <p>{{ ai_analysis }}</p>
-            {% if not is_finished %}
-            <form method="POST"
-                  action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse"
-                  style="display:inline">
-                <button type="submit">⟳ Neu generieren</button>
+    <section class="ai-panel">
+        <div class="ai-panel__header">
+            <div>
+                <p class="ai-panel__eyebrow">Automatisch erzeugte Einschätzung</p>
+                <h2>KI-Analyse</h2>
+            </div>
+            {% if ai_analysis and not is_finished %}
+            <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
+                <button class="secondary-button" type="submit">⟳ Neu generieren</button>
             </form>
             {% endif %}
+        </div>
+        {% if ai_analysis %}
+            <div class="ai-panel__body">
+                <p>{{ ai_analysis }}</p>
+            </div>
+            <div class="ai-panel__footer">
+                <p class="disclosure">Die Analyse ist maschinell erstellt und kann sprachliche Ungenauigkeiten enthalten.</p>
+            </div>
         {% elif generating %}
-            <p><em>KI-Analyse wird generiert… Seite lädt automatisch neu.</em></p>
+            <div class="ai-panel__body">
+                <p><em>KI-Analyse wird generiert… Seite lädt automatisch neu.</em></p>
+            </div>
         {% else %}
-            <form method="POST"
-                  action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse"
-                  style="display:inline">
+            <form class="inline-form"
+                  method="POST"
+                  action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
                 <button type="submit">KI-Analyse generieren</button>
             </form>
         {% endif %}
     </section>
     {% endif %}
 
-    <section class="results">
-        <h2>Spiele</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Gegner</th>
-                    <th>H/A</th>
-                    <th>Ergebnis</th>
-                    <th>Diff</th>
-                    <th>Ausgang</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for game in results %}
-                <tr>
-                    <td>
-                        <a href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.opponent_slug }}">
-                            {{ game.opponent }}
-                        </a>
-                    </td>
-                    <td>{{ game.home_away }}</td>
-                    <td>{{ game.our_score }} : {{ game.opp_score }}</td>
-                    <td>{{ game.diff }}</td>
-                    <td>{{ game.result }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <section class="table-shell">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Spielhistorie</p>
+                <h2>Spiele</h2>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Gegner</th>
+                        <th class="col-short">H/A</th>
+                        <th class="col-score">Ergebnis</th>
+                        <th class="col-diff">Diff</th>
+                        <th>Ausgang</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for game in results %}
+                    <tr>
+                        <td>
+                            <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.opponent_slug }}">
+                                {{ game.opponent }}
+                            </a>
+                        </td>
+                        <td class="col-short">{{ game.home_away }}</td>
+                        <td class="col-score">{{ game.our_score }} : {{ game.opp_score }}</td>
+                        <td class="col-diff {% if game.diff > 0 %}diff-positive{% elif game.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ game.diff }}</td>
+                        <td>
+                            <span class="status-badge {% if game.result == 'Sieg' %}status-badge--win{% else %}status-badge--loss{% endif %}">
+                                {{ game.result }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </section>
 
     {% if upcoming_games %}
-    <section class="upcoming">
-        <h2>Nächste Spiele</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Datum</th>
-                    <th>Heim</th>
-                    <th>Gast</th>
-                    <th>Halle</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for game in upcoming_games %}
-                <tr>
-                    <td>{{ game.date }}</td>
-                    <td>{{ game.home }}</td>
-                    <td>{{ game.away }}</td>
-                    <td>{{ game.venue }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <section class="table-shell">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Ausblick</p>
+                <h2>Nächste Spiele</h2>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Heim</th>
+                        <th>Gast</th>
+                        <th>Halle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for game in upcoming_games %}
+                    <tr>
+                        <td>{{ game.date }}</td>
+                        <td>{{ game.home }}</td>
+                        <td>{{ game.away }}</td>
+                        <td>{{ game.venue }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </section>
     {% endif %}
 </article>
 {% endblock %}
 
 {% block footer %}
-<a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Zurück zur Tabelle</a>
+<div class="footer-actions">
+    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Zurück zur Tabelle</a>
+</div>
 {% endblock %}

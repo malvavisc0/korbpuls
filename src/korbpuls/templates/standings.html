@@ -3,63 +3,68 @@
 {% block title %}{{ liga_name }} — Tabelle{% endblock %}
 
 {% block main %}
-<article>
-    <header>
+<article class="page">
+    <header class="page-intro">
+        <p class="eyebrow">Ligaübersicht</p>
         <h1>Tabelle</h1>
-        <p class="meta">
-            {{ liga_name }}<br>
+        <p class="page-meta">
+            <strong>{{ liga_name }}</strong><br>
             Zuletzt aktualisiert: {{ cached_at }}
         </p>
     </header>
 
-    <nav class="actions">
+    <nav class="action-bar" aria-label="Seitennavigation">
         <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan</a>
         <a href="/liga/{{ ligaid }}/{{ liga_slug }}/prognose">Prognose</a>
-        <form method="POST" action="/liga/{{ ligaid }}/aktualisieren" style="display:inline">
+        <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/aktualisieren">
             <button type="submit">⟳ Aktualisieren</button>
         </form>
     </nav>
 
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Team</th>
-                <th>Sp</th>
-                <th>S</th>
-                <th>N</th>
-                <th>U</th>
-                <th>PF</th>
-                <th>PA</th>
-                <th>Diff</th>
-                <th>Pkt</th>
-                <th>Ø PF</th>
-                <th>Ø PA</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in rows %}
-            <tr>
-                <td>{{ row.rank }}</td>
-                <td>
-                    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ row.slug }}">
-                        {{ row.name }}
-                    </a>
-                </td>
-                <td>{{ row.gp }}</td>
-                <td>{{ row.w }}</td>
-                <td>{{ row.losses }}</td>
-                <td>{{ row.d }}</td>
-                <td>{{ row.pf }}</td>
-                <td>{{ row.pa }}</td>
-                <td>{{ row.diff }}</td>
-                <td>{{ row.pts }}</td>
-                <td>{{ row.avg_pf }}</td>
-                <td>{{ row.avg_pa }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <section class="table-shell">
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="col-short">#</th>
+                        <th>Team</th>
+                        <th class="col-short">Sp</th>
+                        <th class="col-short">S</th>
+                        <th class="col-short">N</th>
+                        <th class="col-short">U</th>
+                        <th class="col-number">PF</th>
+                        <th class="col-number">PA</th>
+                        <th class="col-diff">Diff</th>
+                        <th class="col-points">Pkt</th>
+                        <th class="col-number">Ø PF</th>
+                        <th class="col-number">Ø PA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td class="col-short">{{ row.rank }}</td>
+                        <td>
+                            <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ row.slug }}">
+                                {{ row.name }}
+                            </a>
+                        </td>
+                        <td class="col-short">{{ row.gp }}</td>
+                        <td class="col-short">{{ row.w }}</td>
+                        <td class="col-short">{{ row.losses }}</td>
+                        <td class="col-short">{{ row.d }}</td>
+                        <td class="col-number">{{ row.pf }}</td>
+                        <td class="col-number">{{ row.pa }}</td>
+                        <td class="col-diff {% if row.diff > 0 %}diff-positive{% elif row.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ row.diff }}</td>
+                        <td class="col-points"><strong>{{ row.pts }}</strong></td>
+                        <td class="col-number">{{ row.avg_pf }}</td>
+                        <td class="col-number">{{ row.avg_pa }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 
     <p class="note">Klick auf ein Team öffnet die Teamübersicht.</p>
 </article>
