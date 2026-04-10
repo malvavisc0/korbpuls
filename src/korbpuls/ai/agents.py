@@ -16,14 +16,37 @@ SKILLS_DIR = Path(__file__).parent / "skills"
 class TeamAnalysis(BaseModel):
     """Structured output for team analysis."""
 
-    conclusion: str = Field(description="Analysis paragraph text")
+    conclusion: str = Field(
+        description=(
+            "A single HTML <p> element containing 4-6 sentences of "
+            "flowing, analytical prose. Use <strong> tags sparingly "
+            "for team names and one or two key stats. Explain WHY "
+            "things matter, not just WHAT the numbers are. "
+            "No markdown, no bullet lists, no headings. "
+            "Must be wrapped in <p>...</p> tags."
+        ),
+    )
 
 
 class LeaguePrediction(BaseModel):
     """Structured output for league prediction."""
 
-    table: str = Field(description="Predicted league table in markdown")
-    explanation: str = Field(description="Explanation paragraph")
+    table: str = Field(
+        description=(
+            "ONLY the raw HTML <table> element with thead/tbody. "
+            "No markdown, no title, no explanation."
+        ),
+    )
+    explanation: str = Field(
+        description=(
+            "A single HTML <p> element containing 3-5 sentences of "
+            "flowing analysis. Explain the reasoning behind the "
+            "predicted standings — why certain teams rise or fall, "
+            "what matchups matter, and what trends drive the outcome. "
+            "Use <strong> sparingly for team names. No markdown, no "
+            "bullet lists, no headings. Must be wrapped in <p>...</p>."
+        ),
+    )
 
 
 def _load_skill(filename: str) -> str:
@@ -39,6 +62,7 @@ def _make_llm(api_base: str, api_key: str, model: str) -> OpenAILike:
         api_key=api_key,
         is_chat_model=True,
         is_function_calling_model=True,
+        timeout=300,  # 5 minutes timeout for long-running commands
     )
 
 

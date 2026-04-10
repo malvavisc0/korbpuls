@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import time
 from pathlib import Path
 from typing import Any, cast
@@ -43,6 +44,11 @@ class CacheDir:
     def ensure_exists(self) -> None:
         """Create cache directory structure if it doesn't exist."""
         self.teams_path.mkdir(parents=True, exist_ok=True)
+
+    def clear(self) -> None:
+        """Remove the entire cache directory for this league."""
+        if self.base_path.exists():
+            shutil.rmtree(self.base_path)
 
     def write_json(self, filename: str, data: dict[str, Any]) -> None:
         """Write JSON data to a file.

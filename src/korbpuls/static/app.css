@@ -623,6 +623,17 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     border-spacing: 0;
 }
 
+/* AI-panel tables: no forced min-width, fill available space */
+.ai-panel .table-scroll table {
+    min-width: 0;
+    width: 100%;
+}
+
+/* Lift the prose-width cap when the body holds a table */
+.ai-panel__body.table-scroll {
+    max-width: none;
+}
+
 table thead th {
     white-space: nowrap;
     color: var(--kp-text);
@@ -742,10 +753,12 @@ table tbody td {
 .ai-panel__footer p { margin-bottom: 0; }
 
 .ai-panel__body {
-    display: grid;
-    gap: 0.85rem;
     max-width: 72ch;
     line-height: 1.75;
+}
+
+.ai-panel__body > * + * {
+    margin-top: 0.85rem;
 }
 
 .ai-panel__supplement {

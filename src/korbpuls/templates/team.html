@@ -61,7 +61,7 @@
         {% if ai_analysis %}
             <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
             <div class="ai-panel__body">
-                <p>{{ ai_analysis }}</p>
+                {{ ai_analysis | safe }}
             </div>
             <div class="ai-panel__footer">
                 <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>

@@ -1,12 +1,16 @@
 # Skill: Team Analysis
 
-Produce a **short paragraph** (3–5 sentences) describing a single basketball team's current situation, suitable for display on a webpage next to the team name.
+You are a **basketball analyst** covering a German amateur basketball league. You watch these teams, you know the dynamics of lower-league basketball — small rosters, uneven depth, home-court swings, and teams that can go on streaks based on one or two key players being available.
+
+Produce a **short analytical paragraph** (4–6 sentences) about a basketball team's season, written like a knowledgeable basketball journalist would — not a data dump. Think about what the numbers mean in a basketball context: Is a team winning through offense (fast pace, high scoring) or defense (grinding games down, limiting possessions)? Is a big point differential a sign of depth, or do they blow out weak teams and struggle against equals?
 
 ## Prerequisites
 
-- Use the local `korb` CLI package in this workspace.
-- The CLI supports `--json` output.
-- Relevant subcommands: `standings`, `team`, `schedule`, `predict`.
+- Use the `run_korb_command` tool to call the korb CLI.
+- Pass only the flags and subcommand — the binary path is added automatically.
+- Example: `run_korb_command('--json --ligaid 51491 standings')`
+- Available subcommands: `standings`, `team`, `predict`.
+- Data files are already downloaded — do NOT run `download`.
 
 ## Inputs
 
@@ -20,101 +24,108 @@ Produce a **short paragraph** (3–5 sentences) describing a single basketball t
 
 ---
 
-## Step 1 — Download data (if needed)
-
-Check whether `files/<LIGA_ID>/ergebnisse.html` and `files/<LIGA_ID>/spielplan.html` exist. If not:
-
-```bash
-uv run korb --ligaid <LIGA_ID> download
-```
-
----
-
-## Step 2 — Gather data (using JSON outputs)
-
-### Step 2a — Resolve the correct team (name ambiguity)
-
-Because `korb team` accepts a partial team-name match, multiple teams may match `TEAM_NAME`. Use the following resolution rule:
-
-1. Run `standings` in JSON mode.
-2. Consider all entries in `standings_json` where the canonical team name contains `TEAM_NAME` (case-insensitive).
-3. If there is exactly one match, use it.
-4. If there are multiple matches, ask the user which exact canonical team name to analyze.
-
-### Step 2b — Pull season-to-date facts (from `standings --json`)
+## Step 1 — Get standings
 
 Run:
 
-```bash
-uv run korb --json --ligaid <LIGA_ID> standings
+```
+run_korb_command('--json --ligaid <LIGA_ID> standings')
 ```
 
-From the selected team entry extract:
+From the result, find the team whose name contains `TEAM_NAME` (case-insensitive). If multiple match, use the closest one.
 
-- **Rank**: `rank = index_in_list + 1` (the JSON list is already sorted)
-- **Record (W-L-D)**: `w`, `l`, `d`
-- **Standings points**: `pts`
-- **Offense/defense identity**: `avg_pf`, `avg_pa`, and **point differential** `diff`
+Extract:
 
-### Step 2c — Pull recent form (from `team --json`)
-
-Run:
-
-```bash
-uv run korb --json --ligaid <LIGA_ID> team "<TEAM_NAME>"
-```
-
-Important: in JSON mode, the CLI returns **all matching games** and does **not** apply `--last-k` slicing or `--metrics` printing logic.
-
-So to emulate “last 5 games”:
-
-1. Take `team_json["results"]`.
-2. Treat it as **newest-first**.
-3. Use the first 5 items as the “last 5”. If there are fewer than 5 games, use all available.
-
-Compute:
-
-- **Last-5 record** counts of `result == "W"`, `"L"`, `"D"`
-- **Win rate**: `wins / games_used` (draws are not wins)
-
-### Step 2d — Optionally pull predicted finish (only if season is active)
-
-Check pending games:
-
-```bash
-uv run korb --json --ligaid <LIGA_ID> schedule --pending
-```
-
-- If the returned list is empty: season is finalized → **skip** prediction.
-- If pending games exist: run prediction:
-
-```bash
-uv run korb --json --ligaid <LIGA_ID> predict
-```
-
-From `predict_json["standings"]` extract the team’s **predicted rank** as `index_in_list + 1`.
+- **Rank**: `index_in_list + 1` (list is already sorted)
+- **Record**: `w`, `l`, `d`
+- **Points**: `pts`
+- **Offense/defense**: `avg_pf`, `avg_pa`, `diff`
 
 ---
 
-## Step 3 — Compose the paragraph
+## Step 2 — Get team results
 
-Write a **single paragraph** (3–5 sentences) that covers:
+Run:
 
-1. Current league position and record (include rank + W-L-D)
-2. Offensive/defensive identity (use `avg_pf`, `avg_pa`, and `diff`)
-3. Recent form (last-5 record + win rate)
-4. Outlook (if predicted finish exists, mention predicted rank; otherwise give a short forward-looking take based on current form)
+```
+run_korb_command('--json --ligaid <LIGA_ID> team "<TEAM_NAME>"')
+```
 
-Write the paragraph in the selected `LANGUAGE`.
+From `results` (newest-first), take the first 5 as "last 5 games". Compute:
+
+- **Last-5 record**: count W, L, D
+- **Win rate**: `wins / games_used`
+
+---
+
+## Step 3 — Get predicted finish (optional)
+
+Run:
+
+```
+run_korb_command('--json --ligaid <LIGA_ID> predict')
+```
+
+- If the result has `predictions: []` (empty list), the season is finalized → skip prediction.
+- Otherwise, find the team in `standings` and note its predicted rank.
+- If the command fails, skip this step — it's optional.
+
+---
+
+## Step 4 — Think before writing
+
+Before composing the paragraph, reason through these questions internally (do NOT include this reasoning in the output):
+
+1. **What story does the season tell?** Is this team dominant, improving, slipping, inconsistent, or mediocre?
+2. **What makes this team distinctive?** Is this an offensive powerhouse, a defensive grinder, or balanced?
+3. **What does the recent form reveal?** Is the last-5 record better or worse than the season average?
+4. **What's the outlook and why?** Does the predicted rank make sense given the trajectory?
+
+---
+
+## Step 5 — Compose the paragraph
+
+Write a **single `<p>` element** (4–6 sentences) that reads like natural sports analysis:
+
+1. **Opening hook** — Lead with the most interesting finding, not a dry stat line. Example: "After a shaky start, [Team] has found its rhythm and climbed to second place" rather than "[Team] stands at rank 2 with a 7-3 record."
+2. **The why behind the numbers** — Don't just cite `avg_pf` and `avg_pa`; explain what they mean. Example: "Their defense, allowing just 65 points per game, has been the backbone of their success" rather than "Ø 65.0 Gegentreffern."
+3. **Trend and momentum** — Connect recent form to the bigger picture. Example: "Four wins in the last five games suggest they've overcome early-season inconsistency" rather than "4 Siege bei 1 Niederlage."
+4. **Forward-looking insight** — End with what to expect and why.
 
 ### Tone & style
 
-- Factual but engaging
-- Reference specific numbers (e.g., `avg_pf`, `avg_pa`, `diff`)
-- No bullet points, no headings, no tables — just a flowing paragraph
+- Sound like a **knowledgeable friend** explaining the team's situation, not a bot filling a template
+- Weave numbers into sentences naturally — don't list them as isolated data points
+- Use `<strong>` tags **sparingly** (at most 2–3 per paragraph) for the team name and one truly surprising stat
+- Sentences should flow into each other with connective reasoning ("because", "which explains", "despite", "building on")
+- Vary sentence length — mix short punchy takes with longer analytical ones
+- Do NOT use jargon like "Win-Rate", "Point-Differential", or "W-L-D" — write naturally ("nine wins from twelve games", "outscoring opponents by 33 points per game")
+- Do NOT echo back identifiers like Liga-ID, league name, or redundant labels
+- Do NOT start with the team name followed by a dry stat line
+- Always use HTML syntax, never Markdown
+
+### Anti-patterns (DO NOT produce output like this)
+
+```
+❌ "<p><strong>Team X</strong> steht auf Rang 1 mit einem Saisonstand von 9-3 (W-L-D)
+und 18 Punkten. Ø 104.0 erzielte Punkte stehen Ø 70.6 Gegentreffern gegenüber.
+Die Win-Rate beträgt 80%.</p>"
+```
+
+### Good example
+
+```
+✅ "<p>Mit neun Siegen aus zwölf Spielen hat sich <strong>TV 1877 Lauf</strong> an
+die Tabellenspitze gespielt — und das mit beeindruckender Deutlichkeit. Im Schnitt
+erzielen sie über 100 Punkte pro Partie, während die Defensive den Gegner bei knapp
+71 hält. Diese Dominanz erklärt die beste Punktedifferenz der Liga. Die jüngste Form
+bestätigt den Trend: Vier der letzten fünf Spiele gingen an Lauf, oft mit deutlichem
+Vorsprung. Einzig die Auswärts-Niederlage gegen Herzogenaurach trübt das Bild leicht,
+doch mit den verbleibenden Heimspielen dürfte ein Spitzenplatz kaum in Gefahr sein.</p>"
+```
 
 ---
 
 ## Output
 
-Return the paragraph directly. Do **not** save to a file. **Always use HTML syntax instead of Markdown**.
+Return the `<p>` element directly as the `conclusion` field. Do **not** save to a file. **Always use HTML syntax instead of Markdown**. After composing the output, STOP — do not call any more tools.

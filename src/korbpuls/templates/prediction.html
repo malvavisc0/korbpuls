@@ -34,6 +34,46 @@
         <p>Endstand auf der <a href="/liga/{{ ligaid }}/{{ liga_slug }}">Tabellenseite</a>.</p>
     </section>
     {% else %}
+
+    {% if ai_enabled %}
+    <section class="ai-panel">
+        <div class="ai-panel__header">
+            <div>
+                <p class="ai-panel__eyebrow">KI-gestützt</p>
+                <h2>KI-Einordnung</h2>
+            </div>
+            {% if ai_explanation %}
+            <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
+                <button class="secondary-button" type="submit">↻ Neu</button>
+            </form>
+            {% endif %}
+        </div>
+        {% if ai_explanation %}
+            <div class="ai-panel__body">
+                {{ ai_explanation | safe }}
+            </div>
+            {% if ai_table %}
+            <div class="ai-panel__body table-scroll">
+                {{ ai_table | safe }}
+            </div>
+            {% endif %}
+            <div class="ai-panel__footer">
+                <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
+            </div>
+        {% elif generating %}
+            <div class="ai-panel__body">
+                <p><em>Analyse läuft… Seite aktualisiert sich automatisch.</em></p>
+            </div>
+        {% else %}
+            <form class="inline-form"
+                  method="POST"
+                  action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
+                <button type="submit" class="primary-cta">KI-Einordnung erstellen</button>
+            </form>
+        {% endif %}
+    </section>
+    {% endif %}
+
     <section class="table-shell">
         <div class="section-heading">
             <div>
@@ -129,39 +169,6 @@
         </div>
     </section>
 
-    {% if ai_enabled %}
-    <section class="ai-panel">
-        <div class="ai-panel__header">
-            <div>
-                <p class="ai-panel__eyebrow">KI-gestützt</p>
-                <h2>KI-Einordnung</h2>
-            </div>
-            {% if ai_explanation %}
-            <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
-                <button class="secondary-button" type="submit">↻ Neu</button>
-            </form>
-            {% endif %}
-        </div>
-        {% if ai_explanation %}
-            <div class="ai-panel__body">
-                <p>{{ ai_explanation }}</p>
-            </div>
-            <div class="ai-panel__footer">
-                <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
-            </div>
-        {% elif generating %}
-            <div class="ai-panel__body">
-                <p><em>Analyse läuft… Seite aktualisiert sich automatisch.</em></p>
-            </div>
-        {% else %}
-            <form class="inline-form"
-                  method="POST"
-                  action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
-                <button type="submit" class="primary-cta">KI-Einordnung erstellen</button>
-            </form>
-        {% endif %}
-    </section>
-    {% endif %}
     {% endif %}
 </article>
 {% endblock %}

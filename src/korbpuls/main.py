@@ -137,10 +137,15 @@ async def _run_team_analysis(
             model=config.model,
         )
         prompt = (
-            f"Analysiere das Team '{team_name}' in der Liga mit ID {ligaid}. "
-            f"Sprache: de"
+            f"TEAM_NAME={team_name}\n"
+            f"LIGA_ID={ligaid}\n"
+            f"LANGUAGE=de\n\n"
+            "Analyze this team following the skill steps. "
+            "Return a single <p> element with 4-6 sentences of "
+            "flowing basketball analysis. Use <strong> sparingly. "
+            "No markdown. No jargon. Sound like a journalist."
         )
-        response = await analyst.run(prompt)
+        response = await analyst.run(user_msg=prompt, max_iterations=15)
         result: TeamAnalysis = response.get_pydantic_model(TeamAnalysis)
 
         cache.write_ai_analysis(team_slug, result.conclusion)
@@ -158,9 +163,16 @@ async def _run_prediction_narrative(config: AIConfig, ligaid: str) -> None:
             model=config.model,
         )
         prompt = (
-            f"Erstelle eine Ligaprognose für die Liga mit ID {ligaid}. " f"Sprache: de"
+            f"LIGA_ID={ligaid}\n"
+            f"LANGUAGE=de\n\n"
+            "Analyze this league following the skill steps. "
+            "Return two separate fields:\n"
+            "- table: raw HTML <table> with Team/W/L/Pts/Diff\n"
+            "- explanation: a single <p> element with 3-5 "
+            "sentences of flowing basketball analysis. "
+            "No markdown. No jargon. Sound like a journalist."
         )
-        response = await oracle.run(prompt)
+        response = await oracle.run(user_msg=prompt, max_iterations=15)
         result: LeaguePrediction = response.get_pydantic_model(LeaguePrediction)
 
         cache.write_ai_prediction(result.table, result.explanation)
@@ -205,6 +217,7 @@ async def fetch_league(
         )
 
     # Start background fetch and redirect to loading page
+    cache_dir.clear()
     cache_dir.ensure_exists()
     cache_dir.write_status("pending")
     background_tasks.add_task(fetch_and_cache_league, ligaid)
@@ -246,6 +259,7 @@ async def refresh_league(
     if not cache_dir.liga_exists():
         raise HTTPException(status_code=404, detail="Liga nicht gefunden")
 
+    cache_dir.clear()
     cache_dir.ensure_exists()
     cache_dir.write_status("pending")
     background_tasks.add_task(fetch_and_cache_league, ligaid)
@@ -291,6 +305,8 @@ async def loading_page(
         if status_path.exists():
             age = time.time() - status_path.stat().st_mtime
             if age < 10:
+                cache_dir.clear()
+                cache_dir.ensure_exists()
                 cache_dir.write_status("pending")
                 background_tasks.add_task(
                     fetch_and_cache_league,
