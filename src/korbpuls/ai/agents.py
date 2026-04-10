@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 from pathlib import Path
 
 from llama_index.core.agent.workflow import FunctionAgent
@@ -56,14 +57,19 @@ def _load_skill(filename: str) -> str:
 
 def _make_llm(api_base: str, api_key: str, model: str) -> OpenAILike:
     """Create a configured OpenAI-compatible LLM instance."""
-    return OpenAILike(
-        model=model,
-        api_base=api_base,
-        api_key=api_key,
-        is_chat_model=True,
-        is_function_calling_model=True,
-        timeout=300,  # 5 minutes timeout for long-running commands
-    )
+    llm_kwargs: dict[str, Any] = {
+        "model": model,
+        "api_base": api_base,
+        "api_key": api_key,
+        "is_chat_model": True,
+        "is_function_calling_model": True,
+        "timeout": 300,
+        "default_headers": {
+            "X-Title": "KorbPuls.de",
+            "HTTP-Referer": "https://korbpuls.de",
+        },
+    }
+    return OpenAILike(**llm_kwargs)
 
 
 def get_analyst(
@@ -77,16 +83,17 @@ def get_analyst(
 
     return FunctionAgent(
         name="Analyst",
-        description="Analyze a single basketball team and produce a short paragraph.",
+        description="Analyze one basketball team in a short paragraph.",
         llm=_make_llm(api_base, api_key, model),
         tools=[run_korb_command],
         system_prompt=(
             "You are the basketball team analysis agent.\n\n"
-            "TOOL USAGE: Call `run_korb_command` with only the flags and "
-            "subcommand. The korb binary is prepended automatically.\n"
-            "Example: run_korb_command('--json --ligaid 51491 standings')\n"
-            "Do NOT include 'uv run korb' in the args string.\n\n"
-            f"Output language: {language}\n\n"
+            "Call `run_korb_command` with only flags and subcommand; "
+            "the binary is prepended automatically. Do not include "
+            "'uv run korb'.\n"
+            f"Write the final answer in {language}.\n"
+            "Return only structured output that satisfies the schema "
+            "exactly.\n\n"
             f"Follow these instructions step by step:\n\n{skill}"
         ),
         output_cls=TeamAnalysis,
@@ -104,16 +111,17 @@ def get_oracle(
 
     return FunctionAgent(
         name="Oracle",
-        description="Predict league final standings and produce an explanation.",
+        description="Predict league standings and explain them.",
         llm=_make_llm(api_base, api_key, model),
         tools=[run_korb_command],
         system_prompt=(
             "You are the basketball league prediction agent.\n\n"
-            "TOOL USAGE: Call `run_korb_command` with only the flags and "
-            "subcommand. The korb binary is prepended automatically.\n"
-            "Example: run_korb_command('--json --ligaid 51491 predict')\n"
-            "Do NOT include 'uv run korb' in the args string.\n\n"
-            f"Output language: {language}\n\n"
+            "Call `run_korb_command` with only flags and subcommand; "
+            "the binary is prepended automatically. Do not include "
+            "'uv run korb'.\n"
+            f"Write the final explanation in {language}.\n"
+            "Return only structured output that satisfies the schema "
+            "exactly.\n\n"
             f"Follow these instructions step by step:\n\n{skill}"
         ),
         output_cls=LeaguePrediction,
