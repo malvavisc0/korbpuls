@@ -16,6 +16,17 @@
         <p class="page-meta">{{ liga_name }}<br>Stand: {{ cached_at }}</p>
     </header>
 
+    <nav class="segmented-nav" aria-label="Seitennavigation">
+        <div class="segmented-nav__tabs">
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}" class="segmented-nav__tab">Tabelle</a>
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan" class="segmented-nav__tab">Spielplan</a>
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/prognose" class="segmented-nav__tab segmented-nav__tab--active" aria-current="page">KI-Prognose</a>
+        </div>
+        <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/aktualisieren">
+            <button type="submit" class="refresh-button">↻ Neu laden</button>
+        </form>
+    </nav>
+
     {% if is_finished %}
     <section class="surface finished-note">
         <p>Saison beendet.</p>
@@ -72,7 +83,7 @@
                 </tbody>
             </table>
         </div>
-        <p class="note">Tipp = vorhergesagter Gewinner</p>
+        <p class="note">Tipp = erwarteter Sieger</p>
     </section>
 
     <section class="table-shell">
@@ -92,8 +103,8 @@
                         <th class="col-short">S</th>
                         <th class="col-short">N</th>
                         <th class="col-short">U</th>
-                        <th class="col-number">PF</th>
-                        <th class="col-number">PA</th>
+                        <th class="col-number hide-mobile">PF</th>
+                        <th class="col-number hide-mobile">PA</th>
                         <th class="col-diff">Diff</th>
                         <th class="col-points">Pkt</th>
                     </tr>
@@ -107,8 +118,8 @@
                         <td class="col-short">{{ row.w }}</td>
                         <td class="col-short">{{ row.losses }}</td>
                         <td class="col-short">{{ row.d }}</td>
-                        <td class="col-number">{{ row.pf }}</td>
-                        <td class="col-number">{{ row.pa }}</td>
+                        <td class="col-number hide-mobile">{{ row.pf }}</td>
+                        <td class="col-number hide-mobile">{{ row.pa }}</td>
                         <td class="col-diff {% if row.diff > 0 %}diff-positive{% elif row.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ row.diff }}</td>
                         <td class="col-points"><strong>{{ row.pts }}</strong></td>
                     </tr>
@@ -123,7 +134,7 @@
         <div class="ai-panel__header">
             <div>
                 <p class="ai-panel__eyebrow">KI-gestützt</p>
-                <h2>KI-Erklärung</h2>
+                <h2>KI-Einordnung</h2>
             </div>
             {% if ai_explanation %}
             <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
@@ -135,14 +146,6 @@
             <div class="ai-panel__body">
                 <p>{{ ai_explanation }}</p>
             </div>
-            {% if ai_table %}
-            <div class="ai-panel__supplement">
-                <details class="ai-details">
-                    <summary>Zusätzliche KI-Ausgabe</summary>
-                    <pre class="ai-output-raw">{{ ai_table }}</pre>
-                </details>
-            </div>
-            {% endif %}
             <div class="ai-panel__footer">
                 <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
             </div>
@@ -154,7 +157,7 @@
             <form class="inline-form"
                   method="POST"
                   action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
-                <button type="submit">KI-Erklärung generieren</button>
+                <button type="submit" class="primary-cta">KI-Einordnung erstellen</button>
             </form>
         {% endif %}
     </section>

@@ -117,4 +117,4 @@ Write the paragraph in the selected `LANGUAGE`.
 
 ## Output
 
-Return the paragraph directly. Do **not** save to a file.
+Return the paragraph directly. Do **not** save to a file. **Always use HTML syntax instead of Markdown**.

@@ -97,4 +97,4 @@ Keep it brief (caption-like) and avoid bullet points.
 
 ## Output
 
-Return: (1) the markdown table and (2) the explanation paragraph.
+Return: (1) the markdown table and (2) the explanation paragraph. **Always use HTML syntax instead of Markdown**.

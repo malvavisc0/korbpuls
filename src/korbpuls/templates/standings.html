@@ -13,13 +13,25 @@
         </p>
     </header>
 
-    <nav class="action-bar" aria-label="Seitennavigation">
-        <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan</a>
-        <a href="/liga/{{ ligaid }}/{{ liga_slug }}/prognose">Prognose</a>
+    <nav class="segmented-nav" aria-label="Seitennavigation">
+        <div class="segmented-nav__tabs">
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}" class="segmented-nav__tab segmented-nav__tab--active" aria-current="page">Tabelle</a>
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan" class="segmented-nav__tab">Spielplan</a>
+            {% if prediction_eligible %}
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/prognose" class="segmented-nav__tab">KI-Prognose</a>
+            {% endif %}
+        </div>
         <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/aktualisieren">
-            <button type="submit">↻ Neu laden</button>
+            <button type="submit" class="refresh-button">↻ Neu laden</button>
         </form>
     </nav>
+
+    {% if prediction_eligible %}
+    <section class="ai-teaser-strip">
+        <p>Sieh dir die KI-Prognose für offene Spiele und den möglichen Endstand an.</p>
+        <a href="/liga/{{ ligaid }}/{{ liga_slug }}/prognose" class="ai-teaser-cta">KI-Prognose öffnen</a>
+    </section>
+    {% endif %}
 
     <section class="table-shell">
         <div class="table-scroll">
@@ -36,8 +48,8 @@
                         <th class="col-number">PA</th>
                         <th class="col-diff">Diff</th>
                         <th class="col-points">Pkt</th>
-                        <th class="col-number">Ø PF</th>
-                        <th class="col-number">Ø PA</th>
+                        <th class="col-number hide-mobile">Ø Erzielt</th>
+                        <th class="col-number hide-mobile">Ø Kassiert</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -57,8 +69,8 @@
                         <td class="col-number">{{ row.pa }}</td>
                         <td class="col-diff {% if row.diff > 0 %}diff-positive{% elif row.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ row.diff }}</td>
                         <td class="col-points"><strong>{{ row.pts }}</strong></td>
-                        <td class="col-number">{{ row.avg_pf }}</td>
-                        <td class="col-number">{{ row.avg_pa }}</td>
+                        <td class="col-number hide-mobile">{{ row.avg_pf }}</td>
+                        <td class="col-number hide-mobile">{{ row.avg_pa }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -66,6 +78,6 @@
         </div>
     </section>
 
-    <p class="note">Klick aufs Team für Details.</p>
+    <p class="note">Auf den Teamnamen tippen für mehr Details.</p>
 </article>
 {% endblock %}

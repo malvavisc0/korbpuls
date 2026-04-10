@@ -6,9 +6,10 @@
 <section class="hero page--narrow">
     <article class="hero-card">
         <div class="hero__content">
-            <h1>Deine Liga im Blick</h1>
+            <p class="eyebrow">Basketball-Ligaanalyse</p>
+            <h1>Deine Liga auf einen Blick</h1>
             <p>
-                Tabelle, Spielplan, Teamstats und KI-Prognosen — alles aus deiner
+                Tabelle, Teamvergleich und KI-Einschätzungen für deine
                 basketball-bund.net Liga, klar aufbereitet.
             </p>
         </div>
@@ -21,16 +22,33 @@
                     id="ligaid"
                     name="ligaid"
                     required
-                    placeholder="51491"
+                    placeholder="12345"
                     inputmode="numeric"
                 >
-                <button type="submit">Los geht's</button>
+                <button type="submit" class="primary-cta">Start</button>
             </div>
             <p class="hint">
-                Du findest die Liga-ID in der URL auf basketball-bund.net — z.B.
-                <code>liga_id=51491</code>
+                Du findest die Liga-ID in der URL auf basketball-bund.net —
+                z.B. <code>liga_id=12345</code>
             </p>
         </form>
+
+        <div class="feature-chips">
+            <span class="chip">Tabelle</span>
+            <span class="chip">Teamvergleich</span>
+            <span class="chip">KI-Prognose</span>
+        </div>
+
+        <div class="benefit-bullets">
+            <p>• Tabelle und aktuelle Form sehen</p>
+            <p>• Teams mit klaren Zahlen vergleichen</p>
+            <p>• KI-Einschätzungen sofort abrufen</p>
+        </div>
+
+        <p class="disclaimer">
+            korbPuls ist ein unabhängiges Hobbyprojekt und steht in
+            keiner Verbindung zum DBB oder basketball-bund.net.
+        </p>
     </article>
 </section>
 {% endblock %}

@@ -38,6 +38,7 @@ class StandingsView(BaseModel):
     ligaid: str
     cached_at: str
     rows: list[StandingsRow]
+    prediction_eligible: bool = True
 
 
 class GameResult(BaseModel):
@@ -61,7 +62,8 @@ class TeamMetrics(BaseModel):
     blowouts: int  # wins by >= 15
     close_games: int  # games decided by <= 5
     volatility: float  # stddev of point differential
-    last_5: str  # e.g., "4S-1N"
+    last_5: str  # e.g., "4 Siege, 1 Niederlage"
+    current_streak: str  # e.g., "3 Siege in Folge"
 
 
 class ScheduleGame(BaseModel):
@@ -85,6 +87,7 @@ class ScheduleView(BaseModel):
     liga_slug: str
     ligaid: str
     games: list[ScheduleGame]
+    prediction_eligible: bool = True
 
 
 class TeamView(BaseModel):
@@ -95,16 +98,22 @@ class TeamView(BaseModel):
     liga_name: str
     liga_slug: str
     ligaid: str
+    rank: int
+    total_teams: int
     record: str
     points_summary: str
     avg_summary: str
-    form_curve: str
+    avg_pf: float
+    avg_pa: float
+    total_diff: int
     metrics: TeamMetrics
     results: list[GameResult]
     upcoming_games: list[ScheduleGame]
     is_finished: bool = False
     ai_analysis: str | None = None
     ai_enabled: bool = False
+    ai_analysis_eligible: bool = False
+    ai_analysis_ineligible_reason: str | None = None
 
 
 class PredictionGame(BaseModel):
@@ -143,6 +152,8 @@ class PredictionView(BaseModel):
     ligaid: str
     cached_at: str
     is_finished: bool
+    prediction_eligible: bool = True
+    prediction_ineligible_reason: str | None = None
     predictions: list[PredictionGame]
     standings: list[PredictionStandingsRow]
     ai_table: str | None = None
@@ -219,6 +230,41 @@ def _parse_game_result(raw: dict[str, Any]) -> GameResult:
     )
 
 
+def _compute_streak(results: list[GameResult]) -> str:
+    """Compute current streak from most recent result backward.
+
+    Args:
+        results: List of game results, most recent last
+
+    Returns:
+        German string describing current streak, e.g. "3 Siege in Folge"
+    """
+    if not results:
+        return ""
+
+    # Work backward from most recent result
+    streak_count = 0
+    first_result = results[-1].result
+
+    for r in reversed(results):
+        if r.result == first_result:
+            streak_count += 1
+        else:
+            break
+
+    if streak_count == 0:
+        return ""
+    elif streak_count == 1:
+        return f"1 {first_result}"
+    else:
+        if first_result == "Sieg":
+            return f"{streak_count} Siege in Folge"
+        elif first_result == "Niederlage":
+            return f"{streak_count} Niederlagen in Folge"
+        else:
+            return f"{streak_count} {first_result}"
+
+
 def _compute_metrics(results: list[GameResult]) -> TeamMetrics:
     """Compute quality metrics from game results.
 
@@ -236,7 +282,8 @@ def _compute_metrics(results: list[GameResult]) -> TeamMetrics:
             blowouts=0,
             close_games=0,
             volatility=0.0,
-            last_5="0S-0N",
+            last_5="0 Siege, 0 Niederlagen",
+            current_streak="",
         )
 
     wins = [r for r in results if r.result == "Sieg"]
@@ -260,6 +307,9 @@ def _compute_metrics(results: list[GameResult]) -> TeamMetrics:
     wins_l5 = sum(1 for r in last_5_results if r.result == "Sieg")
     losses_l5 = sum(1 for r in last_5_results if r.result == "Niederlage")
 
+    last_5 = f"{wins_l5} Siege, {losses_l5} Niederlagen"
+    current_streak = _compute_streak(results)
+
     return TeamMetrics(
         win_rate=win_rate,
         avg_win_margin=avg_win,
@@ -267,7 +317,8 @@ def _compute_metrics(results: list[GameResult]) -> TeamMetrics:
         blowouts=blowouts,
         close_games=close_games,
         volatility=volatility,
-        last_5=f"{wins_l5}S-{losses_l5}N",
+        last_5=last_5,
+        current_streak=current_streak,
     )
 
 
@@ -354,24 +405,29 @@ def _summary_from_results(
     return pts, avg
 
 
-def _build_form_curve(results: list[GameResult]) -> str:
-    """Build visual form curve from last 10 results.
+def _get_team_rank_and_total(team_name: str, cache: CacheDir) -> tuple[int, int]:
+    """Look up team's current rank and total team count from standings.
 
     Args:
-        results: List of game results
+        team_name: Full team name
+        cache: CacheDir to read standings from
 
     Returns:
-        Unicode bar chart string
+        Tuple of (rank, total_teams), defaults to (0, 0) if not found
     """
-    chars = []
-    for r in results[-10:]:
-        if r.result == "Sieg":
-            chars.append("█")
-        elif r.result == "Niederlage":
-            chars.append("▄")
-        else:
-            chars.append("░")
-    return "".join(chars)
+    try:
+        standings_data = cache.read_json("standings.json")
+    except CacheMiss:
+        return 0, 0
+
+    standings_list = standings_data.get("standings", [])
+    total_teams = len(standings_list)
+
+    for rank, team in enumerate(standings_list, start=1):
+        if team["name"] == team_name:
+            return rank, total_teams
+
+    return 0, total_teams
 
 
 def _get_upcoming_games(
@@ -431,6 +487,55 @@ def _is_season_finished(schedule_games: list[ScheduleGame]) -> bool:
     return True
 
 
+def _check_prediction_eligible(
+    cache: CacheDir,
+) -> tuple[bool, str | None]:
+    """Check whether predictions are available for this league.
+
+    Conditions:
+    1. Season must not be finished.
+    2. At least half of the total season matches must have
+       been played (double round-robin: n × (n-1) total).
+
+    Args:
+        cache: CacheDir for the league
+
+    Returns:
+        Tuple of (eligible, reason). reason is a German error
+        message when not eligible, None when eligible.
+    """
+    schedule_data = cache.read_json("schedule.json")
+    schedule_games = [
+        _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
+    ]
+    if _is_season_finished(schedule_games):
+        return False, (
+            "Die Saison ist bereits beendet. "
+            "Prognosen sind nicht mehr nötig — "
+            "der Endstand steht auf der Tabellenseite."
+        )
+
+    standings_data = cache.read_json("standings.json")
+    teams = standings_data.get("standings", [])
+    n = len(teams)
+    if n < 2:
+        return False, "Zu wenige Teams für eine Prognose."
+
+    total_gp = sum(t.get("gp", 0) for t in teams)
+    games_played = total_gp // 2
+    total_season_games = n * (n - 1)
+    half = total_season_games // 2
+
+    if games_played < half:
+        return False, (
+            f"Noch nicht genug Spieldaten für eine Prognose. "
+            f"Bisher {games_played} von {total_season_games} "
+            f"Spielen absolviert — mindestens {half} nötig."
+        )
+
+    return True, None
+
+
 def present_standings(ligaid: str) -> StandingsView:
     """Build view model for standings page.
 
@@ -467,12 +572,15 @@ def present_standings(ligaid: str) -> StandingsView:
             )
         )
 
+    eligible, _ = _check_prediction_eligible(cache)
+
     return StandingsView(
         liga_name=meta.league_name,
         liga_slug=meta.liga_slug,
         ligaid=meta.ligaid,
         cached_at=meta.cached_at,
         rows=rows,
+        prediction_eligible=eligible,
     )
 
 
@@ -500,9 +608,21 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     team_data = cache.read_team_json(team_slug)
     results = [_parse_game_result(r) for r in team_data.get("results", [])]
 
-    record, pts_summary, avg_summary = _compute_summary(results, team_name, cache)
+    record, pts_summary, avg_summary = _compute_summary(
+        results,
+        team_name,
+        cache,
+    )
     metrics = _compute_metrics(results)
-    form_curve = _build_form_curve(results)
+    rank, total_teams = _get_team_rank_and_total(team_name, cache)
+
+    # Compute clean numeric averages and diff for stat cards
+    total_games = len(results)
+    total_pf = sum(r.our_score for r in results)
+    total_pa = sum(r.opp_score for r in results)
+    avg_pf = round(total_pf / total_games, 1) if total_games else 0.0
+    avg_pa = round(total_pa / total_games, 1) if total_games else 0.0
+    total_diff = total_pf - total_pa
 
     schedule_data = cache.read_json("schedule.json")
     upcoming = _get_upcoming_games(schedule_data, team_name)
@@ -517,22 +637,39 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     if ai_enabled:
         ai_analysis = cache.read_ai_analysis(team_slug)
 
+    # AI analysis eligibility: need >= 4 games
+    min_games = 4
+    games_played = len(results)
+    ai_eligible = ai_enabled and games_played >= min_games
+    ai_reason: str | None = None
+    if ai_enabled and not ai_eligible:
+        ai_reason = (
+            f"Mindestens {min_games} Spiele nötig "
+            f"— bisher {games_played} absolviert."
+        )
+
     return TeamView(
         team_name=team_name,
         team_slug=team_slug,
         liga_name=meta.league_name,
         liga_slug=meta.liga_slug,
         ligaid=meta.ligaid,
+        rank=rank,
+        total_teams=total_teams,
         record=record,
         points_summary=pts_summary,
         avg_summary=avg_summary,
-        form_curve=form_curve,
+        avg_pf=avg_pf,
+        avg_pa=avg_pa,
+        total_diff=total_diff,
         metrics=metrics,
         results=results,
         upcoming_games=upcoming,
         is_finished=is_finished,
         ai_analysis=ai_analysis,
         ai_enabled=ai_enabled,
+        ai_analysis_eligible=ai_eligible,
+        ai_analysis_ineligible_reason=ai_reason,
     )
 
 
@@ -555,11 +692,14 @@ def present_schedule(ligaid: str) -> ScheduleView:
     games = [_parse_schedule_game(g) for g in data.get("schedule", [])]
     games.sort(key=lambda g: g.date)
 
+    eligible, _ = _check_prediction_eligible(cache)
+
     return ScheduleView(
         liga_name=meta.league_name,
         liga_slug=meta.liga_slug,
         ligaid=meta.ligaid,
         games=games,
+        prediction_eligible=eligible,
     )
 
 
@@ -579,6 +719,9 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
     data = cache.read_json("predict.json")
+
+    # Check eligibility
+    eligible, reason = _check_prediction_eligible(cache)
 
     # Check if season is finished
     schedule_data = cache.read_json("schedule.json")
@@ -621,8 +764,8 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
 
     ai_table = None
     ai_explanation = None
-    # Only load AI prediction if season is still active
-    if ai_enabled and not is_finished:
+    # Only load AI prediction if eligible and active
+    if ai_enabled and eligible:
         narrative = cache.read_ai_prediction()
         if narrative:
             ai_table = narrative.get("table")
@@ -634,6 +777,8 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
         ligaid=meta.ligaid,
         cached_at=meta.cached_at,
         is_finished=is_finished,
+        prediction_eligible=eligible,
+        prediction_ineligible_reason=reason,
         predictions=predictions,
         standings=standings,
         ai_table=ai_table,

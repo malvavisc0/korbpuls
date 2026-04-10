@@ -19,12 +19,10 @@ from pydantic import BaseModel
 
 from korbpuls import presenters
 from korbpuls.ai import AIConfig
-from korbpuls.ai.agents import (LeaguePrediction, TeamAnalysis, get_analyst,
-                                get_oracle)
+from korbpuls.ai.agents import LeaguePrediction, TeamAnalysis, get_analyst, get_oracle
 from korbpuls.auth import validate_api_key
 from korbpuls.cache import CacheDir, CacheMiss, LigaMeta
-from korbpuls.korb_client import (KorbError, run_download, run_predict,
-                                  run_schedule)
+from korbpuls.korb_client import KorbError, run_download, run_predict, run_schedule
 from korbpuls.korb_client import run_standings as korb_standings
 from korbpuls.korb_client import run_team as korb_team
 from korbpuls.slugify import slugify
@@ -34,9 +32,7 @@ logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
 app = FastAPI(title="korbPuls")
-app.mount(
-    "/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static"
-)
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
@@ -421,6 +417,17 @@ async def prediction_page(
             detail="Daten nicht gefunden",
         ) from e
 
+    if not view.prediction_eligible:
+        return templates.TemplateResponse(
+            request,
+            "error.html",
+            {
+                "message": "Prognose nicht verfügbar",
+                "hint": view.prediction_ineligible_reason,
+                "retry_url": None,
+            },
+        )
+
     ctx = view.model_dump()
     ctx["generating"] = request.query_params.get("generating") == "1"
     return templates.TemplateResponse(
@@ -443,10 +450,27 @@ async def generate_team_ai(
     """Trigger AI team analysis generation."""
     config = AIConfig.from_env()
     if config is None:
-        raise HTTPException(status_code=503, detail="KI-Funktion nicht konfiguriert")
+        raise HTTPException(
+            status_code=503,
+            detail="KI-Funktion nicht konfiguriert",
+        )
 
     cache = CacheDir(ligaid)
-    team_url = f"/liga/{ligaid}/{liga_slug}/team/{team_slug}"
+    team_url = f"/liga/{ligaid}/{liga_slug}" f"/team/{team_slug}"
+
+    # Check eligibility (need >= 4 games)
+    try:
+        view = presenters.present_team(ligaid, team_slug, ai_enabled=True)
+    except CacheMiss as e:
+        raise HTTPException(
+            status_code=404,
+            detail="Team nicht gefunden",
+        ) from e
+    if not view.ai_analysis_eligible:
+        raise HTTPException(
+            status_code=403,
+            detail=(view.ai_analysis_ineligible_reason or "Nicht genug Spieldaten"),
+        )
 
     # Cache-first: return cached if data hasn't changed
     if cache.is_ai_analysis_fresh(team_slug):
@@ -456,7 +480,10 @@ async def generate_team_ai(
     meta = cache.read_meta()
     team_name = meta.team_slugs.get(team_slug)
     if not team_name:
-        raise HTTPException(status_code=404, detail="Team nicht gefunden")
+        raise HTTPException(
+            status_code=404,
+            detail="Team nicht gefunden",
+        )
 
     background_tasks.add_task(_run_team_analysis, config, ligaid, team_slug, team_name)
 
@@ -475,18 +502,38 @@ async def generate_prediction_ai(
     """Trigger AI prediction narrative generation."""
     config = AIConfig.from_env()
     if config is None:
-        raise HTTPException(status_code=503, detail="KI-Funktion nicht konfiguriert")
+        raise HTTPException(
+            status_code=503,
+            detail="KI-Funktion nicht konfiguriert",
+        )
 
     cache = CacheDir(ligaid)
     prediction_url = f"/liga/{ligaid}/{liga_slug}/prognose"
 
+    # Block if prediction is not eligible
+    try:
+        view = presenters.present_prediction(ligaid)
+    except CacheMiss as e:
+        raise HTTPException(
+            status_code=404,
+            detail="Daten nicht gefunden",
+        ) from e
+    if not view.prediction_eligible:
+        reason = view.prediction_ineligible_reason or "Prognose nicht verfügbar"
+        raise HTTPException(
+            status_code=403,
+            detail=reason,
+        )
     # Cache-first: return cached if data hasn't changed
     if cache.is_ai_prediction_fresh():
         return RedirectResponse(url=prediction_url, status_code=302)
 
     background_tasks.add_task(_run_prediction_narrative, config, ligaid)
 
-    return RedirectResponse(url=f"{prediction_url}?generating=1", status_code=302)
+    return RedirectResponse(
+        url=f"{prediction_url}?generating=1",
+        status_code=302,
+    )
 
 
 @app.exception_handler(HTTPException)

@@ -10,67 +10,43 @@
 
 {% block main %}
 <article class="page">
-    <header class="page-intro">
-        <p class="eyebrow">Team</p>
-        <h1>{{ team_name }}</h1>
-        <p class="page-meta">{{ liga_name }}</p>
+    <header class="team-hero">
+        <div class="team-hero__name-row">
+            <h1>{{ team_name }}</h1>
+            {% if rank > 0 %}
+            <span class="rank-badge">Platz {{ rank }} von {{ total_teams }}</span>
+            {% endif %}
+        </div>
+        <p class="team-hero__league">{{ liga_name }}</p>
+        <p class="team-hero__summary">
+            {{ record }}
+            {% if metrics.current_streak %}
+            <span class="streak-badge {% if 'Niederlage' in metrics.current_streak %}streak-badge--loss{% endif %}">{{ metrics.current_streak }}</span>
+            {% endif %}
+        </p>
     </header>
 
-    <section class="stats-grid" aria-label="Zusammenfassung">
+    <section class="stats-grid" aria-label="Kennzahlen">
         <article class="stat-card">
-            <span class="stat-card__label">Bilanz</span>
-            <span class="stat-card__value">{{ record }}</span>
-            <p class="stat-card__detail">W-L Record</p>
+            <span class="stat-card__label">Siegquote</span>
+            <span class="stat-card__value">{{ "%.1f"|format(metrics.win_rate) }}%</span>
         </article>
         <article class="stat-card">
-            <span class="stat-card__label">Punkte</span>
-            <span class="stat-card__value">{{ points_summary }}</span>
-            <p class="stat-card__detail">Scored · Allowed · Diff</p>
+            <span class="stat-card__label">Ø Erzielt</span>
+            <span class="stat-card__value">{{ avg_pf }}</span>
         </article>
         <article class="stat-card">
-            <span class="stat-card__label">Schnitt</span>
-            <span class="stat-card__value">{{ avg_summary }}</span>
-            <p class="stat-card__detail">Ø pro Spiel</p>
+            <span class="stat-card__label">Ø Kassiert</span>
+            <span class="stat-card__value">{{ avg_pa }}</span>
         </article>
-    </section>
-
-    <section class="surface">
-        <div class="section-heading">
-            <div>
-                <p class="eyebrow">Performance</p>
-                <h2>Kennzahlen</h2>
-            </div>
-        </div>
-        <div class="metric-grid">
-            <article class="metric-card">
-                <span class="metric-card__label">Siegquote</span>
-                <span class="metric-card__value">{{ "%.1f"|format(metrics.win_rate) }}%</span>
-            </article>
-            <article class="metric-card">
-                <span class="metric-card__label">Ø Siegmarge</span>
-                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_win_margin) }}</span>
-            </article>
-            <article class="metric-card">
-                <span class="metric-card__label">Ø Niederlagemarge</span>
-                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_loss_margin) }}</span>
-            </article>
-            <article class="metric-card">
-                <span class="metric-card__label">Blowouts (≥15)</span>
-                <span class="metric-card__value">{{ metrics.blowouts }}</span>
-            </article>
-            <article class="metric-card">
-                <span class="metric-card__label">Close Games (≤5)</span>
-                <span class="metric-card__value">{{ metrics.close_games }}</span>
-            </article>
-            <article class="metric-card">
-                <span class="metric-card__label">Letzte 5</span>
-                <span class="metric-card__value">{{ metrics.last_5 }}</span>
-            </article>
-        </div>
+        <article class="stat-card">
+            <span class="stat-card__label">Differenz</span>
+            <span class="stat-card__value">{{ "%+d"|format(total_diff) }}</span>
+        </article>
     </section>
 
     {% if ai_enabled %}
-    <section class="ai-panel">
+    <section class="ai-panel ai-panel--spotlight">
         <div class="ai-panel__header">
             <div>
                 <p class="ai-panel__eyebrow">KI-gestützt</p>
@@ -83,6 +59,7 @@
             {% endif %}
         </div>
         {% if ai_analysis %}
+            <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
             <div class="ai-panel__body">
                 <p>{{ ai_analysis }}</p>
             </div>
@@ -90,14 +67,26 @@
                 <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
             </div>
         {% elif generating %}
+            <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
             <div class="ai-panel__body">
                 <p><em>Analyse läuft… Seite aktualisiert sich automatisch.</em></p>
             </div>
+        {% elif not ai_analysis_eligible %}
+            <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
+            <div class="ai-panel__body">
+                <p class="muted">{{ ai_analysis_ineligible_reason }}</p>
+            </div>
         {% else %}
+            <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
+            <div class="ai-benefits">
+                <p>• Aktuelle Form einordnen</p>
+                <p>• Stärken und Schwächen erkennen</p>
+                <p>• Saisonverlauf verstehen</p>
+            </div>
             <form class="inline-form"
                   method="POST"
                   action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
-                <button type="submit">Analyse starten</button>
+                <button type="submit" class="primary-cta">KI-Analyse erstellen</button>
             </form>
         {% endif %}
     </section>
@@ -107,15 +96,16 @@
         <div class="section-heading">
             <div>
                 <p class="eyebrow">Ergebnisse</p>
-                <h2>Spiele</h2>
+                <h2>Letzte Spiele</h2>
             </div>
+            <p class="section-meta">Letzte 5: {{ metrics.last_5 }}</p>
         </div>
         <div class="table-scroll">
             <table>
                 <thead>
                     <tr>
                         <th>Gegner</th>
-                        <th class="col-short">H/A</th>
+                        <th class="col-short">Ort</th>
                         <th class="col-score">Ergebnis</th>
                         <th class="col-diff">Diff</th>
                         <th>Ausgang</th>
@@ -176,11 +166,39 @@
         </div>
     </section>
     {% endif %}
+
+    <section class="surface">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Leistung</p>
+                <h2>Weitere Zahlen</h2>
+            </div>
+        </div>
+        <div class="metric-grid">
+            <article class="metric-card">
+                <span class="metric-card__label">Ø Siegmarge</span>
+                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_win_margin) }}</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__label">Ø Niederlagemarge</span>
+                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_loss_margin) }}</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__label">Klare Siege (≥15 Punkte)</span>
+                <span class="metric-card__value">{{ metrics.blowouts }}</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__label">Knappe Spiele (≤5 Punkte)</span>
+                <span class="metric-card__value">{{ metrics.close_games }}</span>
+            </article>
+        </div>
+    </section>
 </article>
 {% endblock %}
 
 {% block footer %}
 <div class="footer-actions">
     <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Tabelle</a>
+    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan</a>
 </div>
 {% endblock %}

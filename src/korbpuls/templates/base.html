@@ -19,7 +19,7 @@
         <div class="container site-header__inner">
             <nav class="site-nav">
                 <a class="brand" href="/">
-                    <span class="brand__mark">korbPuls</span>
+                    <span class="brand__mark">korbPuls <span class="brand__icon" aria-hidden="true">🏀</span></span>
                     <span class="brand__tagline">Deine Liga. Deine Zahlen.</span>
                 </a>
                 {% if liga_name %}
@@ -40,6 +40,9 @@
             {% block footer %}
             
             {% endblock %}
+            <p class="site-credit">
+                Made with ❤️ · Powered by <a href="https://github.com/malvavisc0/korb" target="_blank" rel="noopener">korb</a>·
+            </p>
         </div>
     </footer>
 </body>
