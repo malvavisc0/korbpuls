@@ -11,23 +11,23 @@
 {% block main %}
 <article class="page">
     <header class="page-intro">
-        <p class="eyebrow">Saisonverlauf</p>
+        <p class="eyebrow">Prognose</p>
         <h1>Saisonprognose</h1>
         <p class="page-meta">{{ liga_name }}<br>Stand: {{ cached_at }}</p>
     </header>
 
     {% if is_finished %}
     <section class="surface finished-note">
-        <p>Die Saison ist bereits abgeschlossen.</p>
-        <p>Eine Prognose ist deshalb nicht mehr verfügbar.</p>
-        <p>Die endgültige Tabelle finden Sie auf der <a href="/liga/{{ ligaid }}/{{ liga_slug }}">Tabellenseite</a>.</p>
+        <p>Saison beendet.</p>
+        <p>Prognose nicht mehr nötig.</p>
+        <p>Endstand auf der <a href="/liga/{{ ligaid }}/{{ liga_slug }}">Tabellenseite</a>.</p>
     </section>
     {% else %}
     <section class="table-shell">
         <div class="section-heading">
             <div>
-                <p class="eyebrow">Modellierte Ergebnisse</p>
-                <h2>Vorhergesagte Spiele</h2>
+                <p class="eyebrow">Vorhersage</p>
+                <h2>Offene Spiele</h2>
             </div>
         </div>
         <div class="table-scroll">
@@ -72,14 +72,14 @@
                 </tbody>
             </table>
         </div>
-        <p class="note">* = vorhergesagter Gewinner</p>
+        <p class="note">Tipp = vorhergesagter Gewinner</p>
     </section>
 
     <section class="table-shell">
         <div class="section-heading">
             <div>
-                <p class="eyebrow">Tabellenbild</p>
-                <h2>Erwartete Abschlusstabelle</h2>
+                <p class="eyebrow">Projektion</p>
+                <h2>Hochgerechnete Tabelle</h2>
             </div>
         </div>
         <div class="table-scroll">
@@ -122,12 +122,12 @@
     <section class="ai-panel">
         <div class="ai-panel__header">
             <div>
-                <p class="ai-panel__eyebrow">Automatisch erzeugte Prognose-Einordnung</p>
+                <p class="ai-panel__eyebrow">KI-gestützt</p>
                 <h2>KI-Erklärung</h2>
             </div>
             {% if ai_explanation %}
             <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
-                <button class="secondary-button" type="submit">⟳ Neu generieren</button>
+                <button class="secondary-button" type="submit">↻ Neu</button>
             </form>
             {% endif %}
         </div>
@@ -144,11 +144,11 @@
             </div>
             {% endif %}
             <div class="ai-panel__footer">
-                <p class="disclosure">Die KI-Ausgabe ist ergänzend und kann sprachliche oder strukturelle Ungenauigkeiten enthalten.</p>
+                <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
             </div>
         {% elif generating %}
             <div class="ai-panel__body">
-                <p><em>KI-Erklärung wird generiert… Seite lädt automatisch neu.</em></p>
+                <p><em>Analyse läuft… Seite aktualisiert sich automatisch.</em></p>
             </div>
         {% else %}
             <form class="inline-form"
@@ -165,6 +165,6 @@
 
 {% block footer %}
 <div class="footer-actions">
-    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Zurück zur Tabelle</a>
+    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Tabelle</a>
 </div>
 {% endblock %}

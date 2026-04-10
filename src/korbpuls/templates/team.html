@@ -11,8 +11,8 @@
 {% block main %}
 <article class="page">
     <header class="page-intro">
-        <p class="eyebrow">Teamdetail</p>
-        <h1>Teamübersicht: {{ team_name }}</h1>
+        <p class="eyebrow">Team</p>
+        <h1>{{ team_name }}</h1>
         <p class="page-meta">{{ liga_name }}</p>
     </header>
 
@@ -20,35 +20,25 @@
         <article class="stat-card">
             <span class="stat-card__label">Bilanz</span>
             <span class="stat-card__value">{{ record }}</span>
-            <p class="stat-card__detail">Saisonstand des Teams</p>
+            <p class="stat-card__detail">W-L Record</p>
         </article>
         <article class="stat-card">
             <span class="stat-card__label">Punkte</span>
             <span class="stat-card__value">{{ points_summary }}</span>
-            <p class="stat-card__detail">Erzielt, kassiert und Differenz</p>
+            <p class="stat-card__detail">Scored · Allowed · Diff</p>
         </article>
         <article class="stat-card">
             <span class="stat-card__label">Schnitt</span>
             <span class="stat-card__value">{{ avg_summary }}</span>
-            <p class="stat-card__detail">Durchschnitt pro Spiel</p>
+            <p class="stat-card__detail">Ø pro Spiel</p>
         </article>
-    </section>
-
-    <section class="form-panel">
-        <div class="section-heading">
-            <div>
-                <p class="eyebrow">Momentum</p>
-                <h2>Formkurve</h2>
-            </div>
-        </div>
-        <pre class="form-curve">{{ form_curve }}</pre>
     </section>
 
     <section class="surface">
         <div class="section-heading">
             <div>
-                <p class="eyebrow">Qualität</p>
-                <h2>Leistungskennzahlen</h2>
+                <p class="eyebrow">Performance</p>
+                <h2>Kennzahlen</h2>
             </div>
         </div>
         <div class="metric-grid">
@@ -65,11 +55,11 @@
                 <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_loss_margin) }}</span>
             </article>
             <article class="metric-card">
-                <span class="metric-card__label">Deutliche Siege ≥15</span>
+                <span class="metric-card__label">Blowouts (≥15)</span>
                 <span class="metric-card__value">{{ metrics.blowouts }}</span>
             </article>
             <article class="metric-card">
-                <span class="metric-card__label">Knappe Spiele ≤5</span>
+                <span class="metric-card__label">Close Games (≤5)</span>
                 <span class="metric-card__value">{{ metrics.close_games }}</span>
             </article>
             <article class="metric-card">
@@ -83,12 +73,12 @@
     <section class="ai-panel">
         <div class="ai-panel__header">
             <div>
-                <p class="ai-panel__eyebrow">Automatisch erzeugte Einschätzung</p>
+                <p class="ai-panel__eyebrow">KI-gestützt</p>
                 <h2>KI-Analyse</h2>
             </div>
             {% if ai_analysis and not is_finished %}
             <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
-                <button class="secondary-button" type="submit">⟳ Neu generieren</button>
+                <button class="secondary-button" type="submit">↻ Neu</button>
             </form>
             {% endif %}
         </div>
@@ -97,17 +87,17 @@
                 <p>{{ ai_analysis }}</p>
             </div>
             <div class="ai-panel__footer">
-                <p class="disclosure">Die Analyse ist maschinell erstellt und kann sprachliche Ungenauigkeiten enthalten.</p>
+                <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
             </div>
         {% elif generating %}
             <div class="ai-panel__body">
-                <p><em>KI-Analyse wird generiert… Seite lädt automatisch neu.</em></p>
+                <p><em>Analyse läuft… Seite aktualisiert sich automatisch.</em></p>
             </div>
         {% else %}
             <form class="inline-form"
                   method="POST"
                   action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
-                <button type="submit">KI-Analyse generieren</button>
+                <button type="submit">Analyse starten</button>
             </form>
         {% endif %}
     </section>
@@ -116,7 +106,7 @@
     <section class="table-shell">
         <div class="section-heading">
             <div>
-                <p class="eyebrow">Spielhistorie</p>
+                <p class="eyebrow">Ergebnisse</p>
                 <h2>Spiele</h2>
             </div>
         </div>
@@ -158,8 +148,8 @@
     <section class="table-shell">
         <div class="section-heading">
             <div>
-                <p class="eyebrow">Ausblick</p>
-                <h2>Nächste Spiele</h2>
+                <p class="eyebrow">Nächste</p>
+                <h2>Kommende Spiele</h2>
             </div>
         </div>
         <div class="table-scroll">
@@ -191,6 +181,6 @@
 
 {% block footer %}
 <div class="footer-actions">
-    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Zurück zur Tabelle</a>
+    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Tabelle</a>
 </div>
 {% endblock %}

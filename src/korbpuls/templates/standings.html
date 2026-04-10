@@ -5,11 +5,11 @@
 {% block main %}
 <article class="page">
     <header class="page-intro">
-        <p class="eyebrow">Ligaübersicht</p>
+        <p class="eyebrow">Liga</p>
         <h1>Tabelle</h1>
         <p class="page-meta">
             <strong>{{ liga_name }}</strong><br>
-            Zuletzt aktualisiert: {{ cached_at }}
+            Stand: {{ cached_at }}
         </p>
     </header>
 
@@ -17,7 +17,7 @@
         <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan</a>
         <a href="/liga/{{ ligaid }}/{{ liga_slug }}/prognose">Prognose</a>
         <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/aktualisieren">
-            <button type="submit">⟳ Aktualisieren</button>
+            <button type="submit">↻ Neu laden</button>
         </form>
     </nav>
 
@@ -66,6 +66,6 @@
         </div>
     </section>
 
-    <p class="note">Klick auf ein Team öffnet die Teamübersicht.</p>
+    <p class="note">Klick aufs Team für Details.</p>
 </article>
 {% endblock %}

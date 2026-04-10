@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
     <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
@@ -17,7 +20,7 @@
             <nav class="site-nav">
                 <a class="brand" href="/">
                     <span class="brand__mark">korbPuls</span>
-                    <span class="brand__tagline">Basketball-Ligen einfach auswerten</span>
+                    <span class="brand__tagline">Deine Liga. Deine Zahlen.</span>
                 </a>
                 {% if liga_name %}
                 <span class="league-pill">{{ liga_name }}</span>
@@ -35,7 +38,7 @@
     <footer class="site-footer">
         <div class="container site-footer__inner">
             {% block footer %}
-            <a href="/">← Zur Startseite</a>
+            
             {% endblock %}
         </div>
     </footer>

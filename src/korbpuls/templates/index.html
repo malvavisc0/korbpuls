@@ -1,16 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}korbPuls — Basketball-Ligen einfach auswerten{% endblock %}
+{% block title %}korbPuls — Deine Liga. Deine Zahlen.{% endblock %}
 
 {% block main %}
 <section class="hero page--narrow">
     <article class="hero-card">
         <div class="hero__content">
-            <p class="eyebrow">korbPuls</p>
-            <h1>Basketball-Ligen einfach auswerten</h1>
+            <h1>Deine Liga im Blick</h1>
             <p>
-                Tabellen, Teamübersichten, Spielpläne und Prognosen in einer ruhigen,
-                lesbaren Oberfläche statt in rohen HTML-Ausgaben.
+                Tabelle, Spielplan, Teamstats und KI-Prognosen — alles aus deiner
+                basketball-bund.net Liga, klar aufbereitet.
             </p>
         </div>
 
@@ -25,11 +24,11 @@
                     placeholder="51491"
                     inputmode="numeric"
                 >
-                <button type="submit">Laden</button>
+                <button type="submit">Los geht's</button>
             </div>
             <p class="hint">
-                Hinweis: Die Liga-ID steht in der URL der basketball-bund.net Ligaseite.
-                Beispiel: <code>...liga_id=51491</code>
+                Du findest die Liga-ID in der URL auf basketball-bund.net — z.B.
+                <code>liga_id=51491</code>
             </p>
         </form>
     </article>

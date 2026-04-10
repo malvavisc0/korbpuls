@@ -5,8 +5,8 @@
 {% block main %}
 <section class="page--narrow">
     <article class="error-card">
-        <p class="eyebrow">Fehlerzustand</p>
-        <h1>Fehler</h1>
+        <p class="eyebrow">Fehler</p>
+        <h1>Das hat nicht geklappt</h1>
         <p class="message">{{ message }}</p>
         <p class="hint">{{ hint }}</p>
     </article>
@@ -17,9 +17,9 @@
 <div class="footer-actions">
     {% if retry_url %}
     <form class="inline-form" method="POST" action="{{ retry_url }}">
-        <button type="submit">↻ Erneut versuchen</button>
+        <button type="submit">↻ Nochmal</button>
     </form>
     {% endif %}
-    <a href="/">← Zur Startseite</a>
+    <a href="/">← Start</a>
 </div>
 {% endblock %}

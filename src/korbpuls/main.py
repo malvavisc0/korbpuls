@@ -8,42 +8,35 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
 
-from fastapi import (
-    BackgroundTasks,
-    Depends,
-    FastAPI,
-    Form,
-    HTTPException,
-    Request,
-)
-from fastapi import (
-    Path as URLPath,
-)
+from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException
+from fastapi import Path as URLPath
+from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from korbpuls import presenters
 from korbpuls.ai import AIConfig
-from korbpuls.ai.agents import LeaguePrediction, TeamAnalysis, get_analyst, get_oracle
+from korbpuls.ai.agents import (LeaguePrediction, TeamAnalysis, get_analyst,
+                                get_oracle)
 from korbpuls.auth import validate_api_key
 from korbpuls.cache import CacheDir, CacheMiss, LigaMeta
-from korbpuls.korb_client import (
-    KorbError,
-    run_download,
-    run_predict,
-    run_schedule,
-)
+from korbpuls.korb_client import (KorbError, run_download, run_predict,
+                                  run_schedule)
 from korbpuls.korb_client import run_standings as korb_standings
 from korbpuls.korb_client import run_team as korb_team
 from korbpuls.slugify import slugify
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
 app = FastAPI(title="korbPuls")
+app.mount(
+    "/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static"
+)
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
