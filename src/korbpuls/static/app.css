@@ -58,6 +58,7 @@ html { background: var(--kp-base); }
 
 body.app-shell {
     min-height: 100vh;
+    overflow-x: clip;
     color: var(--kp-text);
     background: var(--kp-base);
     position: relative;
@@ -107,6 +108,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     justify-content: space-between;
     gap: 1rem;
     min-height: 3.5rem;
+    flex-wrap: wrap;
 }
 
 .brand {
@@ -144,6 +146,8 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     color: var(--kp-text-secondary);
     font-size: 0.85rem;
     padding: 0.35rem 0.75rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
 }
 
 /* ── Layout ─────────────────────────────────────────────────── */
@@ -212,6 +216,14 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .surface, .hero-card, .loading-card, .error-card, .ai-panel, .form-panel {
     padding: 1.35rem;
+}
+
+.page > *,
+.page-intro,
+.team-hero,
+.section-heading > *,
+.ai-panel__header > * {
+    min-width: 0;
 }
 
 /* ── Hero ───────────────────────────────────────────────────── */
@@ -400,6 +412,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     border: 1px solid var(--kp-border-subtle);
     border-radius: var(--kp-radius);
     padding: 0.25rem;
+    min-width: 0;
 }
 
 .segmented-nav__tab {
@@ -417,6 +430,8 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     font-weight: 600;
     font-size: 0.9rem;
     transition: background 0.15s, color 0.15s;
+    min-width: 0;
+    text-align: center;
 }
 
 .segmented-nav__tab:hover {
@@ -664,6 +679,8 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .table-shell {
     border: 1px solid var(--kp-border);
+    position: relative;
+    overflow: hidden;
 }
 
 .table-scroll table {
@@ -693,6 +710,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 .table-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
 }
 
 .table-scroll table {
@@ -835,6 +853,8 @@ table tbody td {
 .ai-panel__body {
     max-width: 72ch;
     line-height: 1.75;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .ai-panel__body > * + * {
@@ -1059,6 +1079,28 @@ details.ai-details summary {
         align-items: stretch;
     }
 
+    .site-header {
+        position: static;
+    }
+
+    .site-main {
+        padding-top: 0.85rem;
+    }
+
+    .site-nav {
+        gap: 0.75rem;
+        padding: 0.85rem 0;
+    }
+
+    .brand {
+        width: 100%;
+    }
+
+    .league-pill {
+        width: 100%;
+        text-align: center;
+    }
+
     .ai-panel__header {
         flex-direction: column;
         align-items: flex-start;
@@ -1079,18 +1121,39 @@ details.ai-details summary {
 
     .segmented-nav__tabs {
         width: 100%;
+        flex-direction: column;
     }
 
     .segmented-nav__tab {
-        flex: 1;
+        width: 100%;
         justify-content: center;
         min-height: 2.75rem;
+        white-space: normal;
     }
 
     .page-shell,
     .site-header__inner,
     .site-footer__inner {
         width: min(1120px, calc(100% - 1.5rem));
+    }
+
+    .surface,
+    .hero-card,
+    .loading-card,
+    .error-card,
+    .ai-panel,
+    .form-panel {
+        padding: 1rem;
+    }
+
+    .team-hero {
+        padding: 1rem;
+    }
+
+    .table-shell > .section-heading,
+    .table-shell > .note {
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
     .table-scroll table { min-width: 620px; }
@@ -1117,11 +1180,25 @@ details.ai-details summary {
 
     .brand__tagline { display: none; }
 
+    .site-nav {
+        min-height: auto;
+    }
+
     h1 { font-size: 1.5rem; }
     .page-intro h1, .hero h1 { font-size: 1.6rem; }
+    .team-hero__name-row h1 { font-size: 1.85rem; }
 
     .eyebrow, .ai-panel__eyebrow { font-size: 0.82rem; }
     .stat-card__label, .metric-card__label { font-size: 0.85rem; }
+    .stat-card__value, .metric-card__value { font-size: 1.05rem; }
+    .ai-panel__body {
+        font-size: 0.98rem;
+        line-height: 1.6;
+    }
+    .section-heading h2,
+    .ai-panel__header h2 {
+        font-size: 1.2rem;
+    }
 
     .table-scroll table { min-width: 480px; }
 
