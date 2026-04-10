@@ -18,9 +18,11 @@
             <a href="/liga/{{ ligaid }}/{{ liga_slug }}/prognose" class="segmented-nav__tab">KI-Prognose</a>
             {% endif %}
         </div>
+        {% if not is_finished %}
         <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/aktualisieren">
             <button type="submit" class="refresh-button">↻ Neu laden</button>
         </form>
+        {% endif %}
     </nav>
 
     <section class="table-shell">

@@ -7,23 +7,24 @@
     <header class="page-intro">
         <p class="eyebrow">Liga</p>
         <h1>Tabelle</h1>
-        <p class="page-meta">
-            <strong>{{ liga_name }}</strong><br>
-            Stand: {{ cached_at }}
-        </p>
+        <p class="page-meta">Stand: <strong>{{ cached_at }}</strong></p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">
         <div class="segmented-nav__tabs">
             <a href="/liga/{{ ligaid }}/{{ liga_slug }}" class="segmented-nav__tab segmented-nav__tab--active" aria-current="page">Tabelle</a>
+            {% if not is_finished %}
             <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan" class="segmented-nav__tab">Spielplan</a>
+            {% endif %}
             {% if prediction_eligible %}
             <a href="/liga/{{ ligaid }}/{{ liga_slug }}/prognose" class="segmented-nav__tab">KI-Prognose</a>
             {% endif %}
         </div>
+        {% if not is_finished %}
         <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/aktualisieren">
             <button type="submit" class="refresh-button">↻ Neu laden</button>
         </form>
+        {% endif %}
     </nav>
 
     {% if prediction_eligible %}
@@ -40,14 +41,13 @@
                     <tr>
                         <th class="col-short">#</th>
                         <th>Team</th>
+                        <th class="col-points">Pkt</th>
                         <th class="col-short">Sp</th>
                         <th class="col-short">S</th>
                         <th class="col-short">N</th>
-                        <th class="col-short">U</th>
+                        <th class="col-diff">Diff</th>
                         <th class="col-number">PF</th>
                         <th class="col-number">PA</th>
-                        <th class="col-diff">Diff</th>
-                        <th class="col-points">Pkt</th>
                         <th class="col-number hide-mobile">Ø Erzielt</th>
                         <th class="col-number hide-mobile">Ø Kassiert</th>
                     </tr>
@@ -61,14 +61,13 @@
                                 {{ row.name }}
                             </a>
                         </td>
+                        <td class="col-points"><strong>{{ row.pts }}</strong></td>
                         <td class="col-short">{{ row.gp }}</td>
                         <td class="col-short">{{ row.w }}</td>
                         <td class="col-short">{{ row.losses }}</td>
-                        <td class="col-short">{{ row.d }}</td>
+                        <td class="col-diff {% if row.diff > 0 %}diff-positive{% elif row.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ row.diff }}</td>
                         <td class="col-number">{{ row.pf }}</td>
                         <td class="col-number">{{ row.pa }}</td>
-                        <td class="col-diff {% if row.diff > 0 %}diff-positive{% elif row.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ row.diff }}</td>
-                        <td class="col-points"><strong>{{ row.pts }}</strong></td>
                         <td class="col-number hide-mobile">{{ row.avg_pf }}</td>
                         <td class="col-number hide-mobile">{{ row.avg_pa }}</td>
                     </tr>

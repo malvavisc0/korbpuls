@@ -38,6 +38,7 @@ class StandingsView(BaseModel):
     ligaid: str
     cached_at: str
     rows: list[StandingsRow]
+    is_finished: bool = False
     prediction_eligible: bool = True
 
 
@@ -87,6 +88,7 @@ class ScheduleView(BaseModel):
     liga_slug: str
     ligaid: str
     games: list[ScheduleGame]
+    is_finished: bool = False
     prediction_eligible: bool = True
 
 
@@ -142,6 +144,8 @@ class PredictionStandingsRow(BaseModel):
     pa: int
     diff: int
     pts: int
+    avg_pf: float
+    avg_pa: float
 
 
 class PredictionView(BaseModel):
@@ -489,6 +493,8 @@ def _is_season_finished(schedule_games: list[ScheduleGame]) -> bool:
 
 def _check_prediction_eligible(
     cache: CacheDir,
+    *,
+    schedule_games: list[ScheduleGame] | None = None,
 ) -> tuple[bool, str | None]:
     """Check whether predictions are available for this league.
 
@@ -499,15 +505,18 @@ def _check_prediction_eligible(
 
     Args:
         cache: CacheDir for the league
+        schedule_games: Pre-loaded schedule games to avoid
+            redundant file reads. Loaded from cache when *None*.
 
     Returns:
         Tuple of (eligible, reason). reason is a German error
         message when not eligible, None when eligible.
     """
-    schedule_data = cache.read_json("schedule.json")
-    schedule_games = [
-        _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
-    ]
+    if schedule_games is None:
+        schedule_data = cache.read_json("schedule.json")
+        schedule_games = [
+            _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
+        ]
     if _is_season_finished(schedule_games):
         return False, (
             "Die Saison ist bereits beendet. "
@@ -572,7 +581,16 @@ def present_standings(ligaid: str) -> StandingsView:
             )
         )
 
-    eligible, _ = _check_prediction_eligible(cache)
+    # Load schedule once for both is_finished and eligibility
+    schedule_data = cache.read_json("schedule.json")
+    schedule_games = [
+        _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
+    ]
+    is_finished = _is_season_finished(schedule_games)
+    eligible, _ = _check_prediction_eligible(
+        cache,
+        schedule_games=schedule_games,
+    )
 
     return StandingsView(
         liga_name=meta.league_name,
@@ -580,6 +598,7 @@ def present_standings(ligaid: str) -> StandingsView:
         ligaid=meta.ligaid,
         cached_at=meta.cached_at,
         rows=rows,
+        is_finished=is_finished,
         prediction_eligible=eligible,
     )
 
@@ -692,13 +711,18 @@ def present_schedule(ligaid: str) -> ScheduleView:
     games = [_parse_schedule_game(g) for g in data.get("schedule", [])]
     games.sort(key=lambda g: g.date)
 
-    eligible, _ = _check_prediction_eligible(cache)
+    is_finished = _is_season_finished(games)
+    eligible, _ = _check_prediction_eligible(
+        cache,
+        schedule_games=games,
+    )
 
     return ScheduleView(
         liga_name=meta.league_name,
         liga_slug=meta.liga_slug,
         ligaid=meta.ligaid,
         games=games,
+        is_finished=is_finished,
         prediction_eligible=eligible,
     )
 
@@ -720,15 +744,16 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
     meta = cache.read_meta()
     data = cache.read_json("predict.json")
 
-    # Check eligibility
-    eligible, reason = _check_prediction_eligible(cache)
-
-    # Check if season is finished
+    # Load schedule once for both is_finished and eligibility
     schedule_data = cache.read_json("schedule.json")
     schedule_games = [
         _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
     ]
     is_finished = _is_season_finished(schedule_games)
+    eligible, reason = _check_prediction_eligible(
+        cache,
+        schedule_games=schedule_games,
+    )
 
     # Build predictions
     predictions = [
@@ -758,6 +783,8 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
             pa=t["pa"],
             diff=t["diff"],
             pts=t["pts"],
+            avg_pf=t["avg_pf"],
+            avg_pa=t["avg_pa"],
         )
         for rank, t in enumerate(data.get("standings", []), start=1)
     ]

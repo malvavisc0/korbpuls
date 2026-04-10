@@ -20,8 +20,8 @@
     --kp-ai-soft: rgba(167,139,250,0.08);
     --kp-radius: 0.25rem;
     --kp-shadow: 0 1px 2px rgba(0,0,0,0.3);
-    --kp-font-display: 'Syne', sans-serif;
-    --kp-font-body: 'Source Serif 4', serif;
+    --kp-font-display: 'Space Grotesk', sans-serif;
+    --kp-font-body: 'Inter', sans-serif;
 
     /* Pico overrides — dark theme */
     --pico-font-size: 16px;
@@ -88,8 +88,10 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     position: sticky;
     top: 0;
     z-index: 20;
-    background: var(--kp-surface);
-    border-bottom: 1px solid var(--kp-border);
+    background: rgba(24, 24, 27, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--kp-border-subtle);
 }
 
 .site-header__inner,
@@ -116,15 +118,19 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 }
 
 .brand__mark {
-    font-weight: 800;
-    font-size: 1.5rem;
+    font-weight: 700;
+    font-size: 1.35rem;
     letter-spacing: -0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
-.brand__icon {
-    font-style: normal;
-    font-size: 1.3rem;
-    margin-left: 0.15rem;
+.brand__svg {
+    width: 26px;
+    height: 26px;
+    color: var(--kp-accent);
+    flex-shrink: 0;
 }
 
 .brand__tagline {
@@ -133,16 +139,11 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 }
 
 .league-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 0.85rem;
-    border-radius: var(--kp-radius);
     background: var(--kp-surface-elevated);
-    border: 1px solid var(--kp-border);
+    border: 1px solid var(--kp-border-subtle);
     color: var(--kp-text-secondary);
-    font-size: 0.92rem;
-    text-align: center;
+    font-size: 0.85rem;
+    padding: 0.35rem 0.75rem;
 }
 
 /* ── Layout ─────────────────────────────────────────────────── */
@@ -157,7 +158,12 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 /* ── Page Intro ─────────────────────────────────────────────── */
 
-.page-intro { display: grid; gap: 0.55rem; }
+.page-intro {
+    display: grid;
+    gap: 0.3rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--kp-border-subtle);
+}
 
 .page-intro h1, .hero h1 {
     margin-bottom: 0;
@@ -214,29 +220,58 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     min-height: calc(100vh - 12rem);
     display: grid;
     align-items: center;
+    padding: 2rem 0;
 }
 
-/* Faint radial glow behind hero card */
-.hero::before {
-    content: '';
-    position: absolute;
-    top: 30%;
-    left: 50%;
-    width: 500px;
-    height: 500px;
-    transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(251,146,60,0.08) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
 }
 
-.hero > * { position: relative; z-index: 1; }
+@media (max-width: 768px) {
+    .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
 
-.hero-card { display: grid; gap: 1.4rem; padding: 2rem; }
+.hero__content { display: grid; gap: 1rem; }
 
-.hero__content { display: grid; gap: 0.8rem; }
+.hero__lead {
+    font-size: 1.1rem;
+    color: var(--kp-text-secondary);
+    max-width: 40ch;
+}
 
-.hero__content p { max-width: 40rem; margin-bottom: 0; }
+.benefit-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.benefit-list li::before {
+    content: '→ ';
+    color: var(--kp-accent);
+}
+
+.hero__trust {
+    font-size: 0.85rem;
+    color: var(--kp-text-secondary);
+    margin-top: 0.5rem;
+}
+
+.hero__form-panel {
+    background: var(--kp-surface);
+    border: 1px solid var(--kp-border);
+    border-radius: var(--kp-radius);
+    padding: 1.5rem;
+    display: grid;
+    gap: 1rem;
+}
 
 .hero-form { display: grid; gap: 1rem; }
 
@@ -245,6 +280,30 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.75rem;
     align-items: end;
+}
+
+.liga-id-helper {
+    background: var(--kp-surface-elevated);
+    border: 1px solid var(--kp-border-subtle);
+    border-radius: var(--kp-radius);
+    padding: 1rem;
+    font-size: 0.9rem;
+}
+
+.liga-id-helper__title {
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: var(--kp-text);
+}
+
+.liga-id-helper p { margin: 0.3rem 0; }
+
+.liga-id-helper code {
+    display: inline-block;
+    padding: 0.15rem 0.4rem;
+    background: var(--kp-surface);
+    border-radius: 4px;
+    font-size: 0.85rem;
 }
 
 .hero-form button,
@@ -323,18 +382,18 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 /* ── Segmented Navigation ─────────────────────────────────── */
 
 .segmented-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .segmented-nav__tabs {
     display: flex;
     gap: 0.25rem;
     background: var(--kp-surface);
-    border: 1px solid var(--kp-border);
+    border: 1px solid var(--kp-border-subtle);
     border-radius: var(--kp-radius);
     padding: 0.25rem;
 }
@@ -599,7 +658,23 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 /* ── Tables ─────────────────────────────────────────────────── */
 
-.table-shell { overflow: hidden; position: relative; }
+.table-shell {
+    border: 1px solid var(--kp-border);
+}
+
+.table-scroll table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.table-scroll th {
+    background: var(--kp-surface-elevated);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--kp-text-secondary);
+}
 
 .table-shell > .section-heading {
     padding: 1.25rem 1.25rem 0;
@@ -738,6 +813,7 @@ table tbody td {
     gap: 1rem;
     border-color: rgba(167,139,250,0.25);
     background: var(--kp-ai-soft);
+    border-left: 3px solid var(--kp-ai);
 }
 
 .ai-panel__header {
