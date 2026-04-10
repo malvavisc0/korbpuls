@@ -8,6 +8,10 @@
 
 {% block title %}{{ team_name }} — Teamübersicht{% endblock %}
 
+{% block meta_description %}Teamprofil von {{ team_name }} in der {{ liga_name }} mit Ergebnissen, Siegquote, Punkteschnitt, Formkurve, kommenden Spielen und KI-Analyse bei korbPuls.{% endblock %}
+
+{% block meta_keywords %}{{ team_name }}, {{ liga_name }}, Basketball Teamstatistiken, Siegquote, Formkurve, Ergebnisse, kommende Spiele, KI-Analyse{% endblock %}
+
 {% block main %}
 <article class="page">
     <header class="team-hero">
@@ -23,6 +27,11 @@
             {% if metrics.current_streak %}
             <span class="streak-badge {% if 'Niederlage' in metrics.current_streak %}streak-badge--loss{% endif %}">{{ metrics.current_streak }}</span>
             {% endif %}
+        </p>
+        <p>
+            Analysiere {{ team_name }} in der {{ liga_name }} mit den wichtigsten
+            Basketball-Teamstatistiken: Ergebnisse, Siegquote, Punkteschnitt,
+            Korbdifferenz, aktuelle Form und nächste Spiele.
         </p>
     </header>
 
@@ -100,6 +109,7 @@
             </div>
             <p class="section-meta">Letzte 5: {{ metrics.last_5 }}</p>
         </div>
+        <p class="note">Hier siehst du die jüngsten Ergebnisse von {{ team_name }} inklusive Gegner, Spielort und Punktedifferenz.</p>
         <div class="table-scroll">
             <table>
                 <thead>
@@ -142,6 +152,7 @@
                 <h2>Kommende Spiele</h2>
             </div>
         </div>
+        <p class="note">Die nächsten Termine zeigen dir, gegen wen {{ team_name }} als Nächstes antritt und wo gespielt wird.</p>
         <div class="table-scroll">
             <table>
                 <thead>
@@ -174,6 +185,7 @@
                 <h2>Weitere Zahlen</h2>
             </div>
         </div>
+        <p class="note">Zusätzliche Kennzahlen helfen dir, enge Spiele, klare Siege und das Leistungsprofil des Teams schneller einzuordnen.</p>
         <div class="metric-grid">
             <article class="metric-card">
                 <span class="metric-card__label">Ø Siegmarge</span>

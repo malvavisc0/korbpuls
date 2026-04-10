@@ -8,12 +8,20 @@
 
 {% block title %}{{ liga_name }} — Saisonprognose{% endblock %}
 
+{% block meta_description %}Saisonprognose für die {{ liga_name }} mit erwarteten Ergebnissen offener Spiele, hochgerechneter Tabelle und KI-gestützter Einordnung des weiteren Saisonverlaufs.{% endblock %}
+
+{% block meta_keywords %}{{ liga_name }}, Basketball Saisonprognose, KI-Prognose, hochgerechnete Tabelle, erwartete Ergebnisse, Basketball Analyse{% endblock %}
+
 {% block main %}
 <article class="page">
     <header class="page-intro">
         <p class="eyebrow">Prognose</p>
         <h1>Saisonprognose</h1>
         <p class="page-meta">Stand: <strong>{{ cached_at }}</strong></p>
+        <p>
+            Die Saisonprognose kombiniert offene Spiele mit einer hochgerechneten Tabelle,
+            damit du mögliche Entwicklungen in der {{ liga_name }} schneller einordnen kannst.
+        </p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">
@@ -85,6 +93,7 @@
                 <h2>Offene Spiele</h2>
             </div>
         </div>
+        <p class="note">Diese Vorhersagen zeigen erwartete Sieger und prognostizierte Ergebnisse der noch offenen Partien.</p>
         <div class="table-scroll">
             <table>
                 <thead>
@@ -137,6 +146,7 @@
                 <h2>Hochgerechnete Tabelle</h2>
             </div>
         </div>
+        <p class="note">Die Projektion zeigt, wie die Basketball-Tabelle am Saisonende aussehen könnte, wenn die prognostizierten Ergebnisse eintreffen.</p>
         <div class="table-scroll">
             <table>
                 <thead>

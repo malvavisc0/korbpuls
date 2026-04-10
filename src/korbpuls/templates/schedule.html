@@ -2,12 +2,21 @@
 
 {% block title %}{{ liga_name }} — Spielplan{% endblock %}
 
+{% block meta_description %}Spielplan der {{ liga_name }} mit kommenden Basketball-Spielen, Terminen, Paarungen und Hallen. Behalte alle Ansetzungen deiner Liga übersichtlich im Blick.{% endblock %}
+
+{% block meta_keywords %}{{ liga_name }}, Basketball Spielplan, kommende Spiele, Liga Termine, Basketball Ansetzungen, Hallen, Spieltage{% endblock %}
+
 {% block main %}
 <article class="page">
     <header class="page-intro">
         <p class="eyebrow">Spieltage</p>
         <h1>Spielplan</h1>
         <p class="page-meta">{{ liga_name }}</p>
+        <p>
+            Im Spielplan der {{ liga_name }} findest du alle kommenden Basketball-Spiele,
+            Paarungen und Hallen in einer kompakten Übersicht. So planst du Spieltage schneller
+            und behältst jede Ansetzung im Blick.
+        </p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">

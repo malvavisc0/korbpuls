@@ -1,23 +1,28 @@
 {% extends "base.html" %}
 
-{% block title %}korbPuls — Deine Liga. Deine Zahlen.{% endblock %}
+{% block title %}Basketball Liga Analyse, Tabelle & KI-Prognosen | korbPuls{% endblock %}
+
+{% block meta_description %}Analysiere deine Basketball-Liga von basketball-bund.net in Sekunden: Tabelle, Spielplan, Teamvergleich, Formkurven, Teamstatistiken und KI-gestützte Saisonprognosen auf einer Seite.{% endblock %}
+
+{% block meta_keywords %}Basketball Liga Analyse, Basketball Tabelle, Basketball Spielplan, Teamvergleich Basketball, Teamstatistiken Basketball, Saisonprognose Basketball, basketball-bund.net Liga{% endblock %}
 
 {% block main %}
 <section class="hero">
     <div class="hero-grid">
         <div class="hero__content">
             <p class="eyebrow">Basketball-Ligaanalyse</p>
-            <h1>Deine Liga auf einen Blick</h1>
+            <h1>Verstehe deine Basketball-Liga in wenigen Sekunden</h1>
             <p class="hero__lead">
-                Tabelle, Teamvergleich und KI-Einschätzungen für deine
-                basketball-bund.net Liga, klar aufbereitet.
+                korbPuls macht aus deiner Liga-ID eine klare Basketball-Liga-Analyse
+                mit Tabelle, Spielplan, Teamvergleich, Formkurven und KI-gestützten
+                Einschätzungen für Ligen von basketball-bund.net.
             </p>
             <ul class="benefit-list">
-                <li>Tabelle und aktuelle Form sehen</li>
-                <li>Teams mit klaren Zahlen vergleichen</li>
-                <li>KI-Einschätzungen sofort abrufen</li>
+                <li>Aktuelle Basketball-Tabelle und Form sofort prüfen</li>
+                <li>Teams über Punkte, Differenzen und Trends vergleichen</li>
+                <li>Spielplan und KI-Prognosen ohne lange Suche abrufen</li>
             </ul>
-            <p class="hero__trust">Unabhängiges Hobbyprojekt — keine Verbindung zum DBB.</p>
+            <p class="hero__trust">Unabhängiges Hobbyprojekt für deutsche Basketball-Ligen — keine Verbindung zum DBB.</p>
         </div>
 
         <div class="hero__form-panel">
@@ -32,7 +37,7 @@
                         placeholder="12345"
                         inputmode="numeric"
                     >
-                    <button type="submit" class="primary-cta">Start</button>
+                    <button type="submit" class="primary-cta">Liga analysieren</button>
                 </div>
             </form>
             <div class="liga-id-helper">
@@ -43,4 +48,5 @@
         </div>
     </div>
 </section>
+
 {% endblock %}

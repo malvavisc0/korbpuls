@@ -2,12 +2,21 @@
 
 {% block title %}{{ liga_name }} — Tabelle{% endblock %}
 
+{% block meta_description %}Aktuelle Tabelle der {{ liga_name }} mit Punkten, Siegen, Niederlagen, Korbdifferenz und Teamvergleich. Analysiere deine Basketball-Liga kompakt mit korbPuls.{% endblock %}
+
+{% block meta_keywords %}{{ liga_name }}, Basketball Tabelle, Liga Tabelle, Basketball Teamvergleich, Korbdifferenz, Punkte, Formanalyse{% endblock %}
+
 {% block main %}
 <article class="page">
     <header class="page-intro">
         <p class="eyebrow">Liga</p>
         <h1>Tabelle</h1>
         <p class="page-meta">Stand: <strong>{{ cached_at }}</strong></p>
+        <p>
+            Verfolge den aktuellen Tabellenstand der {{ liga_name }} mit allen wichtigen
+            Kennzahlen: Punkte, Siege, Niederlagen, Korbdifferenz sowie offensive und defensive
+            Durchschnittswerte für den schnellen Basketball-Teamvergleich.
+        </p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">
@@ -77,6 +86,6 @@
         </div>
     </section>
 
-    <p class="note">Auf den Teamnamen tippen für mehr Details.</p>
+    <p class="note">Auf den Teamnamen tippen für mehr Details, Statistiken und die aktuelle Formkurve.</p>
 </article>
 {% endblock %}
