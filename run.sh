@@ -5,7 +5,7 @@ HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 WORKERS="${WORKERS:-1}"
 RELOAD="${RELOAD:-false}"
-RUNNER="${RUNNER:-uv run}"
+RUNNER="${RUNNER-uv run}"
 
 ARGS=(
     --host "$HOST"

@@ -1,8 +1,8 @@
 services:
   web:
-    build: .
+    image: ghcr.io/malvavisc0/korbpuls:latest
     ports:
-      - "${PORT:-8000}:8000"
+      - "8000:8000"
     environment:
       KORBPULS_API_KEY: ${KORBPULS_API_KEY}
       KORB_CMD: korb
@@ -13,8 +13,8 @@ services:
       OPENAILIKE_API_KEY: ${OPENAILIKE_API_KEY:-}
       OPENAILIKE_LLM: ${OPENAILIKE_LLM:-}
     volumes:
-      - cache-data:/data/cache
+      - data:/data
     restart: unless-stopped
 
 volumes:
-  cache-data:
+  data:
