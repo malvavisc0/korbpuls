@@ -36,6 +36,7 @@ BASE_DIR = Path(__file__).parent
 app = FastAPI(title="korbPuls")
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+templates.env.globals["app_version"] = __import__("korbpuls").__version__
 
 
 def validate_ligaid_format(ligaid: str) -> bool:
