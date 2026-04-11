@@ -57,6 +57,11 @@ asyncio_mode = "auto"
 python_version = "3.12"
 strict = true
 
+[tool.flake8]
+target-version = "py312"
+line-length = 88
+
+
 warn_return_any = true
 warn_unused_configs = true
 warn_unused_ignores = true
