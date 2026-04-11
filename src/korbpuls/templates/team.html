@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block head %}
-{% if ai_enabled and not ai_analysis and generating %}
+{% if ai_enabled and not ai_analysis and generating and not generation_failed %}
 <meta http-equiv="refresh" content="15">
 {% endif %}
 {% endblock %}
@@ -75,6 +75,16 @@
             <div class="ai-panel__footer">
                 <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
             </div>
+        {% elif generation_failed %}
+            <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
+            <div class="ai-panel__body">
+                <p><em>Analyse fehlgeschlagen. Bitte erneut versuchen.</em></p>
+            </div>
+            <form class="inline-form"
+                  method="POST"
+                  action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
+                <button type="submit" class="primary-cta">↻ Erneut versuchen</button>
+            </form>
         {% elif generating %}
             <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
             <div class="ai-panel__body">

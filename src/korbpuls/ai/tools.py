@@ -8,7 +8,6 @@ import shlex
 import subprocess
 from typing import Any
 
-
 _KORB_CMD = shlex.split(os.environ.get("KORB_CMD", "uv run korb"))
 
 

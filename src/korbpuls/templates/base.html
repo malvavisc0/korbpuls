@@ -32,7 +32,7 @@
                     <span class="brand__tagline">Deine Liga. Deine Zahlen.</span>
                 </a>
                 {% if liga_name %}
-                <span class="league-pill">{{ liga_name }}</span>
+                <a class="league-pill" href="/liga/{{ ligaid }}/{{ liga_slug }}">{{ liga_name }}</a>
                 {% endif %}
             </nav>
         </div>

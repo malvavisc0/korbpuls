@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException
 from fastapi import Path as URLPath
@@ -15,6 +17,7 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from llama_index.core.agent.workflow import FunctionAgent
 from pydantic import BaseModel
 
 from korbpuls import presenters
@@ -26,7 +29,6 @@ from korbpuls.korb_client import KorbError, run_download, run_predict, run_sched
 from korbpuls.korb_client import run_standings as korb_standings
 from korbpuls.korb_client import run_team as korb_team
 from korbpuls.slugify import slugify
-from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -125,10 +127,72 @@ def fetch_and_cache_league(ligaid: str) -> None:
         cache_dir.write_status("error", f"Unerwarteter Fehler: {e}")
 
 
+async def _retry_agent(
+    agent: FunctionAgent,
+    prompt: str,
+    output_cls: type,
+    max_attempts: int = 3,
+    base_delay: float = 2.0,
+) -> Any:
+    """Run an AI agent with retry logic and exponential backoff.
+
+    Handles two failure modes:
+    1. agent.run() raises an exception (network/timeout)
+    2. get_pydantic_model() returns None because the LLM
+       didn't produce valid structured output — the most
+       common cause of "works on second try" failures.
+
+    Args:
+        agent: FunctionAgent instance
+        prompt: User message prompt
+        output_cls: Pydantic model class for structured output
+        max_attempts: Maximum number of attempts (default 3)
+        base_delay: Base delay in seconds between retries
+
+    Returns:
+        Parsed Pydantic model from the agent response
+
+    Raises:
+        RuntimeError: When all retries are exhausted
+    """
+    last_exc: Exception | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            response = await agent.run(
+                user_msg=prompt,
+                max_iterations=50,
+                debug=True,
+            )
+            result = response.get_pydantic_model(output_cls)
+            if result is None:
+                # get_pydantic_model returns None silently
+                # when structured_response is None or when
+                # Pydantic validation fails — treat as retry
+                raise RuntimeError(
+                    "LLM returned no valid structured output"
+                    f" (structured_response="
+                    f"{response.structured_response!r})"
+                )
+            return result
+        except Exception as exc:
+            last_exc = exc
+            logger.warning(
+                "AI agent attempt %d/%d failed: %s: %s",
+                attempt,
+                max_attempts,
+                type(exc).__name__,
+                exc,
+            )
+            if attempt < max_attempts:
+                delay = base_delay * (2 ** (attempt - 1))
+                await asyncio.sleep(delay)
+    raise last_exc  # type: ignore[misc]
+
+
 async def _run_team_analysis(
     config: AIConfig, ligaid: str, team_slug: str, team_name: str
 ) -> None:
-    """Background task: generate AI team analysis."""
+    """Background task: generate AI team analysis with retry."""
     cache = CacheDir(ligaid)
     try:
         analyst = get_analyst(
@@ -145,16 +209,23 @@ async def _run_team_analysis(
             "flowing basketball analysis. Use <strong> sparingly. "
             "No markdown. No jargon. Sound like a journalist."
         )
-        response = await analyst.run(user_msg=prompt, max_iterations=15)
-        result: TeamAnalysis = response.get_pydantic_model(TeamAnalysis)
-
+        result: TeamAnalysis = await _retry_agent(
+            analyst,
+            prompt,
+            TeamAnalysis,
+        )
         cache.write_ai_analysis(team_slug, result.conclusion)
     except Exception:
-        logger.exception("AI team analysis failed for %s/%s", ligaid, team_slug)
+        logger.exception(
+            "AI team analysis failed after all retries for %s/%s",
+            ligaid,
+            team_slug,
+        )
+        cache.write_ai_analysis_failed(team_slug)
 
 
 async def _run_prediction_narrative(config: AIConfig, ligaid: str) -> None:
-    """Background task: generate AI prediction narrative."""
+    """Background task: generate AI prediction narrative with retry."""
     cache = CacheDir(ligaid)
     try:
         oracle = get_oracle(
@@ -172,12 +243,18 @@ async def _run_prediction_narrative(config: AIConfig, ligaid: str) -> None:
             "sentences of flowing basketball analysis. "
             "No markdown. No jargon. Sound like a journalist."
         )
-        response = await oracle.run(user_msg=prompt, max_iterations=15)
-        result: LeaguePrediction = response.get_pydantic_model(LeaguePrediction)
-
+        result: LeaguePrediction = await _retry_agent(
+            oracle,
+            prompt,
+            LeaguePrediction,
+        )
         cache.write_ai_prediction(result.table, result.explanation)
     except Exception:
-        logger.exception("AI prediction narrative failed for %s", ligaid)
+        logger.exception(
+            "AI prediction narrative failed after all retries for %s",
+            ligaid,
+        )
+        cache.write_ai_prediction_failed()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -380,8 +457,10 @@ async def team_page(
             detail="Team nicht gefunden",
         ) from e
 
+    cache = CacheDir(ligaid)
     ctx = view.model_dump()
     ctx["generating"] = request.query_params.get("generating") == "1"
+    ctx["generation_failed"] = cache.read_ai_analysis_failed(team_slug)
     return templates.TemplateResponse(
         request,
         "team.html",
@@ -444,8 +523,10 @@ async def prediction_page(
             },
         )
 
+    cache = CacheDir(ligaid)
     ctx = view.model_dump()
     ctx["generating"] = request.query_params.get("generating") == "1"
+    ctx["generation_failed"] = cache.read_ai_prediction_failed()
     return templates.TemplateResponse(
         request,
         "prediction.html",
@@ -501,7 +582,14 @@ async def generate_team_ai(
             detail="Team nicht gefunden",
         )
 
-    background_tasks.add_task(_run_team_analysis, config, ligaid, team_slug, team_name)
+    cache.clear_ai_analysis_failed(team_slug)
+    background_tasks.add_task(
+        _run_team_analysis,
+        config,
+        ligaid,
+        team_slug,
+        team_name,
+    )
 
     return RedirectResponse(url=f"{team_url}?generating=1", status_code=302)
 
@@ -544,6 +632,7 @@ async def generate_prediction_ai(
     if cache.is_ai_prediction_fresh():
         return RedirectResponse(url=prediction_url, status_code=302)
 
+    cache.clear_ai_prediction_failed()
     background_tasks.add_task(_run_prediction_narrative, config, ligaid)
 
     return RedirectResponse(

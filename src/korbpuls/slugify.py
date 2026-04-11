@@ -33,8 +33,13 @@ def slugify(text: str) -> str:
     """
     # Replace German umlauts BEFORE normalization
     umlaut_map = {
-        "ü": "ue", "ö": "oe", "ä": "ae", "ß": "ss",
-        "Ü": "Ue", "Ö": "Oe", "Ä": "Ae",
+        "ü": "ue",
+        "ö": "oe",
+        "ä": "ae",
+        "ß": "ss",
+        "Ü": "Ue",
+        "Ö": "Oe",
+        "Ä": "Ae",
     }
     for char, replacement in umlaut_map.items():
         text = text.replace(char, replacement)

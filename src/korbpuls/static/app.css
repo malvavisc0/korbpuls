@@ -148,6 +148,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     padding: 0.35rem 0.75rem;
     max-width: 100%;
     overflow-wrap: anywhere;
+    text-decoration: none;
 }
 
 /* ── Layout ─────────────────────────────────────────────────── */

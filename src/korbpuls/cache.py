@@ -277,3 +277,56 @@ class CacheDir:
         if not ai_path.exists() or not meta_path.exists():
             return False
         return ai_path.stat().st_mtime >= meta_path.stat().st_mtime
+
+    # -- AI failure markers --------------------------------------------------
+
+    def write_ai_analysis_failed(self, team_slug: str) -> None:
+        """Write a failure marker for AI team analysis.
+
+        Args:
+            team_slug: Team slug string
+        """
+        path = self.teams_path / f"{team_slug}_analysis_failed.json"
+        path.write_text(json.dumps({"failed": True}))
+
+    def read_ai_analysis_failed(self, team_slug: str) -> bool:
+        """Check if AI team analysis has a failure marker.
+
+        Args:
+            team_slug: Team slug string
+
+        Returns:
+            True if the failure marker exists
+        """
+        path = self.teams_path / f"{team_slug}_analysis_failed.json"
+        return path.exists()
+
+    def clear_ai_analysis_failed(self, team_slug: str) -> None:
+        """Remove failure marker for AI team analysis.
+
+        Args:
+            team_slug: Team slug string
+        """
+        path = self.teams_path / f"{team_slug}_analysis_failed.json"
+        if path.exists():
+            path.unlink()
+
+    def write_ai_prediction_failed(self) -> None:
+        """Write a failure marker for AI prediction narrative."""
+        path = self.base_path / "prediction_narrative_failed.json"
+        path.write_text(json.dumps({"failed": True}))
+
+    def read_ai_prediction_failed(self) -> bool:
+        """Check if AI prediction narrative has a failure marker.
+
+        Returns:
+            True if the failure marker exists
+        """
+        path = self.base_path / "prediction_narrative_failed.json"
+        return path.exists()
+
+    def clear_ai_prediction_failed(self) -> None:
+        """Remove failure marker for AI prediction narrative."""
+        path = self.base_path / "prediction_narrative_failed.json"
+        if path.exists():
+            path.unlink()
