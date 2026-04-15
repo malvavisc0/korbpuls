@@ -447,7 +447,7 @@ def _get_upcoming_games(
         Sorted list of upcoming ScheduleGame entries
     """
     now = datetime.now(UTC)
-    upcoming: list[ScheduleGame] = []
+    upcoming: list[tuple[datetime, ScheduleGame]] = []
 
     for game in schedule_data.get("schedule", []):
         if game["home"] != team_name and game["away"] != team_name:
@@ -459,12 +459,12 @@ def _get_upcoming_games(
                 tzinfo=UTC
             )
             if game_date > now:
-                upcoming.append(_parse_schedule_game(game))
+                upcoming.append((game_date, _parse_schedule_game(game)))
         except ValueError:
             continue
 
-    upcoming.sort(key=lambda g: g.date)
-    return upcoming
+    upcoming.sort(key=lambda pair: pair[0])
+    return [game for _, game in upcoming]
 
 
 def _is_season_finished(schedule_games: list[ScheduleGame]) -> bool:
@@ -708,8 +708,14 @@ def present_schedule(ligaid: str) -> ScheduleView:
     meta = cache.read_meta()
     data = cache.read_json("schedule.json")
 
+    now = datetime.now(UTC)
     games = [_parse_schedule_game(g) for g in data.get("schedule", [])]
-    games.sort(key=lambda g: g.date)
+
+    def _date_distance(g: ScheduleGame) -> float:
+        dt = datetime.strptime(g.date, "%d.%m.%Y %H:%M").replace(tzinfo=UTC)
+        return abs((dt - now).total_seconds())
+
+    games.sort(key=_date_distance)
 
     is_finished = _is_season_finished(games)
     eligible, _ = _check_prediction_eligible(
