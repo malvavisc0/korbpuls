@@ -23,7 +23,7 @@
         </div>
         <p class="team-hero__league">{{ liga_name }}</p>
         <p class="team-hero__summary">
-            {{ record }}
+            <strong>{{ record }}</strong>
             {% if metrics.current_streak %}
             <span class="streak-badge {% if 'Niederlage' in metrics.current_streak %}streak-badge--loss{% endif %}">{{ metrics.current_streak }}</span>
             {% endif %}

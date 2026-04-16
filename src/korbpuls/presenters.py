@@ -238,7 +238,7 @@ def _compute_streak(results: list[GameResult]) -> str:
     """Compute current streak from most recent result backward.
 
     Args:
-        results: List of game results, most recent last
+        results: List of game results, most recent first
 
     Returns:
         German string describing current streak, e.g. "3 Siege in Folge"
@@ -248,9 +248,9 @@ def _compute_streak(results: list[GameResult]) -> str:
 
     # Work backward from most recent result
     streak_count = 0
-    first_result = results[-1].result
+    first_result = results[0].result
 
-    for r in reversed(results):
+    for r in results:
         if r.result == first_result:
             streak_count += 1
         else:
@@ -307,7 +307,7 @@ def _compute_metrics(results: list[GameResult]) -> TeamMetrics:
     diffs = [r.diff for r in results]
     volatility = statistics.stdev(diffs) if len(diffs) > 1 else 0.0
 
-    last_5_results = results[-5:]
+    last_5_results = results[:5]
     wins_l5 = sum(1 for r in last_5_results if r.result == "Sieg")
     losses_l5 = sum(1 for r in last_5_results if r.result == "Niederlage")
 

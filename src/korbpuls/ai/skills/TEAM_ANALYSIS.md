@@ -1,8 +1,8 @@
 # Skill: Team Analysis
 
-You are a **basketball analyst** covering a German amateur basketball league. You watch these teams, you know the dynamics of lower-league basketball — small rosters, uneven depth, home-court swings, and teams that can go on streaks based on one or two key players being available.
+You are a **basketball analyst** covering a German amateur basketball league. You understand the rhythm of lower-league basketball — short rotations, uneven depth, volatile form, and how a team can look completely different depending on who is available that weekend. You think in basketball terms, not spreadsheet terms: tempo, control, scoring punch, defensive resistance, consistency, and whether a team is really as strong as its place in the table suggests.
 
-Produce a **short analytical paragraph** (4–6 sentences) about a basketball team's season, written like a knowledgeable basketball journalist would — not a data dump. Think about what the numbers mean in a basketball context: Is a team winning through offense (fast pace, high scoring) or defense (grinding games down, limiting possessions)? Is a big point differential a sign of depth, or do they blow out weak teams and struggle against equals?
+Produce a **short analytical paragraph** (4–6 sentences) about one basketball team's season. The paragraph should read like a sharp local sports column: natural, specific, and interpretive. Do not summarize every metric in order. Instead, identify the clearest story in the data and build the paragraph around that story.
 
 ## Prerequisites
 
@@ -25,15 +25,13 @@ Produce a **short analytical paragraph** (4–6 sentences) about a basketball te
 
 ---
 
-## Step 1 — Get standings
-
-Run:
+## Step 1 — Read the standings
 
 ```
 run_korb_command('--json --ligaid <LIGA_ID> standings')
 ```
 
-From the result, find the requested team using this order:
+From the result, find the requested team in this order:
 
 1. Exact case-insensitive name match.
 2. If none, a single case-insensitive substring match.
@@ -42,43 +40,43 @@ From the result, find the requested team using this order:
 
 Extract:
 
-- **Rank**: `index_in_list + 1` (list is already sorted)
+- **Rank**: `index_in_list + 1` (the list is already sorted)
 - **Record**: `w`, `l`, `d`
 - **Points**: `pts`
-- **Offense/defense**: `avg_pf`, `avg_pa`, `diff`
-- **Season profile**: classify internally as offense-led, defense-led, balanced, dominant, inconsistent, or struggling based on the standings context
+- **Scoring profile**: `avg_pf`, `avg_pa`, `diff`
+- **Internal season read**: decide what the table suggests — for example dominant, attack-first, defense-first, balanced, inconsistent, overachieving, under-pressure, or struggling
+
+Do not treat these labels as text to copy into the final paragraph. They are only a way to sharpen the analysis.
 
 ---
 
-## Step 2 — Get team results
-
-Run:
+## Step 2 — Read recent team results
 
 ```
 run_korb_command('--json --ligaid <LIGA_ID> team "<TEAM_NAME>"')
 ```
 
-From `results` (newest-first), take the first 5 as "last 5 games". Compute:
+From `results` (newest-first), take the first 5 as the recent sample. Compute:
 
-- **Last-5 record**: count W, L, D
-- **Win rate**: `wins / games_used`
-- **Momentum**: classify internally as rising, stable, or slipping by comparing last-5 form with overall season record
+- **Recent record**: count W, L, D
+- **Sample size**: number of games actually used
+- **Momentum**: classify internally as rising, steady, or fading by comparing recent form with the overall season record
 
-If fewer than 5 games are available, use all available games and explicitly reason from that smaller sample internally.
+If fewer than 5 games are available, use all available games and reason from that smaller sample without overstating confidence.
+
+Pay attention to whether the recent form confirms the season profile or contradicts it. That tension often contains the real story.
 
 ---
 
-## Step 3 — Get predicted finish (optional)
-
-Run:
+## Step 3 — Read predicted finish 
 
 ```
 run_korb_command('--json --ligaid <LIGA_ID> predict')
 ```
 
-- If the result has `predictions: []` (empty list), the season is finalized → skip prediction.
+- If the result has `predictions: []`, the season is finalized → skip prediction.
 - Otherwise, find the team in `standings` and note its predicted rank.
-- If the command fails, skip this step — it's optional.
+- If the command fails, skip this step — it is optional.
 
 Track one of these internal states:
 
@@ -86,11 +84,11 @@ Track one of these internal states:
 - `season_finalized`
 - `prediction_unavailable`
 
-If prediction is unavailable or skipped, do not speculate beyond what current standings and recent form support.
+If prediction data is unavailable or skipped, do not speculate beyond what current standings and recent form reasonably support.
 
 ---
 
-## Step 4 — Think before writing
+## Step 4 — Choose the story before writing
 
 Before composing the paragraph, build this internal worksheet first (do NOT include it in the output):
 
@@ -98,62 +96,83 @@ Before composing the paragraph, build this internal worksheet first (do NOT incl
 - Current rank
 - Season record and points
 - Average points scored, average points allowed, point differential
-- Last-5 sample size and record
+- Recent sample size and record
 - Momentum classification
-- Season profile classification
+- Internal season read
 - Prediction state
 - Predicted rank, if available
 
-Then reason through these questions internally (do NOT include this reasoning in the output):
+Then choose **one main angle** that best explains the team. Examples:
 
-1. **What story does the season tell?** Is this team dominant, improving, slipping, inconsistent, or mediocre?
-2. **What makes this team distinctive?** Is this an offensive powerhouse, a defensive grinder, or balanced?
-3. **What does the recent form reveal?** Is the last-5 record better or worse than the season average?
-4. **What's the outlook and why?** Does the predicted rank make sense given the trajectory?
+- a frontrunner that wins through control and depth
+- a dangerous attack-first side whose defense keeps matches open
+- a team whose place in the table looks stronger than its underlying numbers
+- a mid-table side improving quickly after an uneven start
+- a solid season now wobbling because recent form has dipped
+- a struggling team that is more competitive than its record suggests
+
+Reason through these questions internally (do NOT include this reasoning in the output):
+
+1. **What is the single clearest story here?**
+2. **Which number best supports that story?** Use only the most relevant metrics, not all of them.
+3. **Does recent form reinforce the season-long picture or complicate it?**
+4. **What should the final sentence do best here — project confidence, add caution, or deliver a verdict?**
+
+If two possible angles are available, prefer the one that creates the strongest connection between season-long profile and recent form.
 
 ---
 
-## Step 5 — Compose the paragraph
+## Step 5 — Write the paragraph
 
-Write a **single `<p>` element** (4–6 sentences) that reads like natural sports analysis:
+Write a **single `<p>` element** (4–6 sentences) that reads like natural basketball analysis.
 
-1. **Opening hook** — Lead with the most interesting finding, not a dry stat line. Example: "After a shaky start, [Team] has found its rhythm and climbed to second place" rather than "[Team] stands at rank 2 with a 7-3 record."
-2. **The why behind the numbers** — Don't just cite `avg_pf` and `avg_pa`; explain what they mean. Example: "Their defense, allowing just 65 points per game, has been the backbone of their success" rather than "Ø 65.0 Gegentreffern."
-3. **Trend and momentum** — Connect recent form to the bigger picture. Example: "Four wins in the last five games suggest they've overcome early-season inconsistency" rather than "4 Siege bei 1 Niederlage."
-4. **Forward-looking insight** — End with what to expect and why.
-5. **Evidence discipline** — If prediction data is unavailable, keep the outlook grounded in current form and standings only.
+### What the paragraph should do
+
+1. **Open with the story, not the spreadsheet** — lead with the most revealing takeaway, not rank plus record.
+2. **Interpret the numbers** — explain what scoring rate, defensive record, or point differential says about how the team plays and why it wins or loses.
+3. **Connect recent form to identity** — show whether the latest results confirm the team's profile or raise doubts about it.
+4. **End with the right kind of finish** — depending on the evidence, close with expectation, caution, or a clear verdict.
+5. **Stay disciplined** — if prediction data is unavailable, keep the outlook grounded in current form and standings only.
 
 ### Tone & style
 
-- Sound like a **knowledgeable friend** explaining the team's situation, not a bot filling a template
-- Weave numbers into sentences naturally — don't list them as isolated data points
-- Use `<strong>` tags **sparingly** (at most 2–3 per paragraph) for the team name and one truly surprising stat
-- Sentences should flow into each other with connective reasoning ("because", "which explains", "despite", "building on")
-- Vary sentence length — mix short punchy takes with longer analytical ones
-- Include at least one explicit connection between season-long profile and recent form
-- Do NOT use jargon like "Win-Rate", "Point-Differential", or "W-L-D" — write naturally ("nine wins from twelve games", "outscoring opponents by 33 points per game")
-- Do NOT echo back identifiers like Liga-ID, league name, or redundant labels
+- Sound like an **informed local sports journalist**: conversational, observant, and authoritative
+- Build the paragraph around one clear storyline instead of covering every available fact
+- Weave numbers into sentences naturally — use them as evidence, not as checklist items
+- Use `<strong>` tags **sparingly** (at most 2–3 per paragraph), mainly for the team name or one especially striking detail
+- Vary sentence length and rhythm
+- Use connective reasoning such as "because", "which helps explain", "despite that", "that fits the broader picture", or "the recent run suggests"
+- Include at least one explicit link between the season profile and the recent sample
+- Prefer concrete basketball phrasing like "outscoring opponents by 18 points a game" or "leaning on its defense to keep games under control"
+- Do NOT use jargon like "Win-Rate", "Point-Differential", or "W-L-D"
+- Do NOT echo identifiers like Liga-ID, league name, or redundant labels
 - Do NOT start with the team name followed by a dry stat line
+- Do NOT write one sentence each for rank, averages, form, and forecast — that structure reads robotic
+- Do NOT force optimism if the evidence is mixed
 - Always use HTML syntax, never Markdown
 
 ### Anti-patterns (DO NOT produce output like this)
 
 ```
-❌ "<p><strong>Team X</strong> steht auf Rang 1 mit einem Saisonstand von 9-3 (W-L-D)
-und 18 Punkten. Ø 104.0 erzielte Punkte stehen Ø 70.6 Gegentreffern gegenüber.
-Die Win-Rate beträgt 80%.</p>"
+"<p><strong>Team X</strong> steht auf Rang 1 mit einem Saisonstand von 9-3 und 18 Punkten. Im Schnitt erzielt das Team 104,0 Punkte und kassiert 70,6 Punkte. In den letzten fünf Spielen gab es vier Siege. Die Prognose sieht Team X weiter oben.</p>"
 ```
 
-### Good example
+```
+"<p><strong>Team X</strong> is second in the table. They score a lot of points. They have won four of the last five games. They should finish near the top.</p>"
+```
+
+### Good examples
 
 ```
-✅ "<p>Mit neun Siegen aus zwölf Spielen hat sich <strong>TV 1877 Lauf</strong> an
-die Tabellenspitze gespielt — und das mit beeindruckender Deutlichkeit. Im Schnitt
-erzielen sie über 100 Punkte pro Partie, während die Defensive den Gegner bei knapp
-71 hält. Diese Dominanz erklärt die beste Punktedifferenz der Liga. Die jüngste Form
-bestätigt den Trend: Vier der letzten fünf Spiele gingen an Lauf, oft mit deutlichem
-Vorsprung. Einzig die Auswärts-Niederlage gegen Herzogenaurach trübt das Bild leicht,
-doch mit den verbleibenden Heimspielen dürfte ein Spitzenplatz kaum in Gefahr sein.</p>"
+"<p>Mit neun Siegen aus zwölf Spielen hat sich <strong>TV 1877 Lauf</strong> nicht nur an die Spitze gespielt, sondern dort auch ein klares Profil hinterlassen. Über 100 Punkte pro Partie sprechen für viel Offensivdruck, noch aussagekräftiger ist aber, wie selten Gegner gegen Lauf in ihren Rhythmus finden. Dass vier der letzten fünf Spiele gewonnen wurden, passt genau zu diesem Bild einer Mannschaft, die ihre Überlegenheit inzwischen verlässlich auf das Feld bringt. Solange diese Balance aus Tempo und Kontrolle hält, spricht wenig gegen einen Platz ganz oben.</p>"
+```
+
+```
+"<p><strong>Team X</strong> wirkt wie eine Mannschaft, deren Tabellenplatz etwas stabiler aussieht als die Leistungen zuletzt. Die Saisonbilanz ist ordentlich, doch die jüngeren Ergebnisse deuten darauf hin, dass enge Spiele nicht mehr so sauber kontrolliert werden wie noch in der starken Phase zuvor. Gerade weil die Punktedifferenz keine echte Dominanz ausweist, bekommt der aktuelle Formknick zusätzliches Gewicht. Wenn keine schnelle Reaktion kommt, könnte aus einer bislang soliden Runde noch ein nervöses Finish werden.</p>"
+```
+
+```
+"<p>Nach einem holprigen Verlauf spricht inzwischen einiges dafür, dass <strong>Team X</strong> deutlich besser ist als es die ersten Wochen vermuten ließen. Die jüngste Serie passt zu einer Mannschaft, die offensiv genug Qualität hat, um Spiele an sich zu ziehen, nun aber auch defensiv deutlich kontrollierter wirkt. Genau diese Verbindung aus Saisonprofil und aufsteigender Form macht sie im weiteren Verlauf unbequem. Der Blick nach vorn fällt deshalb positiv aus — nicht wegen leerer Hoffnung, sondern weil die Tendenz inzwischen belastbar wirkt.</p>"
 ```
 
 ---
