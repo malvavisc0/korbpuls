@@ -574,13 +574,42 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     margin: 0;
 }
 
-.team-hero__summary {
+.team-hero__record {
     display: flex;
+    gap: 1.5rem;
     align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
+}
+
+.record-col {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.record-col__value {
+    font-family: var(--kp-font-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.record-col__label {
+    color: var(--kp-text-secondary);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+
+.record-col--wins .record-col__value {
+    color: var(--kp-positive);
+}
+
+.record-col--losses .record-col__value {
+    color: var(--kp-negative);
+}
+
+.team-hero__streak {
     margin: 0;
-    color: var(--kp-text);
 }
 
 .streak-badge {
@@ -766,8 +795,16 @@ table tbody td {
     font-variant-numeric: tabular-nums;
 }
 
-.col-number, .col-score, .col-diff, .col-points, .col-short {
+.col-number, .col-points, .col-date {
     text-align: right;
+    white-space: nowrap;
+}
+
+.col-short,
+.col-score,
+.col-diff,
+.col-outcome {
+    text-align: center !important;
     white-space: nowrap;
 }
 
@@ -1199,6 +1236,7 @@ details.ai-details summary {
     h1 { font-size: 1.5rem; }
     .page-intro h1, .hero h1 { font-size: 1.6rem; }
     .team-hero__name-row h1 { font-size: 1.85rem; }
+    .record-col__value { font-size: 1.3rem; }
 
     .eyebrow, .ai-panel__eyebrow { font-size: 0.82rem; }
     .stat-card__label, .metric-card__label { font-size: 0.85rem; }

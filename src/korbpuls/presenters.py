@@ -48,6 +48,7 @@ class GameResult(BaseModel):
     opponent: str
     opponent_slug: str
     home_away: str  # "Heim" or "Gast"
+    date: str  # e.g. "15.03.2025"
     our_score: int
     opp_score: int
     diff: int
@@ -103,6 +104,8 @@ class TeamView(BaseModel):
     rank: int
     total_teams: int
     record: str
+    wins: int
+    losses: int
     points_summary: str
     avg_summary: str
     avg_pf: float
@@ -223,10 +226,17 @@ def _parse_game_result(raw: dict[str, Any]) -> GameResult:
     Returns:
         GameResult model
     """
+    # Extract date from raw data, strip time portion if present
+    # (e.g. "15.03.2025 18:00" → "15.03.2025")
+    raw_date = raw.get("date", "")
+    if " " in raw_date:
+        raw_date = raw_date.split(" ", 1)[0]
+
     return GameResult(
         opponent=raw["opponent"],
         opponent_slug=slugify(raw["opponent"]),
         home_away=_home_away_to_german(raw["home_away"]),
+        date=raw_date,
         our_score=raw["our_score"],
         opp_score=raw["opp_score"],
         diff=raw["diff"],
@@ -627,6 +637,7 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     team_data = cache.read_team_json(team_slug)
     results = [_parse_game_result(r) for r in team_data.get("results", [])]
 
+    schedule_data = cache.read_json("schedule.json")
     record, pts_summary, avg_summary = _compute_summary(
         results,
         team_name,
@@ -643,7 +654,6 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     avg_pa = round(total_pa / total_games, 1) if total_games else 0.0
     total_diff = total_pf - total_pa
 
-    schedule_data = cache.read_json("schedule.json")
     upcoming = _get_upcoming_games(schedule_data, team_name)
 
     # Check if season is finished
@@ -676,6 +686,8 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
         rank=rank,
         total_teams=total_teams,
         record=record,
+        wins=sum(1 for r in results if r.result == "Sieg"),
+        losses=sum(1 for r in results if r.result == "Niederlage"),
         points_summary=pts_summary,
         avg_summary=avg_summary,
         avg_pf=avg_pf,

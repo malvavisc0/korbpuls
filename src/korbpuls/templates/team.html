@@ -22,18 +22,55 @@
             {% endif %}
         </div>
         <p class="team-hero__league">{{ liga_name }}</p>
-        <p class="team-hero__summary">
-            <strong>{{ record }}</strong>
-            {% if metrics.current_streak %}
+        <div class="team-hero__record">
+            <div class="record-col record-col--wins">
+                <span class="record-col__value">{{ wins }}</span>
+                <span class="record-col__label">Siege</span>
+            </div>
+            <div class="record-col record-col--losses">
+                <span class="record-col__value">{{ losses }}</span>
+                <span class="record-col__label">Niederlagen</span>
+            </div>
+        </div>
+        {% if metrics.current_streak %}
+        <p class="team-hero__streak">
             <span class="streak-badge {% if 'Niederlage' in metrics.current_streak %}streak-badge--loss{% endif %}">{{ metrics.current_streak }}</span>
-            {% endif %}
         </p>
+        {% endif %}
         <p>
             Analysiere {{ team_name }} in der {{ liga_name }} mit den wichtigsten
             Basketball-Teamstatistiken: Ergebnisse, Siegquote, Punkteschnitt,
             Korbdifferenz, aktuelle Form und nächste Spiele.
         </p>
     </header>
+
+    <section class="surface">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Leistung</p>
+                <h2>Weitere Zahlen</h2>
+            </div>
+        </div>
+        <p class="note">Zusätzliche Kennzahlen helfen dir, enge Spiele, klare Siege und das Leistungsprofil des Teams schneller einzuordnen.</p>
+        <div class="metric-grid">
+            <article class="metric-card">
+                <span class="metric-card__label">Ø Siegmarge</span>
+                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_win_margin) }}</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__label">Ø Niederlagemarge</span>
+                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_loss_margin) }}</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__label">Klare Siege (≥15 Punkte)</span>
+                <span class="metric-card__value">{{ metrics.blowouts }}</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-card__label">Knappe Spiele (≤5 Punkte)</span>
+                <span class="metric-card__value">{{ metrics.close_games }}</span>
+            </article>
+        </div>
+    </section>
 
     <section class="stats-grid" aria-label="Kennzahlen">
         <article class="stat-card">
@@ -124,16 +161,18 @@
             <table>
                 <thead>
                     <tr>
+                        <th>Datum</th>
                         <th>Gegner</th>
                         <th class="col-short">Ort</th>
                         <th class="col-score">Ergebnis</th>
                         <th class="col-diff">Diff</th>
-                        <th>Ausgang</th>
+                        <th class="col-outcome">Ausgang</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for game in results %}
                     <tr>
+                        <td class="col-date">{{ game.date }}</td>
                         <td>
                             <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.opponent_slug }}">
                                 {{ game.opponent }}
@@ -142,9 +181,9 @@
                         <td class="col-short">{{ game.home_away }}</td>
                         <td class="col-score">{{ game.our_score }} : {{ game.opp_score }}</td>
                         <td class="col-diff {% if game.diff > 0 %}diff-positive{% elif game.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ game.diff }}</td>
-                        <td>
+                        <td class="col-outcome">
                             <span class="status-badge {% if game.result == 'Sieg' %}status-badge--win{% else %}status-badge--loss{% endif %}">
-                                {{ game.result }}
+                                {% if game.result == 'Sieg' %}W{% else %}L{% endif %}
                             </span>
                         </td>
                     </tr>
@@ -188,33 +227,6 @@
     </section>
     {% endif %}
 
-    <section class="surface">
-        <div class="section-heading">
-            <div>
-                <p class="eyebrow">Leistung</p>
-                <h2>Weitere Zahlen</h2>
-            </div>
-        </div>
-        <p class="note">Zusätzliche Kennzahlen helfen dir, enge Spiele, klare Siege und das Leistungsprofil des Teams schneller einzuordnen.</p>
-        <div class="metric-grid">
-            <article class="metric-card">
-                <span class="metric-card__label">Ø Siegmarge</span>
-                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_win_margin) }}</span>
-            </article>
-            <article class="metric-card">
-                <span class="metric-card__label">Ø Niederlagemarge</span>
-                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_loss_margin) }}</span>
-            </article>
-            <article class="metric-card">
-                <span class="metric-card__label">Klare Siege (≥15 Punkte)</span>
-                <span class="metric-card__value">{{ metrics.blowouts }}</span>
-            </article>
-            <article class="metric-card">
-                <span class="metric-card__label">Knappe Spiele (≤5 Punkte)</span>
-                <span class="metric-card__value">{{ metrics.close_games }}</span>
-            </article>
-        </div>
-    </section>
 </article>
 {% endblock %}
 
