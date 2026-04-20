@@ -801,7 +801,7 @@ table tbody td {
 }
 
 .col-date {
-    text-align: left;
+    text-align: left !important;
     white-space: nowrap;
 }
 
