@@ -19,12 +19,12 @@ class TeamAnalysis(BaseModel):
 
     conclusion: str = Field(
         description=(
-            "A single HTML <p> element containing 4-6 sentences of "
-            "flowing, analytical prose. Use <strong> tags sparingly "
-            "for team names and one or two key stats. Explain WHY "
-            "things matter, not just WHAT the numbers are. "
+            "1-2 HTML <p> elements containing 10-15 sentences of "
+            "detailed, honest basketball analysis. Use <strong> tags "
+            "sparingly for team names and key stats. Cover identity, "
+            "strengths, weaknesses, and comparative assessment. "
             "No markdown, no bullet lists, no headings. "
-            "Must be wrapped in <p>...</p> tags."
+            "Each paragraph must be wrapped in <p>...</p> tags."
         ),
     )
 

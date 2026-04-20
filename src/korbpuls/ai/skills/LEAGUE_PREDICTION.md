@@ -41,7 +41,7 @@ Store the result. Each entry includes fields such as `name`, `w`, `l`, `d`, `pts
 run_korb_command('--json --ligaid <LIGA_ID> predict')
 ```
 
-- If `predictions` is empty (`[]`), the season is finalized → use current standings from Step 1 as the final table.
+- If `predictions` is empty (`[]`), the season is finalized → use current standings from Step 1 as the final table. **The explanation must be retrospective**: describe how the season played out, not how it might finish. No forecast language — the final standings are already known.
 - If `predictions` is non-empty, use the `standings` from this result as the predicted final standings.
 - If this command fails, fall back to current standings from Step 1.
 
@@ -123,6 +123,7 @@ Write a **single `<p>` element** (3–5 sentences) that reads like natural leagu
 3. **Highlight the most meaningful battle** — title race, middle cluster, or another decisive zone, whichever matters most.
 4. **End with the right finish** — confident verdict, measured caution, or descriptive close depending on the evidence.
 5. **Stay disciplined** — if prediction data is unavailable, explain the current table without dressing it up as a forecast.
+6. **Respect the season state** — if the season is finalized, the explanation is a season summary, not a forecast. Write in past tense or present perfect. Never say a team "should finish" or "is likely to end up" somewhere — the final standings are already known.
 
 ### Tone & style
 
@@ -144,7 +145,7 @@ Write a **single `<p>` element** (3–5 sentences) that reads like natural leagu
 ### Anti-patterns (DO NOT produce output like this)
 
 ```
-"<p><strong>TS Herzogenaurach 2</strong> is first with 22 points. ESC Höchstadt is second with 22 points and a lower differential. TV 1877 Lauf is third with 20 points. CVJM Erlangen 2 is last with 0 points.</p>"
+"<p><strong>Team A</strong> is first with 22 points. Team B is second with 22 points and a lower differential. Team C is third with 20 points. Team D is last with 0 points.</p>"
 ```
 
 ```
@@ -154,7 +155,7 @@ Write a **single `<p>` element** (3–5 sentences) that reads like natural leagu
 ### Good examples
 
 ```
-"<p>Die Spitze dieser Liga wirkt längst nicht so sicher, wie der Tabellenstand auf den ersten Blick vermuten lässt. Zwar steht <strong>TS Herzogenaurach 2</strong> vorne, doch erst die deutlich bessere Punktedifferenz trennt sie wirklich von <strong>ESC Höchstadt</strong>, was eher für ein belastbares Duell als für eine Vorentscheidung spricht. Dahinter ist das Feld schnell gestreckt, sodass der eigentliche Titelkampf wohl nur diese beiden Teams betrifft. Genau diese Mischung aus enger Spitze und frühem Leistungsabfall dahinter gibt der Tabelle ihr klares Gesicht.</p>"
+"<p>Die Spitze dieser Liga wirkt längst nicht so sicher, wie der Tabellenstand auf den ersten Blick vermuten lässt. Zwar steht <strong>Team A</strong> vorne, doch erst die deutlich bessere Punktedifferenz trennt sie wirklich von <strong>Team B</strong>, was eher für ein belastbares Duell als für eine Vorentscheidung spricht. Dahinter ist das Feld schnell gestreckt, sodass der eigentliche Titelkampf wohl nur diese beiden Teams betrifft. Genau diese Mischung aus enger Spitze und frühem Leistungsabfall dahinter gibt der Tabelle ihr klares Gesicht.</p>"
 ```
 
 ```

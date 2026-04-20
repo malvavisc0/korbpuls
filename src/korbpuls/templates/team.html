@@ -105,7 +105,7 @@
             {% endif %}
         </div>
         {% if ai_analysis %}
-            <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
+            <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
             <div class="ai-panel__body">
                 {{ ai_analysis | safe }}
             </div>
@@ -113,7 +113,7 @@
                 <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
             </div>
         {% elif generation_failed %}
-            <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
+            <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
             <div class="ai-panel__body">
                 <p><em>Analyse fehlgeschlagen. Bitte erneut versuchen.</em></p>
             </div>
@@ -123,21 +123,21 @@
                 <button type="submit" class="primary-cta">↻ Erneut versuchen</button>
             </form>
         {% elif generating %}
-            <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
+            <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
             <div class="ai-panel__body">
                 <p><em>Analyse läuft… Seite aktualisiert sich automatisch.</em></p>
             </div>
         {% elif not ai_analysis_eligible %}
-            <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
+            <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
             <div class="ai-panel__body">
                 <p class="muted">{{ ai_analysis_ineligible_reason }}</p>
             </div>
         {% else %}
-            <p class="ai-teaser">Was sagt die KI zu diesem Team — Form, Stärken und Tendenz?</p>
+            <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
             <div class="ai-benefits">
-                <p>• Aktuelle Form einordnen</p>
-                <p>• Stärken und Schwächen erkennen</p>
-                <p>• Saisonverlauf verstehen</p>
+                <p>• Team-Identität erkennen</p>
+                <p>• Stärken und Schwächen ehrlich benennen</p>
+                <p>• Vergleich mit Peer-Teams</p>
             </div>
             <form class="inline-form"
                   method="POST"

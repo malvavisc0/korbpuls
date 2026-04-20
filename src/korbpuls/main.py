@@ -206,9 +206,11 @@ async def _run_team_analysis(
             f"LIGA_ID={ligaid}\n"
             f"LANGUAGE=de\n\n"
             "Analyze this team following the skill steps. "
-            "Return a single <p> element with 4-6 sentences of "
-            "flowing basketball analysis. Use <strong> sparingly. "
-            "No markdown. No jargon. Sound like a journalist."
+            "Return 2-3 <p> elements with 10-15 sentences of "
+            "detailed, honest basketball analysis covering identity, "
+            "strengths, weaknesses, and comparative assessment. "
+            "Use <strong> sparingly. No markdown. No jargon. "
+            "Sound like an expert analyst."
         )
         result: TeamAnalysis = await _retry_agent(
             analyst,
