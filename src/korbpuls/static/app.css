@@ -795,8 +795,13 @@ table tbody td {
     font-variant-numeric: tabular-nums;
 }
 
-.col-number, .col-points, .col-date {
+.col-number, .col-points {
     text-align: right;
+    white-space: nowrap;
+}
+
+.col-date {
+    text-align: left;
     white-space: nowrap;
 }
 
