@@ -101,12 +101,13 @@ class CacheDir:
         """Check if all required cache files exist.
 
         Returns:
-            True if standings, schedule, predict, and meta.json exist
+            True if standings, schedule, predict, ergebnisse, and meta exist
         """
         required = [
             "standings.json",
             "schedule.json",
             "predict.json",
+            "ergebnisse.json",
             "meta.json",
         ]
         return all((self.base_path / f).exists() for f in required)

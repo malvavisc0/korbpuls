@@ -709,11 +709,11 @@ wheels = [
 
 [[package]]
 name = "korb"
-version = "0.2.5"
+version = "0.2.6"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fe/1f/68d3463651b0424cfb13fcfea37f675b033bcdad6c1b480af91969ce78ba/korb-0.2.5.tar.gz", hash = "sha256:527dc794b6f52485fb7e093ac3734490881175383352fa0b0fa5c31d893a5c64", size = 35378, upload-time = "2026-04-20T10:28:19.67Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/75/5a/ec642cf79300c223b61ed8a00d9641a7312af4c56c55c7aa652a9b16028a/korb-0.2.6.tar.gz", hash = "sha256:5a029ae3975f30ec530c47b520c70b8baa5916d8c44bd946d8ed235fca9d9f72", size = 36614, upload-time = "2026-04-23T06:20:47.637Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c7/ce/a7b195af2c7d139d572ab42d1ec544f773c44c16959717a09b33d8613cf4/korb-0.2.5-py3-none-any.whl", hash = "sha256:5d3ea77740ee9bf7a08d52b00a3f8b4aebc370f272b114c3e71d9bb463586dfd", size = 29238, upload-time = "2026-04-20T10:28:18.526Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/6e/faf87e3eb91749e2300ff2e941b41c8e466f061a6e722e3a81bde99cecb2/korb-0.2.6-py3-none-any.whl", hash = "sha256:eb9d2f4ba6428fc9a2401aeeb2f6414f74a194857c99fc80242253b70b01e31f", size = 30786, upload-time = "2026-04-23T06:20:46.361Z" },
 ]
 
 [[package]]

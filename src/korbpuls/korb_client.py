@@ -96,6 +96,18 @@ def run_predict(ligaid: str) -> dict[str, Any]:
     return _run_korb(["--ligaid", ligaid, "--json", "predict"])
 
 
+def run_ergebnisse(ligaid: str) -> dict[str, Any]:
+    """Get game results for a league.
+
+    Args:
+        ligaid: League ID number
+
+    Returns:
+        JSON response with game results
+    """
+    return _run_korb(["--ligaid", ligaid, "--json", "ergebnisse"])
+
+
 def run_team(ligaid: str, team_name: str) -> dict[str, Any]:
     """Get team results.
 

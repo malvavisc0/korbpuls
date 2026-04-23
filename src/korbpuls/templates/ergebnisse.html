@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}{{ liga_name }} — Ergebnisse{% endblock %}
+
+{% block meta_description %}Ergebnisse der {{ liga_name }} mit allen absolvierten Basketball-Spielen, Endständen und Teamvergleichen. Analysiere vergangene Spiele deiner Liga mit korbPuls.{% endblock %}
+
+{% block meta_keywords %}{{ liga_name }}, Basketball Ergebnisse, absolvierte Spiele, Endstände, Basketball Resultate, Teamvergleich{% endblock %}
+
+{% block main %}
+<article class="page">
+    <header class="page-intro">
+        <p class="eyebrow">Ergebnisse</p>
+        <h1>Ergebnisse</h1>
+        <p class="page-meta">Stand: <strong>{{ cached_at }}</strong></p>
+        <p>
+            Alle absolvierten Spiele der {{ liga_name }} mit Endständen
+            und Korbdifferenz in einer kompakten Übersicht.
+        </p>
+    </header>
+
+    <nav class="segmented-nav" aria-label="Seitennavigation">
+        <div class="segmented-nav__tabs">
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}" class="segmented-nav__tab">Tabelle</a>
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/ergebnisse" class="segmented-nav__tab segmented-nav__tab--active" aria-current="page">Ergebnisse</a>
+            {% if not is_finished %}
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan" class="segmented-nav__tab">Spielplan</a>
+            {% endif %}
+            {% if prediction_eligible %}
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/prognose" class="segmented-nav__tab">KI-Prognose</a>
+            {% endif %}
+        </div>
+        {% if not is_finished %}
+        <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/aktualisieren">
+            <button type="submit" class="refresh-button">↻ Neu laden</button>
+        </form>
+        {% endif %}
+    </nav>
+
+    <section class="table-shell">
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Heim</th>
+                        <th class="col-score">Ergebnis</th>
+                        <th>Gast</th>
+                        <th class="col-diff">Diff</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for game in games %}
+                    <tr>
+                        <td>{{ game.date }}</td>
+                        <td>
+                            <a class="team-link {% if game.winner == 'home' %}team-link--winner{% endif %}"
+                               href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.home_slug }}">
+                                {{ game.home }}
+                            </a>
+                        </td>
+                        <td class="col-score">
+                            <span class="prediction-score">
+                                {{ game.home_score }} : {{ game.away_score }}
+                            </span>
+                        </td>
+                        <td>
+                            <a class="team-link {% if game.winner == 'away' %}team-link--winner{% endif %}"
+                               href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.away_slug }}">
+                                {{ game.away }}
+                            </a>
+                        </td>
+                        <td class="col-diff {% if game.diff > 0 %}diff-positive{% elif game.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ game.diff }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</article>
+{% endblock %}
+
+{% block footer %}
+<div class="footer-actions">
+    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Tabelle</a>
+    {% if not is_finished %}
+    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Zum Spielplan →</a>
+    {% endif %}
+</div>
+{% endblock %}

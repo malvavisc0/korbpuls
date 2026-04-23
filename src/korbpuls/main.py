@@ -25,7 +25,13 @@ from korbpuls.ai import AIConfig
 from korbpuls.ai.agents import LeaguePrediction, TeamAnalysis, get_analyst, get_oracle
 from korbpuls.auth import validate_api_key
 from korbpuls.cache import CacheDir, CacheMiss, LigaMeta
-from korbpuls.korb_client import KorbError, run_download, run_predict, run_schedule
+from korbpuls.korb_client import (
+    KorbError,
+    run_download,
+    run_ergebnisse,
+    run_predict,
+    run_schedule,
+)
 from korbpuls.korb_client import run_standings as korb_standings
 from korbpuls.korb_client import run_team as korb_team
 from korbpuls.slugify import slugify
@@ -91,6 +97,9 @@ def fetch_and_cache_league(ligaid: str) -> None:
 
         schedule_data = run_schedule(ligaid)
         cache_dir.write_json("schedule.json", schedule_data)
+
+        ergebnisse_data = run_ergebnisse(ligaid)
+        cache_dir.write_json("ergebnisse.json", ergebnisse_data)
 
         # Prediction may fail for finalized seasons — non-fatal
         try:
@@ -497,6 +506,31 @@ async def schedule_page(
 
 
 @app.get(
+    "/liga/{ligaid}/{liga_slug}/ergebnisse",
+    response_class=HTMLResponse,
+)
+async def ergebnisse_page(
+    request: Request,
+    ligaid: str = URLPath(..., pattern=r"\d+"),
+    liga_slug: str = URLPath(...),
+) -> HTMLResponse:
+    """Render ergebnisse page."""
+    try:
+        view = presenters.present_ergebnisse(ligaid)
+    except CacheMiss as e:
+        raise HTTPException(
+            status_code=404,
+            detail="Daten nicht gefunden",
+        ) from e
+
+    return templates.TemplateResponse(
+        request,
+        "ergebnisse.html",
+        view.model_dump(),
+    )
+
+
+@app.get(
     "/liga/{ligaid}/{liga_slug}/prognose",
     response_class=HTMLResponse,
 )
@@ -701,6 +735,15 @@ class TeamResponse(BaseModel):
     results: list[dict[str, Any]]
 
 
+class ErgebnisseResponse(BaseModel):
+    """API response for ergebnisse."""
+
+    liga_name: str
+    liga_number: int
+    ligaid: int
+    ergebnisse: list[dict[str, Any]]
+
+
 def _read_api_cache(ligaid: str, filename: str) -> dict[str, Any]:
     """Read cached JSON for API endpoints.
 
@@ -817,4 +860,22 @@ async def api_team(
         ligaid=raw["ligaid"],
         team=raw["team"],
         results=raw.get("results", []),
+    )
+
+
+@app.get(
+    "/api/liga/{ligaid}/ergebnisse",
+    response_model=ErgebnisseResponse,
+)
+async def api_ergebnisse(
+    ligaid: str = URLPath(..., pattern=r"\d+"),
+    _api_key: str = Depends(validate_api_key),
+) -> ErgebnisseResponse:
+    """Get game results as JSON (protected)."""
+    raw = _read_api_cache(ligaid, "ergebnisse.json")
+    return ErgebnisseResponse(
+        liga_name=raw["liga_name"],
+        liga_number=raw["liga_number"],
+        ligaid=raw["ligaid"],
+        ergebnisse=raw.get("ergebnisse", []),
     )

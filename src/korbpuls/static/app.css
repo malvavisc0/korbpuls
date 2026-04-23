@@ -839,6 +839,19 @@ table tbody td {
 
 .team-link:hover::after { width: 100%; }
 
+.team-link--winner {
+    color: var(--kp-positive);
+    font-weight: 800;
+}
+
+.team-link--winner::after {
+    background: var(--kp-positive);
+}
+
+.team-link--winner:hover {
+    color: var(--kp-positive);
+}
+
 /* ── Stat / Metric Cards ───────────────────────────────────── */
 
 .stats-grid, .metric-grid { display: grid; gap: 1rem; }

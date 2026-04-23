@@ -168,6 +168,32 @@ class PredictionView(BaseModel):
     ai_enabled: bool = False
 
 
+class ErgebnisGame(BaseModel):
+    """A single completed game result."""
+
+    date: str  # "15.03.2025"
+    home: str
+    home_slug: str
+    away: str
+    away_slug: str
+    home_score: int
+    away_score: int
+    diff: int  # home_score - away_score
+    winner: str  # "home" or "away"
+
+
+class ErgebnisseView(BaseModel):
+    """View model for the ergebnisse page."""
+
+    liga_name: str
+    liga_slug: str
+    ligaid: str
+    cached_at: str
+    games: list[ErgebnisGame]
+    is_finished: bool = False
+    prediction_eligible: bool = True
+
+
 _RESULT_MAP = {"W": "Sieg", "L": "Niederlage", "D": "Unentschieden"}
 
 
@@ -829,4 +855,70 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
         ai_table=ai_table,
         ai_explanation=ai_explanation,
         ai_enabled=ai_enabled,
+    )
+
+
+def present_ergebnisse(ligaid: str) -> ErgebnisseView:
+    """Build view model for ergebnisse page.
+
+    Args:
+        ligaid: League ID
+
+    Returns:
+        ErgebnisseView for template rendering
+
+    Raises:
+        CacheMiss: If cache files not found
+    """
+    cache = CacheDir(ligaid)
+    meta = cache.read_meta()
+    data = cache.read_json("ergebnisse.json")
+
+    games: list[ErgebnisGame] = []
+    for raw in data.get("ergebnisse", []):
+        raw_date = raw.get("date", "")
+        if " " in raw_date:
+            raw_date = raw_date.split(" ", 1)[0]
+
+        home_score = raw["home_score"]
+        away_score = raw["away_score"]
+        diff = home_score - away_score
+        winner = "home" if diff > 0 else ("away" if diff < 0 else "draw")
+
+        games.append(
+            ErgebnisGame(
+                date=raw_date,
+                home=raw["home"],
+                home_slug=slugify(raw["home"]),
+                away=raw["away"],
+                away_slug=slugify(raw["away"]),
+                home_score=home_score,
+                away_score=away_score,
+                diff=diff,
+                winner=winner,
+            )
+        )
+
+    # Reverse so newest results appear first
+    games.reverse()
+
+    # Load schedule for is_finished and eligibility
+    schedule_data = cache.read_json("schedule.json")
+    schedule_games = [
+        _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
+    ]
+    is_finished = _is_season_finished(schedule_games)
+    eligible, _ = _check_prediction_eligible(
+        cache,
+        schedule_games=schedule_games,
+    )
+
+    return ErgebnisseView(
+        liga_name=meta.league_name,
+        liga_slug=meta.liga_slug,
+        ligaid=meta.ligaid,
+        cached_at=meta.cached_at,
+        games=games,
+        is_finished=is_finished,
+        prediction_eligible=eligible,
     )
