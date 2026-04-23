@@ -536,6 +536,125 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     color: #09090b;
 }
 
+/* ── Latest Results Strip ──────────────────────────────── */
+
+.latest-results {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.latest-results__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.latest-results__title {
+    font-family: var(--kp-font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.latest-results__link {
+    color: var(--kp-accent);
+    font-size: 0.85rem;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.latest-results__link:hover {
+    text-decoration: underline;
+}
+
+.latest-results__grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+}
+
+.result-card {
+    display: grid;
+    gap: 0.4rem;
+    padding: 0.75rem 1rem;
+    background: var(--kp-surface);
+    border: 1px solid var(--kp-border-subtle);
+    border-radius: var(--kp-radius);
+    transition: border-color 0.15s;
+}
+
+.result-card:hover {
+    border-color: var(--kp-border);
+}
+
+.result-card__date {
+    font-size: 0.75rem;
+    color: var(--kp-text-secondary);
+}
+
+.result-card__teams {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.result-card__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.result-card__name {
+    font-size: 0.85rem;
+    color: var(--kp-text);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.result-card__name:hover {
+    color: var(--kp-accent);
+}
+
+.result-card__name--winner {
+    font-weight: 600;
+}
+
+.result-card__score {
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--kp-text-secondary);
+    flex-shrink: 0;
+}
+
+.result-card__score--winner {
+    color: var(--kp-positive);
+}
+
+.result-card__score--draw {
+    color: var(--kp-text-secondary);
+}
+
+@media (max-width: 767px) {
+    .latest-results__grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .result-card {
+        padding: 0.6rem 0.75rem;
+    }
+
+    .result-card__name {
+        font-size: 0.8rem;
+    }
+}
+
 /* ── Team Hero ─────────────────────────────────────────────── */
 
 .team-hero {

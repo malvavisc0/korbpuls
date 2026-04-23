@@ -40,6 +40,7 @@ class StandingsView(BaseModel):
     rows: list[StandingsRow]
     is_finished: bool = False
     prediction_eligible: bool = True
+    latest_games: list[ErgebnisGame] = []
 
 
 class GameResult(BaseModel):
@@ -179,7 +180,7 @@ class ErgebnisGame(BaseModel):
     home_score: int
     away_score: int
     diff: int  # home_score - away_score
-    winner: str  # "home" or "away"
+    winner: str  # "home", "away", or "draw"
 
 
 class ErgebnisseView(BaseModel):
@@ -240,6 +241,28 @@ def _parse_schedule_game(game: dict[str, Any]) -> ScheduleGame:
         away_slug=slugify(game["away"]),
         venue=game["venue"],
         cancelled=game.get("cancelled", False),
+    )
+
+
+def _parse_ergebnis_game(raw: dict[str, Any]) -> ErgebnisGame:
+    """Parse a single raw ergebnis dict into an ErgebnisGame."""
+    raw_date = raw.get("date", "")
+    if " " in raw_date:
+        raw_date = raw_date.split(" ", 1)[0]
+    home_score = raw["home_score"]
+    away_score = raw["away_score"]
+    diff = home_score - away_score
+    winner = "home" if diff > 0 else ("away" if diff < 0 else "draw")
+    return ErgebnisGame(
+        date=raw_date,
+        home=raw["home"],
+        home_slug=slugify(raw["home"]),
+        away=raw["away"],
+        away_slug=slugify(raw["away"]),
+        home_score=home_score,
+        away_score=away_score,
+        diff=diff,
+        winner=winner,
     )
 
 
@@ -628,6 +651,16 @@ def present_standings(ligaid: str) -> StandingsView:
         schedule_games=schedule_games,
     )
 
+    # Latest 4 results for the standings page summary
+    latest_games: list[ErgebnisGame] = []
+    try:
+        ergebnisse_data = cache.read_json("ergebnisse.json")
+        raw_games = ergebnisse_data.get("ergebnisse", [])
+        last_four = [_parse_ergebnis_game(raw) for raw in raw_games[-4:]]
+        latest_games = last_four[::-1]
+    except (CacheMiss, FileNotFoundError):
+        pass
+
     return StandingsView(
         liga_name=meta.league_name,
         liga_slug=meta.liga_slug,
@@ -636,6 +669,7 @@ def present_standings(ligaid: str) -> StandingsView:
         rows=rows,
         is_finished=is_finished,
         prediction_eligible=eligible,
+        latest_games=latest_games,
     )
 
 
@@ -874,33 +908,8 @@ def present_ergebnisse(ligaid: str) -> ErgebnisseView:
     meta = cache.read_meta()
     data = cache.read_json("ergebnisse.json")
 
-    games: list[ErgebnisGame] = []
-    for raw in data.get("ergebnisse", []):
-        raw_date = raw.get("date", "")
-        if " " in raw_date:
-            raw_date = raw_date.split(" ", 1)[0]
-
-        home_score = raw["home_score"]
-        away_score = raw["away_score"]
-        diff = home_score - away_score
-        winner = "home" if diff > 0 else ("away" if diff < 0 else "draw")
-
-        games.append(
-            ErgebnisGame(
-                date=raw_date,
-                home=raw["home"],
-                home_slug=slugify(raw["home"]),
-                away=raw["away"],
-                away_slug=slugify(raw["away"]),
-                home_score=home_score,
-                away_score=away_score,
-                diff=diff,
-                winner=winner,
-            )
-        )
-
-    # Reverse so newest results appear first
-    games.reverse()
+    games = [_parse_ergebnis_game(raw) for raw in data.get("ergebnisse", [])]
+    games.reverse()  # newest results first
 
     # Load schedule for is_finished and eligibility
     schedule_data = cache.read_json("schedule.json")

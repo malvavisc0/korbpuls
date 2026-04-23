@@ -44,6 +44,36 @@
     </section>
     {% endif %}
 
+    {% if latest_games %}
+    <section class="latest-results">
+        <div class="latest-results__header">
+            <h2 class="latest-results__title">Letzte Ergebnisse</h2>
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/ergebnisse" class="latest-results__link">
+                Alle Ergebnisse →
+            </a>
+        </div>
+        <div class="latest-results__grid">
+            {% for game in latest_games %}
+            <div class="result-card">
+                <span class="result-card__date">{{ game.date }}</span>
+                <div class="result-card__teams">
+                    <div class="result-card__row">
+                        <a class="result-card__name {% if game.winner == 'home' %}result-card__name--winner{% endif %}"
+                           href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.home_slug }}">{{ game.home }}</a>
+                        <span class="result-card__score {% if game.winner == 'home' %}result-card__score--winner{% elif game.winner == 'draw' %}result-card__score--draw{% endif %}">{{ game.home_score }}</span>
+                    </div>
+                    <div class="result-card__row">
+                        <a class="result-card__name {% if game.winner == 'away' %}result-card__name--winner{% endif %}"
+                           href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.away_slug }}">{{ game.away }}</a>
+                        <span class="result-card__score {% if game.winner == 'away' %}result-card__score--winner{% elif game.winner == 'draw' %}result-card__score--draw{% endif %}">{{ game.away_score }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
     <section class="table-shell">
         <div class="table-scroll">
             <table>
