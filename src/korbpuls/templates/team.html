@@ -158,17 +158,16 @@
             </div>
             <p class="section-meta">Letzte 5: {{ metrics.last_5 }}</p>
         </div>
-        <p class="note">Hier siehst du die jüngsten Ergebnisse von {{ team_name }} inklusive Gegner, Spielort und Punktedifferenz.</p>
+        <p class="note">Jüngste Ergebnisse von {{ team_name }} mit Gegner, Endstand und Korbdifferenz.</p>
         <div class="table-scroll">
             <table>
                 <thead>
                     <tr>
                         <th class="col-date">Datum</th>
                         <th>Gegner</th>
-                        <th class="col-short">Status</th>
                         <th class="col-score">Ergebnis</th>
                         <th class="col-diff">Diff</th>
-                        <th class="col-short hide-mobile">Ort</th>
+                        <th class="col-outcome">W/L</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -179,15 +178,19 @@
                             <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.opponent_slug }}">
                                 {{ game.opponent }}
                             </a>
+                            <span class="muted" style="font-size:0.78rem"> {{ game.home_away }}</span>
                         </td>
-                        <td class="col-short">
-                            <span class="status-badge {% if game.result == 'Sieg' %}status-badge--win{% else %}status-badge--loss{% endif %}">
-                                {% if game.result == 'Sieg' %}Sieg{% else %}Niederlage{% endif %}
+                        <td class="col-score">
+                            <span class="prediction-score">
+                                {{ game.our_score }} : {{ game.opp_score }}
                             </span>
                         </td>
-                        <td class="col-score">{{ game.our_score }} : {{ game.opp_score }}</td>
                         <td class="col-diff {% if game.diff > 0 %}diff-positive{% elif game.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ game.diff }}</td>
-                        <td class="col-short hide-mobile">{{ game.home_away }}</td>
+                        <td class="col-outcome">
+                            <span class="status-badge {% if game.result == 'Sieg' %}status-badge--win{% else %}status-badge--loss{% endif %}">
+                                {% if game.result == 'Sieg' %}W{% else %}L{% endif %}
+                            </span>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
