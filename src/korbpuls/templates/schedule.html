@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}{{ liga_name }} — Spielplan{% endblock %}
+{% block og_title %}{{ liga_name }} Spielplan, Termine & Hallen | korbPuls{% endblock %}
 
 {% block meta_description %}Spielplan der {{ liga_name }} mit kommenden Basketball-Spielen, Terminen, Paarungen und Hallen. Behalte alle Ansetzungen deiner Liga übersichtlich im Blick.{% endblock %}
+{% block og_description %}Kommende Spiele, Termine, Paarungen und Hallen der {{ liga_name }} im übersichtlichen Basketball-Spielplan von korbPuls.{% endblock %}
 
 {% block meta_keywords %}{{ liga_name }}, Basketball Spielplan, kommende Spiele, Liga Termine, Basketball Ansetzungen, Hallen, Spieltage{% endblock %}
 
@@ -35,7 +37,35 @@
         {% endif %}
     </nav>
 
+    <section class="surface">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Schnellüberblick</p>
+                <h2>Was im Spielplan zählt</h2>
+            </div>
+        </div>
+        <div class="metric-grid">
+            <article class="metric-card">
+                <p class="metric-card__label">Anstehende Spiele</p>
+                <p class="metric-card__value">{{ games|length }}</p>
+                <p class="metric-card__detail">Alle offenen Partien dieser Liga in einer reduzierten Planungsansicht.</p>
+            </article>
+            <article class="metric-card">
+                <p class="metric-card__label">Planungsfokus</p>
+                <p class="metric-card__value">Halle + Status</p>
+                <p class="metric-card__detail">Ort und Spielstatus bleiben getrennt, damit der Spielplan schneller scanbar ist.</p>
+            </article>
+        </div>
+    </section>
+
     <section class="table-shell">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Planung</p>
+                <h2>Nächste Spiele</h2>
+            </div>
+            <p class="section-meta">Kompakt, klar und auf die wichtigsten Spieltagsinfos reduziert.</p>
+        </div>
         <div class="table-scroll">
             <table>
                 <thead>
@@ -44,6 +74,7 @@
                         <th>Heim</th>
                         <th>Gast</th>
                         <th class="hide-mobile">Halle</th>
+                        <th class="col-short">Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -69,10 +100,13 @@
                             {% endif %}
                         </td>
                         <td class="hide-mobile">
+                            <span class="muted">{{ game.venue or 'Wird noch bestätigt' }}</span>
+                        </td>
+                        <td class="col-short">
                             {% if game.cancelled %}
                             <span class="cancelled-badge">Abgesagt</span>
                             {% else %}
-                            <span class="muted">{{ game.venue }}</span>
+                            <span class="status-badge">Geplant</span>
                             {% endif %}
                         </td>
                     </tr>

@@ -7,8 +7,10 @@
 {% endblock %}
 
 {% block title %}{{ team_name }} — Teamübersicht{% endblock %}
+{% block og_title %}{{ team_name }} Teamprofil, Ergebnisse & Form | korbPuls{% endblock %}
 
 {% block meta_description %}Teamprofil von {{ team_name }} in der {{ liga_name }} mit Ergebnissen, Siegquote, Punkteschnitt, Formkurve, kommenden Spielen und KI-Analyse bei korbPuls.{% endblock %}
+{% block og_description %}Teamprofil von {{ team_name }} in der {{ liga_name }} mit Ergebnissen, Form, Kennzahlen, kommenden Spielen und KI-Analyse auf korbPuls.{% endblock %}
 
 {% block meta_keywords %}{{ team_name }}, {{ liga_name }}, Basketball Teamstatistiken, Siegquote, Formkurve, Ergebnisse, kommende Spiele, KI-Analyse{% endblock %}
 
@@ -163,10 +165,10 @@
                     <tr>
                         <th class="col-date">Datum</th>
                         <th>Gegner</th>
-                        <th class="col-short">Ort</th>
+                        <th class="col-short">Status</th>
                         <th class="col-score">Ergebnis</th>
                         <th class="col-diff">Diff</th>
-                        <th class="col-outcome">Ausgang</th>
+                        <th class="col-short hide-mobile">Ort</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -178,14 +180,14 @@
                                 {{ game.opponent }}
                             </a>
                         </td>
-                        <td class="col-short">{{ game.home_away }}</td>
-                        <td class="col-score">{{ game.our_score }} : {{ game.opp_score }}</td>
-                        <td class="col-diff {% if game.diff > 0 %}diff-positive{% elif game.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ game.diff }}</td>
-                        <td class="col-outcome">
+                        <td class="col-short">
                             <span class="status-badge {% if game.result == 'Sieg' %}status-badge--win{% else %}status-badge--loss{% endif %}">
-                                {% if game.result == 'Sieg' %}W{% else %}L{% endif %}
+                                {% if game.result == 'Sieg' %}Sieg{% else %}Niederlage{% endif %}
                             </span>
                         </td>
+                        <td class="col-score">{{ game.our_score }} : {{ game.opp_score }}</td>
+                        <td class="col-diff {% if game.diff > 0 %}diff-positive{% elif game.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ game.diff }}</td>
+                        <td class="col-short hide-mobile">{{ game.home_away }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -209,7 +211,8 @@
                         <th>Datum</th>
                         <th>Heim</th>
                         <th>Gast</th>
-                        <th>Halle</th>
+                        <th class="hide-mobile">Halle</th>
+                        <th class="col-short">Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -218,7 +221,8 @@
                         <td>{{ game.date }}</td>
                         <td>{{ game.home }}</td>
                         <td>{{ game.away }}</td>
-                        <td>{{ game.venue }}</td>
+                        <td class="hide-mobile"><span class="muted">{{ game.venue or 'Wird noch bestätigt' }}</span></td>
+                        <td class="col-short"><span class="status-badge">Geplant</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>

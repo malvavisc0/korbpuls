@@ -2,24 +2,26 @@
 
 /* Tokens */
 :root {
-    --kp-base: #09090b;
-    --kp-surface: #18181b;
-    --kp-surface-elevated: #27272a;
-    --kp-border: #3f3f46;
-    --kp-border-subtle: #27272a;
-    --kp-text: #fafafa;
-    --kp-text-secondary: #a1a1aa;
-    --kp-accent: #fb923c;
-    --kp-accent-hover: #f97316;
-    --kp-accent-soft: rgba(251,146,60,0.12);
-    --kp-positive: #4ade80;
-    --kp-positive-soft: rgba(74,222,128,0.1);
-    --kp-negative: #f87171;
-    --kp-negative-soft: rgba(248,113,113,0.1);
-    --kp-ai: #a78bfa;
-    --kp-ai-soft: rgba(167,139,250,0.08);
-    --kp-radius: 0.25rem;
-    --kp-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    --kp-base: #1e242c;
+    --kp-surface: #252c35;
+    --kp-surface-elevated: #2d3641;
+    --kp-surface-soft: #36414d;
+    --kp-border: #5a6673;
+    --kp-border-subtle: #46515d;
+    --kp-text: #f2f5f7;
+    --kp-text-secondary: #b7c0c9;
+    --kp-text-tertiary: #8f9aa6;
+    --kp-accent: #e58a3a;
+    --kp-accent-hover: #f09a4e;
+    --kp-accent-soft: rgba(229,138,58,0.14);
+    --kp-positive: #6bcb8b;
+    --kp-positive-soft: rgba(107,203,139,0.14);
+    --kp-negative: #e07a7a;
+    --kp-negative-soft: rgba(224,122,122,0.14);
+    --kp-ai: #8f87e8;
+    --kp-ai-soft: rgba(143,135,232,0.12);
+    --kp-radius: 0.375rem;
+    --kp-shadow: 0 8px 24px rgba(7, 10, 14, 0.18);
     --kp-font-display: 'Space Grotesk', sans-serif;
     --kp-font-body: 'Inter', sans-serif;
 
@@ -32,7 +34,7 @@
     --pico-primary: var(--kp-accent);
     --pico-primary-hover: var(--kp-accent-hover);
     --pico-primary-focus: rgba(251,146,60,0.3);
-    --pico-primary-inverse: #09090b;
+    --pico-primary-inverse: #1e242c;
     --pico-color: var(--kp-text);
     --pico-muted-color: var(--kp-text-secondary);
     --pico-border-radius: var(--kp-radius);
@@ -120,7 +122,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 }
 
 .brand__mark {
-    font-weight: 700;
+    font-weight: 600;
     font-size: 1.35rem;
     letter-spacing: -0.02em;
     display: inline-flex;
@@ -153,13 +155,22 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 /* ── Layout ─────────────────────────────────────────────────── */
 
-.site-main { padding: 1.25rem 0 3rem; }
+.site-main {
+    padding: 1.25rem 0 3rem;
+    flex: 1;
+}
 
 .page-shell { display: grid; gap: 1.5rem; }
 
 .page, .page--narrow { display: grid; gap: 1.5rem; }
 
 .page--narrow { width: min(720px, 100%); margin: 0 auto; }
+
+.page--centered {
+    min-height: calc(100vh - 14rem);
+    display: grid;
+    align-content: center;
+}
 
 /* ── Page Intro ─────────────────────────────────────────────── */
 
@@ -173,7 +184,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 .page-intro h1, .hero h1 {
     margin-bottom: 0;
     letter-spacing: -0.03em;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .page-intro .eyebrow,
@@ -183,7 +194,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.78rem;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .ai-panel__eyebrow {
@@ -191,7 +202,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.78rem;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .page-meta, .meta, .liga, .hint, .note, .muted {
@@ -264,6 +275,10 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     margin: 0.5rem 0;
     display: grid;
     gap: 0.4rem;
+}
+
+.benefit-list li {
+    list-style: none;
 }
 
 .benefit-list li::before {
@@ -368,16 +383,15 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     background: var(--kp-surface-elevated);
     color: var(--kp-text);
     text-decoration: none;
-    font-weight: 600;
-    transition: background 0.15s, color 0.15s, transform 0.1s;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .action-bar a:hover,
 .action-bar .inline-form button:hover,
 .footer-actions a:hover,
 .footer-actions button:hover {
-    background: var(--kp-border);
-    transform: translateY(-1px);
+    background: var(--kp-surface-soft);
 }
 
 .action-bar a[aria-current="page"] {
@@ -432,7 +446,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     background: transparent;
     color: var(--kp-text-secondary);
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 0.9rem;
     transition: background 0.15s, color 0.15s;
     min-width: 0;
@@ -465,13 +479,13 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     border: 1px solid var(--kp-border);
     background: transparent;
     color: var(--kp-text-secondary);
-    font-weight: 600;
+    font-weight: 500;
     font-size: 0.9rem;
     transition: background 0.15s, color 0.15s;
 }
 
 .refresh-button:hover {
-    background: var(--kp-surface-elevated);
+    background: var(--kp-surface-soft);
     color: var(--kp-text);
 }
 
@@ -487,15 +501,14 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     border-radius: var(--kp-radius);
     border: none;
     background: var(--kp-accent);
-    color: #09090b;
-    font-weight: 700;
+    color: #1e242c;
+    font-weight: 500;
     font-size: 1rem;
-    transition: background 0.15s, transform 0.1s;
+    transition: background 0.15s, border-color 0.15s;
 }
 
 .primary-cta:hover {
     background: var(--kp-accent-hover);
-    transform: translateY(-1px);
 }
 
 /* ── AI Teaser Strip ──────────────────────────────────────── */
@@ -553,7 +566,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 .latest-results__title {
     font-family: var(--kp-font-display);
     font-size: 1rem;
-    font-weight: 700;
+    font-weight: 600;
     margin: 0;
     letter-spacing: -0.01em;
 }
@@ -580,13 +593,15 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     gap: 0.4rem;
     padding: 0.75rem 1rem;
     background: var(--kp-surface);
-    border: 1px solid var(--kp-border-subtle);
+    border: 1px solid color-mix(in srgb, var(--kp-border-subtle) 78%, transparent);
     border-radius: var(--kp-radius);
-    transition: border-color 0.15s;
+    box-shadow: 0 2px 10px rgba(7, 10, 14, 0.08);
+    transition: border-color 0.15s, background 0.15s;
 }
 
 .result-card:hover {
     border-color: var(--kp-border);
+    background: var(--kp-surface-elevated);
 }
 
 .result-card__date {
@@ -620,12 +635,12 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 }
 
 .result-card__name--winner {
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .result-card__score {
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
     color: var(--kp-text-secondary);
     flex-shrink: 0;
@@ -707,7 +722,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 .record-col__value {
     font-family: var(--kp-font-display);
     font-size: 1.6rem;
-    font-weight: 800;
+    font-weight: 600;
     letter-spacing: -0.02em;
 }
 
@@ -716,7 +731,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     font-size: 0.82rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .record-col--wins .record-col__value {
@@ -834,6 +849,8 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     border: 1px solid var(--kp-border);
     position: relative;
     overflow: hidden;
+    background: color-mix(in srgb, var(--kp-surface) 88%, var(--kp-surface-elevated));
+    box-shadow: var(--kp-shadow);
 }
 
 .table-scroll table {
@@ -843,7 +860,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .table-scroll th {
     background: var(--kp-surface-elevated);
-    font-weight: 600;
+    font-weight: 500;
     text-transform: uppercase;
     font-size: 0.72rem;
     letter-spacing: 0.06em;
@@ -889,10 +906,10 @@ table thead th {
     color: var(--kp-text);
     font-size: 0.82rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
     background: var(--kp-surface-elevated);
-    font-family: var(--kp-font-display);
-    font-weight: 700;
+    font-family: var(--kp-font-body);
+    font-weight: 500;
 }
 
 table tbody tr {
@@ -902,12 +919,12 @@ table tbody tr {
 
 /* Subtle background tint on hover, no border shift */
 table tbody tr:hover {
-    background: var(--kp-accent-soft);
+    background: rgba(255, 255, 255, 0.035);
 }
 
 /* Zebra striping for better table readability */
 table tbody tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.015);
 }
 
 table tbody td {
@@ -935,7 +952,8 @@ table tbody td {
 /* ── Team Link ──────────────────────────────────────────────── */
 
 .team-link {
-    font-weight: 650;
+    color: var(--kp-text);
+    font-weight: 500;
     text-decoration: none;
     position: relative;
     transition: color 0.15s;
@@ -960,7 +978,7 @@ table tbody td {
 
 .team-link--winner {
     color: var(--kp-positive);
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .team-link--winner::after {
@@ -987,12 +1005,12 @@ table tbody td {
     font-size: 0.82rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .stat-card__value, .metric-card__value {
     font-size: 1.2rem;
-    font-weight: 800;
+    font-weight: 600;
     letter-spacing: -0.02em;
     /* font-family set to body font at line 93 for legibility */
 }
@@ -1115,6 +1133,21 @@ table tbody td {
 
 .finished-note, .error-card, .loading-card { display: grid; gap: 0.9rem; }
 
+.loading-card {
+    min-height: 36rem;
+    align-content: center;
+    gap: 1.5rem;
+}
+
+.loading-card h1,
+.loading-card p {
+    max-width: 30ch;
+}
+
+.loading-card .spinner {
+    margin: 0.25rem 0;
+}
+
 /* ── Spinner ────────────────────────────────────────────────── */
 
 .spinner {
@@ -1175,7 +1208,7 @@ details.ai-details {
 
 details.ai-details summary {
     cursor: pointer;
-    font-weight: 700;
+    font-weight: 500;
     color: var(--kp-text);
 }
 
@@ -1203,35 +1236,18 @@ details.ai-details summary {
 .hero-card,
 .loading-card,
 .error-card {
-    animation: fadeSlideUp 0.4s ease-out both;
+    animation: fadeSlideUp 0.28s ease-out both;
 }
 
-.page > section:nth-child(1) { animation-delay: 0.05s; }
-.page > section:nth-child(2) { animation-delay: 0.1s; }
-.page > section:nth-child(3) { animation-delay: 0.15s; }
-.page > section:nth-child(4) { animation-delay: 0.2s; }
-.page > section:nth-child(5) { animation-delay: 0.25s; }
-.page > section:nth-child(6) { animation-delay: 0.3s; }
+.page > section:nth-child(1) { animation-delay: 0.02s; }
+.page > section:nth-child(2) { animation-delay: 0.04s; }
+.page > section:nth-child(3) { animation-delay: 0.06s; }
+.page > section:nth-child(4) { animation-delay: 0.08s; }
+.page > section:nth-child(5) { animation-delay: 0.1s; }
+.page > section:nth-child(6) { animation-delay: 0.12s; }
 
-.page > .stats-grid { animation-delay: 0.08s; }
-.page > .ai-panel { animation-delay: 0.18s; }
-
-/* Table row stagger */
-.table-scroll tbody tr {
-    animation: rowSlideIn 0.25s ease-out both;
-}
-
-.table-scroll tbody tr:nth-child(1) { animation-delay: 0.05s; }
-.table-scroll tbody tr:nth-child(2) { animation-delay: 0.07s; }
-.table-scroll tbody tr:nth-child(3) { animation-delay: 0.09s; }
-.table-scroll tbody tr:nth-child(4) { animation-delay: 0.11s; }
-.table-scroll tbody tr:nth-child(5) { animation-delay: 0.13s; }
-.table-scroll tbody tr:nth-child(6) { animation-delay: 0.15s; }
-.table-scroll tbody tr:nth-child(7) { animation-delay: 0.17s; }
-.table-scroll tbody tr:nth-child(8) { animation-delay: 0.19s; }
-.table-scroll tbody tr:nth-child(9) { animation-delay: 0.21s; }
-.table-scroll tbody tr:nth-child(10) { animation-delay: 0.23s; }
-.table-scroll tbody tr:nth-child(n+11) { animation-delay: 0.25s; }
+.page > .stats-grid { animation-delay: 0.04s; }
+.page > .ai-panel { animation-delay: 0.08s; }
 
 /* Eyebrow entrance */
 .page-intro .eyebrow {

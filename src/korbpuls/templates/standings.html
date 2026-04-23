@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}{{ liga_name }} — Tabelle{% endblock %}
+{% block og_title %}{{ liga_name }} Tabelle, Punkte & Teamvergleich | korbPuls{% endblock %}
 
 {% block meta_description %}Aktuelle Tabelle der {{ liga_name }} mit Punkten, Siegen, Niederlagen, Korbdifferenz und Teamvergleich. Analysiere deine Basketball-Liga kompakt mit korbPuls.{% endblock %}
+{% block og_description %}Aktuelle Basketball-Tabelle der {{ liga_name }} mit Punkten, Bilanz, Korbdifferenz und Teamvergleich in einer klaren Übersicht auf korbPuls.{% endblock %}
 
 {% block meta_keywords %}{{ liga_name }}, Basketball Tabelle, Liga Tabelle, Basketball Teamvergleich, Korbdifferenz, Punkte, Formanalyse{% endblock %}
 
@@ -74,6 +76,27 @@
     </section>
     {% endif %}
 
+    <section class="surface">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Schnellüberblick</p>
+                <h2>Was jetzt wichtig ist</h2>
+            </div>
+        </div>
+        <div class="metric-grid">
+            <article class="metric-card">
+                <p class="metric-card__label">Tabellenführer</p>
+                <p class="metric-card__value">{{ rows[0].name if rows else '—' }}</p>
+                <p class="metric-card__detail">{{ rows[0].pts if rows else '—' }} Punkte aktuell an der Spitze.</p>
+            </article>
+            <article class="metric-card">
+                <p class="metric-card__label">Letzte Aktualisierung</p>
+                <p class="metric-card__value">{{ cached_at }}</p>
+                <p class="metric-card__detail">Die Tabelle ist auf schnellen Überblick für Eltern und Trainer reduziert.</p>
+            </article>
+        </div>
+    </section>
+
     <section class="table-shell">
         <div class="table-scroll">
             <table>
@@ -82,14 +105,10 @@
                         <th class="col-short">#</th>
                         <th>Team</th>
                         <th class="col-points">Pkt</th>
-                        <th class="col-short">Sp</th>
-                        <th class="col-short">S</th>
-                        <th class="col-short">N</th>
+                        <th class="col-number">Bilanz</th>
                         <th class="col-diff">Diff</th>
-                        <th class="col-number">PF</th>
-                        <th class="col-number">PA</th>
-                        <th class="col-number hide-mobile">Ø Erzielt</th>
-                        <th class="col-number hide-mobile">Ø Kassiert</th>
+                        <th class="col-number hide-mobile">PF</th>
+                        <th class="col-number hide-mobile">PA</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -102,14 +121,10 @@
                             </a>
                         </td>
                         <td class="col-points"><strong>{{ row.pts }}</strong></td>
-                        <td class="col-short">{{ row.gp }}</td>
-                        <td class="col-short">{{ row.w }}</td>
-                        <td class="col-short">{{ row.losses }}</td>
+                        <td class="col-number">{{ row.w }}-{{ row.losses }}</td>
                         <td class="col-diff {% if row.diff > 0 %}diff-positive{% elif row.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ row.diff }}</td>
-                        <td class="col-number">{{ row.pf }}</td>
-                        <td class="col-number">{{ row.pa }}</td>
-                        <td class="col-number hide-mobile">{{ row.avg_pf }}</td>
-                        <td class="col-number hide-mobile">{{ row.avg_pa }}</td>
+                        <td class="col-number hide-mobile">{{ row.pf }}</td>
+                        <td class="col-number hide-mobile">{{ row.pa }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -117,6 +132,6 @@
         </div>
     </section>
 
-    <p class="note">Auf den Teamnamen tippen für mehr Details, Statistiken und die aktuelle Formkurve.</p>
+    <p class="note">Auf den Teamnamen tippen für mehr Details, Form und erweiterte Statistiken.</p>
 </article>
 {% endblock %}

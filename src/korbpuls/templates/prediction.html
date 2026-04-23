@@ -7,8 +7,10 @@
 {% endblock %}
 
 {% block title %}{{ liga_name }} — Saisonprognose{% endblock %}
+{% block og_title %}{{ liga_name }} Saisonprognose & KI-Einordnung | korbPuls{% endblock %}
 
 {% block meta_description %}Saisonprognose für die {{ liga_name }} mit erwarteten Ergebnissen offener Spiele, hochgerechneter Tabelle und KI-gestützter Einordnung des weiteren Saisonverlaufs.{% endblock %}
+{% block og_description %}Saisonprognose der {{ liga_name }} mit erwarteten Ergebnissen offener Spiele, hochgerechneter Tabelle und KI-Einordnung auf korbPuls.{% endblock %}
 
 {% block meta_keywords %}{{ liga_name }}, Basketball Saisonprognose, KI-Prognose, hochgerechnete Tabelle, erwartete Ergebnisse, Basketball Analyse{% endblock %}
 
@@ -96,29 +98,54 @@
     </section>
     {% endif %}
 
+    <section class="surface">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Schnellüberblick</p>
+                <h2>Was die Prognose zeigt</h2>
+            </div>
+        </div>
+        <div class="metric-grid">
+            <article class="metric-card">
+                <p class="metric-card__label">Offene Spiele</p>
+                <p class="metric-card__value">{{ predictions|length }}</p>
+                <p class="metric-card__detail">Noch nicht gespielte Partien mit prognostiziertem Ausgang.</p>
+            </article>
+            <article class="metric-card">
+                <p class="metric-card__label">Prognose-Stand</p>
+                <p class="metric-card__value">{{ cached_at }}</p>
+                <p class="metric-card__detail">Verdichtete Projektion für einen schnellen Überblick über den Saisonverlauf.</p>
+            </article>
+        </div>
+    </section>
+
     <section class="table-shell">
         <div class="section-heading">
             <div>
                 <p class="eyebrow">Vorhersage</p>
                 <h2>Offene Spiele</h2>
             </div>
+            <p class="section-meta">Tipp = erwarteter Sieger</p>
         </div>
         <p class="note">Diese Vorhersagen zeigen erwartete Sieger und prognostizierte Ergebnisse der noch offenen Partien.</p>
         <div class="table-scroll">
             <table>
                 <thead>
                     <tr>
+                        <th>Spiel</th>
                         <th>Heim</th>
                         <th class="col-score">Ergebnis</th>
                         <th>Gast</th>
+                        <th class="col-short">Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for game in predictions %}
                     <tr>
+                        <td class="col-number">{{ loop.index }}</td>
                         <td>
                             {% if game.winner == 'home' %}
-                            <strong>{{ game.home }}</strong>
+                            <span class="team-link team-link--winner">{{ game.home }}</span>
                             {% else %}
                             {{ game.home }}
                             {% endif %}
@@ -136,17 +163,17 @@
                         </td>
                         <td>
                             {% if game.winner == 'away' %}
-                            <strong>{{ game.away }}</strong>
+                            <span class="team-link team-link--winner">{{ game.away }}</span>
                             {% else %}
                             {{ game.away }}
                             {% endif %}
                         </td>
+                        <td class="col-short"><span class="winner-badge">Tipp</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        <p class="note">Tipp = erwarteter Sieger</p>
     </section>
 
     <section class="table-shell">
@@ -164,14 +191,10 @@
                         <th class="col-short">#</th>
                         <th>Team</th>
                         <th class="col-points">Pkt</th>
-                        <th class="col-short">Sp</th>
-                        <th class="col-short">S</th>
-                        <th class="col-short">N</th>
+                        <th class="col-number">Bilanz</th>
                         <th class="col-diff">Diff</th>
-                        <th class="col-number">PF</th>
-                        <th class="col-number">PA</th>
-                        <th class="col-number hide-mobile">Ø Erzielt</th>
-                        <th class="col-number hide-mobile">Ø Kassiert</th>
+                        <th class="col-number hide-mobile">PF</th>
+                        <th class="col-number hide-mobile">PA</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -180,14 +203,10 @@
                         <td class="col-short">{{ row.rank }}</td>
                         <td>{{ row.name }}</td>
                         <td class="col-points"><strong>{{ row.pts }}</strong></td>
-                        <td class="col-short">{{ row.gp }}</td>
-                        <td class="col-short">{{ row.w }}</td>
-                        <td class="col-short">{{ row.losses }}</td>
+                        <td class="col-number">{{ row.w }}-{{ row.losses }}</td>
                         <td class="col-diff {% if row.diff > 0 %}diff-positive{% elif row.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ row.diff }}</td>
-                        <td class="col-number">{{ row.pf }}</td>
-                        <td class="col-number">{{ row.pa }}</td>
-                        <td class="col-number hide-mobile">{{ row.avg_pf }}</td>
-                        <td class="col-number hide-mobile">{{ row.avg_pa }}</td>
+                        <td class="col-number hide-mobile">{{ row.pf }}</td>
+                        <td class="col-number hide-mobile">{{ row.pa }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
