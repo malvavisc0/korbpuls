@@ -152,13 +152,7 @@
                         </td>
                         <td class="col-score">
                             <span class="prediction-score">
-                                {% if game.winner == 'home' %}
-                                <span class="winner-badge">Tipp</span>
-                                {% endif %}
                                 <span>{{ game.home_score }} : {{ game.away_score }}</span>
-                                {% if game.winner == 'away' %}
-                                <span class="winner-badge">Tipp</span>
-                                {% endif %}
                             </span>
                         </td>
                         <td>
@@ -168,7 +162,13 @@
                             {{ game.away }}
                             {% endif %}
                         </td>
-                        <td class="col-short"><span class="winner-badge">Tipp</span></td>
+                        <td class="col-short">
+                            {% if game.winner == 'home' %}
+                            <span class="winner-badge">← Heim</span>
+                            {% else %}
+                            <span class="winner-badge">Gast →</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -201,7 +201,11 @@
                     {% for row in standings %}
                     <tr>
                         <td class="col-short">{{ row.rank }}</td>
-                        <td>{{ row.name }}</td>
+                        <td>
+                            <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ row.slug }}">
+                                {{ row.name }}
+                            </a>
+                        </td>
                         <td class="col-points"><strong>{{ row.pts }}</strong></td>
                         <td class="col-number">{{ row.w }}-{{ row.losses }}</td>
                         <td class="col-diff {% if row.diff > 0 %}diff-positive{% elif row.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ row.diff }}</td>

@@ -38,6 +38,27 @@
         {% endif %}
     </nav>
 
+    <section class="surface">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Schnellüberblick</p>
+                <h2>Was die Ergebnisse zeigen</h2>
+            </div>
+        </div>
+        <div class="metric-grid">
+            <article class="metric-card">
+                <p class="metric-card__label">Absolvierte Spiele</p>
+                <p class="metric-card__value">{{ games|length }}</p>
+                <p class="metric-card__detail">Alle bisherigen Partien dieser Liga mit Endständen und Korbdifferenz.</p>
+            </article>
+            <article class="metric-card">
+                <p class="metric-card__label">Sortierung</p>
+                <p class="metric-card__value">Neueste zuerst</p>
+                <p class="metric-card__detail">Die jüngsten Ergebnisse stehen oben für den schnellsten Überblick.</p>
+            </article>
+        </div>
+    </section>
+
     <section class="table-shell">
         <div class="table-scroll">
             <table>

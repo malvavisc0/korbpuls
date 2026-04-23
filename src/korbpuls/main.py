@@ -692,7 +692,7 @@ async def http_exception_handler(
     return templates.TemplateResponse(
         request,
         "error.html",
-        {"message": "Fehler", "hint": exc.detail},
+        {"message": "Fehler", "hint": exc.detail, "retry_url": None},
         status_code=exc.status_code,
     )
 

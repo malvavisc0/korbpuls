@@ -91,7 +91,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     position: sticky;
     top: 0;
     z-index: 20;
-    background: rgba(24, 24, 27, 0.85);
+    background: rgba(30, 36, 44, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--kp-border-subtle);
@@ -397,7 +397,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 .action-bar a[aria-current="page"] {
     background: var(--kp-accent);
     border-color: var(--kp-accent);
-    color: #09090b;
+    color: #1e242c;
 }
 
 .inline-form { margin: 0; }
@@ -460,12 +460,12 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .segmented-nav__tab--active {
     background: var(--kp-accent);
-    color: #09090b;
+    color: #1e242c;
 }
 
 .segmented-nav__tab--active:hover {
     background: var(--kp-accent-hover);
-    color: #09090b;
+    color: #1e242c;
 }
 
 .refresh-button {
@@ -546,7 +546,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .ai-teaser-cta:hover {
     background: var(--kp-ai);
-    color: #09090b;
+    color: #1e242c;
 }
 
 /* ── Latest Results Strip ──────────────────────────────── */
@@ -700,7 +700,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     background: var(--kp-accent-soft);
     color: var(--kp-accent);
     font-size: 0.9rem;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .team-hero__league {
@@ -754,7 +754,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     background: var(--kp-positive-soft);
     color: var(--kp-positive);
     font-size: 0.85rem;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .streak-badge--loss {
@@ -817,7 +817,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     border: 1px solid var(--kp-border);
     color: var(--kp-text-secondary);
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 /* ── Benefit Bullets ──────────────────────────────────────── */
@@ -1074,8 +1074,8 @@ table tbody td {
     margin: 0;
     padding: 1rem;
     border-radius: var(--kp-radius);
-    background: #09090b;
-    color: #e5e7eb;
+    background: var(--kp-base);
+    color: var(--kp-text-secondary);
     overflow-x: auto;
     font-size: 0.88rem;
 }
@@ -1092,8 +1092,14 @@ table tbody td {
     padding: 0.25rem 0.65rem;
     border-radius: 0.125rem;
     font-size: 0.82rem;
-    font-weight: 700;
+    font-weight: 600;
     white-space: nowrap;
+}
+
+/* Neutral / default planned state */
+.status-badge {
+    color: var(--kp-text-secondary);
+    background: var(--kp-surface-elevated);
 }
 
 .status-badge--win, .winner-badge {
@@ -1113,11 +1119,11 @@ table tbody td {
 
 /* ── Diff Colors ────────────────────────────────────────────── */
 
-.diff-positive { color: var(--kp-positive); font-weight: 700; }
+.diff-positive { color: var(--kp-positive); font-weight: 500; }
 
-.diff-negative { color: var(--kp-negative); font-weight: 700; }
+.diff-negative { color: var(--kp-negative); font-weight: 500; }
 
-.diff-neutral { color: var(--kp-text-secondary); font-weight: 700; }
+.diff-neutral { color: var(--kp-text-secondary); font-weight: 500; }
 
 /* ── Prediction Score ────────────────────────────────────────── */
 
