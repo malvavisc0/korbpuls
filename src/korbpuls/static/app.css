@@ -622,15 +622,40 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 }
 
 .result-card__name {
+    display: grid;
+    min-width: 0;
     font-size: 0.85rem;
     color: var(--kp-text);
     text-decoration: none;
+}
+
+.result-card__name-primary,
+.result-card__name-secondary {
+    display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+.result-card__name-primary {
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+}
+
+.result-card__name-secondary {
+    font-weight: 400;
+    color: var(--kp-text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
 .result-card__name:hover {
+    color: var(--kp-accent);
+}
+
+.result-card__name:hover .result-card__name-primary,
+.result-card__name:hover .result-card__name-secondary {
     color: var(--kp-accent);
 }
 

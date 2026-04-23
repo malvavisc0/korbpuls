@@ -175,8 +175,12 @@ class ErgebnisGame(BaseModel):
     date: str  # "15.03.2025"
     home: str
     home_slug: str
+    home_display_primary: str
+    home_display_secondary: str = ""
     away: str
     away_slug: str
+    away_display_primary: str
+    away_display_secondary: str = ""
     home_score: int
     away_score: int
     diff: int  # home_score - away_score
@@ -253,17 +257,31 @@ def _parse_ergebnis_game(raw: dict[str, Any]) -> ErgebnisGame:
     away_score = raw["away_score"]
     diff = home_score - away_score
     winner = "home" if diff > 0 else ("away" if diff < 0 else "draw")
+    home_primary, home_secondary = _split_compact_team_name(raw["home"])
+    away_primary, away_secondary = _split_compact_team_name(raw["away"])
     return ErgebnisGame(
         date=raw_date,
         home=raw["home"],
         home_slug=slugify(raw["home"]),
+        home_display_primary=home_primary,
+        home_display_secondary=home_secondary,
         away=raw["away"],
         away_slug=slugify(raw["away"]),
+        away_display_primary=away_primary,
+        away_display_secondary=away_secondary,
         home_score=home_score,
         away_score=away_score,
         diff=diff,
         winner=winner,
     )
+
+
+def _split_compact_team_name(team_name: str) -> tuple[str, str]:
+    """Split a team name for compact sponsor-first display."""
+    primary, separator, secondary = team_name.partition(" ")
+    if not separator:
+        return team_name, ""
+    return primary, secondary
 
 
 def _parse_game_result(raw: dict[str, Any]) -> GameResult:

@@ -61,12 +61,24 @@
                 <div class="result-card__teams">
                     <div class="result-card__row">
                         <a class="result-card__name {% if game.winner == 'home' %}result-card__name--winner{% endif %}"
-                           href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.home_slug }}">{{ game.home }}</a>
+                           href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.home_slug }}"
+                           aria-label="{{ game.home }}">
+                            <span class="result-card__name-primary">{{ game.home_display_primary }}</span>
+                            {% if game.home_display_secondary %}
+                            <span class="result-card__name-secondary">{{ game.home_display_secondary }}</span>
+                            {% endif %}
+                        </a>
                         <span class="result-card__score {% if game.winner == 'home' %}result-card__score--winner{% elif game.winner == 'draw' %}result-card__score--draw{% endif %}">{{ game.home_score }}</span>
                     </div>
                     <div class="result-card__row">
                         <a class="result-card__name {% if game.winner == 'away' %}result-card__name--winner{% endif %}"
-                           href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.away_slug }}">{{ game.away }}</a>
+                           href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.away_slug }}"
+                           aria-label="{{ game.away }}">
+                            <span class="result-card__name-primary">{{ game.away_display_primary }}</span>
+                            {% if game.away_display_secondary %}
+                            <span class="result-card__name-secondary">{{ game.away_display_secondary }}</span>
+                            {% endif %}
+                        </a>
                         <span class="result-card__score {% if game.winner == 'away' %}result-card__score--winner{% elif game.winner == 'draw' %}result-card__score--draw{% endif %}">{{ game.away_score }}</span>
                     </div>
                 </div>
