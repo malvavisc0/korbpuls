@@ -214,11 +214,16 @@ async def _run_team_analysis(
             f"TEAM_NAME={team_name}\n"
             f"LIGA_ID={ligaid}\n"
             f"LANGUAGE=de\n\n"
-            "Analyze this team following the skill steps. "
+            f"Analyze the team '{team_name}' following the skill steps. "
+            f"Use the exact name '{team_name}' (or the full official "
+            "name from the standings data) in the output — never "
+            "'Team X' or any placeholder. "
             "Return 2-3 <p> elements with 10-15 sentences of "
             "detailed, honest basketball analysis covering identity, "
             "strengths, weaknesses, and comparative assessment. "
             "Use <strong> sparingly. No markdown. No jargon. "
+            "Correct German with proper umlauts (ä, ö, ü, ß). "
+            "Do NOT copy or paraphrase the examples from the skill. "
             "Sound like an expert analyst."
         )
         result: TeamAnalysis = await _retry_agent(
@@ -249,11 +254,16 @@ async def _run_prediction_narrative(config: AIConfig, ligaid: str) -> None:
             f"LIGA_ID={ligaid}\n"
             f"LANGUAGE=de\n\n"
             "Analyze this league following the skill steps. "
+            "Use the exact team names from the standings data — "
+            "never 'Team A', 'Team B', or any placeholder. "
             "Return two separate fields:\n"
             "- table: raw HTML <table> with Team/W/L/Pts/Diff\n"
             "- explanation: a single <p> element with 3-5 "
             "sentences of flowing basketball analysis. "
-            "No markdown. No jargon. Sound like a journalist."
+            "No markdown. No jargon. "
+            "Correct German with proper umlauts (ä, ö, ü, ß). "
+            "Do NOT copy or paraphrase the examples from the "
+            "skill. Sound like a journalist."
         )
         result: LeaguePrediction = await _retry_agent(
             oracle,

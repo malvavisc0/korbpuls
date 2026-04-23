@@ -190,6 +190,13 @@ Write **2–3 `<p>` elements** (10–15 sentences total) that read like expert b
 - For finalized seasons: write in **past tense or present perfect**, never conditional or speculative
 - Always use HTML syntax, never Markdown
 
+### Hard rules
+
+1. **Use the real team name.** Always use the exact team name as it appears in the standings data. Never write "Team X", "Team A", or any placeholder. If the team is called "TV 1877 Lauf", write "TV 1877 Lauf".
+2. **Correct German orthography.** Write grammatically correct German with proper umlauts (ä, ö, ü), Eszett (ß), and accurate spelling. Double-check every word before returning. Characters like `û` or `ô` do not exist in German — if you see yourself producing them, stop and fix it.
+3. **Generate original analysis.** The examples below are **style references only**. Do NOT copy, paraphrase, or structurally mirror them. Your analysis must be built entirely from the actual data you gathered in Steps 1–3. If your output reads like a lightly edited version of an example, it is wrong.
+4. **No grammatical errors.** Proofread the final text for subject-verb agreement, correct verb forms, and natural sentence flow.
+
 ### Anti-patterns (DO NOT produce output like this)
 
 ```
@@ -207,24 +214,31 @@ Write **2–3 `<p>` elements** (10–15 sentences total) that read like expert b
 ```
 → Wrong for a finalized season AND wrong for honest analysis — no weaknesses mentioned, forward-looking for a finished season, no comparative depth.
 
+```
+Output that closely mirrors the wording, sentence structure, or paragraph flow of the good examples below — with only minor word swaps — is also an anti-pattern. Generate fresh text from the data.
+```
+→ Example parroting. The examples are style guides, not templates.
+
 ### Good examples
+
+> **These examples illustrate tone and structure only.** `[Teamname]` is a placeholder — replace it with the real team name from the data. Do NOT copy, paraphrase, or structurally mirror these paragraphs.
 
 **Ongoing season:**
 
 ```
-"<p><strong>Team X</strong> spielt eine Saison, die von einer klaren Identität geprägt ist: Tempo und Offensivdruck. Mit über 100 Punkten pro Spiel erzielt kein Team der Liga mehr, doch gleichzeitig lässt die Mannschaft auch mehr Punkte zu als jeder andere Verein in den Top Vier — ein Profil, das auf Überrennen statt Kontrollieren setzt.</p><p>Gegen Teams aus dem unteren Tabellendrittel reicht das locker, doch gegen die direkte Konkurrenz fallen die Siegmargen spürbar kleiner aus. Die jüngste Form bestätigt das Bild: vier der letzten fünf Spiele wurden gewonnen, doch der eine Niederlage kam ausgerechnet gegen einen Mitbewerber um die Spitze. Genau diese Diskrepanz — Dominanz gegen Schwächere, Verwundbarkeit gegen Starke — ist das zentrale Muster dieser Mannschaft.</p><p>Die Offensive ist gut genug für Platz eins, die Defensive bisher nicht. Wenn der Titel geholt werden soll, muss die Verteidigung stabiler werden, besonders in Duellen auf Augenhöhe.</p>"
+"<p><strong>[Teamname]</strong> spielt eine Saison, die von einer klaren Identität geprägt ist: Tempo und Offensivdruck. Mit über 100 Punkten pro Spiel erzielt kein Team der Liga mehr, doch gleichzeitig lässt die Mannschaft auch mehr Punkte zu als jeder andere Verein in den Top Vier — ein Profil, das auf Überrennen statt Kontrollieren setzt.</p><p>Gegen Teams aus dem unteren Tabellendrittel reicht das locker, doch gegen die direkte Konkurrenz fallen die Siegmargen spürbar kleiner aus. Die jüngste Form bestätigt das Bild: vier der letzten fünf Spiele wurden gewonnen, doch die eine Niederlage kam ausgerechnet gegen einen Mitbewerber um die Spitze. Genau diese Diskrepanz — Dominanz gegen Schwächere, Verwundbarkeit gegen Starke — ist das zentrale Muster dieser Mannschaft.</p><p>Die Offensive ist gut genug für Platz eins, die Defensive bisher nicht. Wenn der Titel geholt werden soll, muss die Verteidigung stabiler werden, besonders in Duellen auf Augenhöhe.</p>"
 ```
 
 **Finalized season:**
 
 ```
-"<p><strong>Team X</strong> hat eine Saison gespielt, die von einer klaren Identität geprägt war: Tempo und Offensivdruck. Mit über 100 Punkten pro Spiel hat kein Team der Liga mehr erzielt, doch gleichzeitig hat die Mannschaft auch mehr Punkte zugelassen als jeder andere Verein in den Top Vier — ein Profil, das auf Überrennen statt Kontrollieren setzte.</p><p>Gegen Teams aus dem unteren Tabellendrittel reichte das locker, doch gegen die direkte Konkurrenz fielen die Siegmargen spürbar kleiner aus. Die abschließende Platzierung spiegelt genau diese Diskrepanz wider: die Offensive war gut genug für die Spitze, die Defensive nicht. Wer dieser Mannschaft zugesehen hat, sah ein Team, das Spiele öffnen konnte, aber enge Endphasen nicht immer kontrollierte.</p><p>Um den nächsten Schritt zu machen, muss die Verteidigung stabiler werden — besonders in Duellen auf Augenhöhe. Diese Saison hat gezeigt, was möglich ist, aber auch, wo die Grenze verläuft.</p>"
+"<p><strong>[Teamname]</strong> hat eine Saison gespielt, die von einer klaren Identität geprägt war: Tempo und Offensivdruck. Mit über 100 Punkten pro Spiel hat kein Team der Liga mehr erzielt, doch gleichzeitig hat die Mannschaft auch mehr Punkte zugelassen als jeder andere Verein in den Top Vier — ein Profil, das auf Überrennen statt Kontrollieren setzte.</p><p>Gegen Teams aus dem unteren Tabellendrittel reichte das locker, doch gegen die direkte Konkurrenz fielen die Siegmargen spürbar kleiner aus. Die abschließende Platzierung spiegelt genau diese Diskrepanz wider: die Offensive war gut genug für die Spitze, die Defensive nicht. Wer dieser Mannschaft zugesehen hat, sah ein Team, das Spiele öffnen konnte, aber enge Endphasen nicht immer kontrollierte.</p><p>Um den nächsten Schritt zu machen, muss die Verteidigung stabiler werden — besonders in Duellen auf Augenhöhe. Diese Saison hat gezeigt, was möglich ist, aber auch, wo die Grenze verläuft.</p>"
 ```
 
 **Mid-table team, ongoing season:**
 
 ```
-"<p><strong>Team X</strong> wirkt wie eine Mannschaft, deren Tabellenplatz etwas stabiler aussieht als die Leistungen zuletzt. Die Saisonbilanz ist ordentlich, doch die jüngeren Ergebnisse deuten darauf hin, dass enge Spiele nicht mehr so sauber kontrolliert werden wie noch in der starken Phase zuvor. Gerade weil die Punktedifferenz keine echte Dominanz ausweist, bekommt der aktuelle Formknick zusätzliches Gewicht.</p><p>Gegen die Spitze hält Team X mit, gewinnt aber zu selten — die Bilanz gegen die Top Vier spricht eine klare Sprache. Gegen das Mittelfeld hingegen reicht die Klasse, um die meisten Spiele zu machen. Das ist das Profil einer Mannschaft, die auf dem richtigen Weg ist, aber noch einen Schritt braucht, um ernsthaft nach oben zu greifen.</p>"
+"<p><strong>[Teamname]</strong> wirkt wie eine Mannschaft, deren Tabellenplatz etwas stabiler aussieht als die Leistungen zuletzt. Die Saisonbilanz ist ordentlich, doch die jüngeren Ergebnisse deuten darauf hin, dass enge Spiele nicht mehr so sauber kontrolliert werden wie noch in der starken Phase zuvor. Gerade weil die Punktedifferenz keine echte Dominanz ausweist, bekommt der aktuelle Formknick zusätzliches Gewicht.</p><p>Gegen die Spitze hält [Teamname] mit, gewinnt aber zu selten — die Bilanz gegen die Top Vier spricht eine klare Sprache. Gegen das Mittelfeld hingegen reicht die Klasse, um die meisten Spiele zu machen. Das ist das Profil einer Mannschaft, die auf dem richtigen Weg ist, aber noch einen Schritt braucht, um ernsthaft nach oben zu greifen.</p>"
 ```
 
 ---

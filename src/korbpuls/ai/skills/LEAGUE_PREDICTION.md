@@ -142,6 +142,13 @@ Write a **single `<p>` element** (3–5 sentences) that reads like natural leagu
 - Do NOT mechanically cover top, middle, and bottom if one of those zones is not actually central to the story
 - Always use HTML, never Markdown
 
+### Hard rules
+
+1. **Use real team names.** Always use the exact team names as they appear in the standings data. Never write "Team A", "Team B", or any placeholder.
+2. **Correct German orthography.** Write grammatically correct German with proper umlauts (ä, ö, ü), Eszett (ß), and accurate spelling. Characters like `û` or `ô` do not exist in German.
+3. **Generate original analysis.** The examples below are **style references only**. Do NOT copy, paraphrase, or structurally mirror them. Build the explanation entirely from the actual data.
+4. **No grammatical errors.** Proofread for subject-verb agreement, correct verb forms, and natural sentence flow.
+
 ### Anti-patterns (DO NOT produce output like this)
 
 ```
@@ -154,8 +161,10 @@ Write a **single `<p>` element** (3–5 sentences) that reads like natural leagu
 
 ### Good examples
 
+> **These examples illustrate tone and structure only.** `[Teamname]` is a placeholder — replace it with real team names from the data. Do NOT copy, paraphrase, or structurally mirror these paragraphs.
+
 ```
-"<p>Die Spitze dieser Liga wirkt längst nicht so sicher, wie der Tabellenstand auf den ersten Blick vermuten lässt. Zwar steht <strong>Team A</strong> vorne, doch erst die deutlich bessere Punktedifferenz trennt sie wirklich von <strong>Team B</strong>, was eher für ein belastbares Duell als für eine Vorentscheidung spricht. Dahinter ist das Feld schnell gestreckt, sodass der eigentliche Titelkampf wohl nur diese beiden Teams betrifft. Genau diese Mischung aus enger Spitze und frühem Leistungsabfall dahinter gibt der Tabelle ihr klares Gesicht.</p>"
+"<p>Die Spitze dieser Liga wirkt längst nicht so sicher, wie der Tabellenstand auf den ersten Blick vermuten lässt. Zwar steht <strong>[Teamname]</strong> vorne, doch erst die deutlich bessere Punktedifferenz trennt sie wirklich von <strong>[Teamname]</strong>, was eher für ein belastbares Duell als für eine Vorentscheidung spricht. Dahinter ist das Feld schnell gestreckt, sodass der eigentliche Titelkampf wohl nur diese beiden Teams betrifft. Genau diese Mischung aus enger Spitze und frühem Leistungsabfall dahinter gibt der Tabelle ihr klares Gesicht.</p>"
 ```
 
 ```
