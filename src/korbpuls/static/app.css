@@ -778,18 +778,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     margin: 0;
 }
 
-.ai-benefits {
-    display: grid;
-    gap: 0.4rem;
-}
-
-.ai-benefits p {
-    margin: 0;
-    color: var(--kp-text-secondary);
-    font-size: 0.9rem;
-}
-
-/* ── AI Spotlight ─────────────────────────────────────────── */
+/* ── AI Spotlight — unified treatment for all AI panels ──── */
 
 .ai-panel--spotlight {
     border-color: rgba(167, 139, 250, 0.35);
@@ -798,6 +787,25 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
         var(--kp-ai-soft) 0%,
         rgba(167, 139, 250, 0.05) 100%
     );
+}
+
+/* Compact spinner inside AI panels */
+.ai-panel .spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-width: 3px;
+}
+
+.ai-panel__loading {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--kp-text-secondary);
+}
+
+.ai-panel__loading p {
+    margin: 0;
+    font-style: italic;
 }
 
 /* ── Feature Chips ────────────────────────────────────────── */

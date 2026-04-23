@@ -106,8 +106,8 @@
             </form>
             {% endif %}
         </div>
+        <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
         {% if ai_analysis %}
-            <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
             <div class="ai-panel__body">
                 {{ ai_analysis | safe }}
             </div>
@@ -115,7 +115,6 @@
                 <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
             </div>
         {% elif generation_failed %}
-            <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
             <div class="ai-panel__body">
                 <p><em>Analyse fehlgeschlagen. Bitte erneut versuchen.</em></p>
             </div>
@@ -125,22 +124,20 @@
                 <button type="submit" class="primary-cta">↻ Erneut versuchen</button>
             </form>
         {% elif generating %}
-            <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
-            <div class="ai-panel__body">
-                <p><em>Analyse läuft… Seite aktualisiert sich automatisch.</em></p>
+            <div class="ai-panel__loading">
+                <div class="spinner" aria-hidden="true"></div>
+                <p>Analyse läuft… Seite aktualisiert sich automatisch.</p>
             </div>
         {% elif not ai_analysis_eligible %}
-            <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
             <div class="ai-panel__body">
                 <p class="muted">{{ ai_analysis_ineligible_reason }}</p>
             </div>
         {% else %}
-            <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
-            <div class="ai-benefits">
-                <p>• Team-Identität erkennen</p>
-                <p>• Stärken und Schwächen ehrlich benennen</p>
-                <p>• Vergleich mit Peer-Teams</p>
-            </div>
+            <ul class="benefit-list">
+                <li>Team-Identität erkennen</li>
+                <li>Stärken und Schwächen ehrlich benennen</li>
+                <li>Vergleich mit Peer-Teams</li>
+            </ul>
             <form class="inline-form"
                   method="POST"
                   action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
