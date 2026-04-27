@@ -77,7 +77,7 @@ def format_datetime(dt: datetime) -> str:
     return dt.strftime("%d.%m.%Y %H:%M")
 
 
-def fetch_and_cache_league(ligaid: str) -> None:
+def fetch_and_cache_league(ligaid: str) -> bool:
     """Fetch all league data from korb and cache to disk.
 
     Runs as a background task. Handles errors internally by
@@ -88,6 +88,9 @@ def fetch_and_cache_league(ligaid: str) -> None:
 
     Args:
         ligaid: League ID number
+
+    Returns:
+        True if data changed (or first fetch), False otherwise.
     """
     cache_dir = CacheDir(ligaid)
     cache_dir.ensure_exists()
@@ -147,7 +150,8 @@ def fetch_and_cache_league(ligaid: str) -> None:
 
         # Compare new data with old — preserve AI work if unchanged
         new_hash = cache_dir.compute_data_hash()
-        if old_hash and old_hash == new_hash:
+        data_changed = not (old_hash and old_hash == new_hash)
+        if not data_changed:
             cache_dir.touch_ai_files()
             logger.info(
                 "Data unchanged for liga %s — AI analyses preserved",
@@ -162,10 +166,13 @@ def fetch_and_cache_league(ligaid: str) -> None:
                 )
 
         cache_dir.write_status("ready")
+        return data_changed
     except KorbError as e:
         cache_dir.write_status("error", str(e))
+        return False
     except Exception as e:
         cache_dir.write_status("error", f"Unerwarteter Fehler: {e}")
+        return False
 
 
 async def _retry_agent(
@@ -350,7 +357,7 @@ async def fetch_league(
     cache_dir.clear_data_files()
     cache_dir.ensure_exists()
     cache_dir.write_status("pending")
-    background_tasks.add_task(fetch_and_cache_league, ligaid)
+    background_tasks.add_task(_fetch_and_auto_generate, ligaid)
     return RedirectResponse(
         url=f"/liga/{ligaid}/laden",
         status_code=302,
@@ -392,7 +399,7 @@ async def refresh_league(
     cache_dir.clear_data_files()
     cache_dir.ensure_exists()
     cache_dir.write_status("pending")
-    background_tasks.add_task(fetch_and_cache_league, ligaid)
+    background_tasks.add_task(_fetch_and_auto_generate, ligaid)
     return RedirectResponse(
         url=f"/liga/{ligaid}/laden",
         status_code=302,
@@ -486,7 +493,6 @@ async def standings_page(
 
     cache = CacheDir(ligaid)
     ctx = view.model_dump()
-    ctx["generating"] = request.query_params.get("generating") == "1"
     ctx["generation_failed"] = cache.read_standings_narrative_failed()
     return templates.TemplateResponse(
         request,
@@ -608,7 +614,6 @@ async def prediction_page(
 
     cache = CacheDir(ligaid)
     ctx = view.model_dump()
-    ctx["generating"] = request.query_params.get("generating") == "1"
     ctx["generation_failed"] = cache.read_ai_prediction_failed()
     return templates.TemplateResponse(
         request,
@@ -677,51 +682,31 @@ async def generate_team_ai(
     return RedirectResponse(url=f"{team_url}?generating=1", status_code=302)
 
 
-@app.post(
-    "/liga/{ligaid}/{liga_slug}/prognose/ki-analyse",
-    response_class=RedirectResponse,
-)
-async def generate_prediction_ai(
-    background_tasks: BackgroundTasks,
-    ligaid: str = URLPath(..., pattern=r"\d+"),
-    liga_slug: str = URLPath(...),
-) -> RedirectResponse:
-    """Trigger AI prediction narrative generation."""
+async def _fetch_and_auto_generate(ligaid: str) -> None:
+    """Background: fetch data, then auto-generate AI if data changed."""
+    data_changed = await asyncio.to_thread(fetch_and_cache_league, ligaid)
+
+    if not data_changed:
+        return
+
     config = AIConfig.from_env()
     if config is None:
-        raise HTTPException(
-            status_code=503,
-            detail="KI-Funktion nicht konfiguriert",
-        )
+        return
 
     cache = CacheDir(ligaid)
-    prediction_url = f"/liga/{ligaid}/{liga_slug}/prognose"
+    if cache.read_status()["status"] != "ready":
+        return
 
-    # Block if prediction is not eligible
+    # Auto-generate standings narrative
+    await _run_standings_narrative(config, ligaid)
+
+    # Auto-generate prediction narrative (if eligible)
     try:
         view = presenters.present_prediction(ligaid)
-    except CacheMiss as e:
-        raise HTTPException(
-            status_code=404,
-            detail="Daten nicht gefunden",
-        ) from e
-    if not view.prediction_eligible:
-        reason = view.prediction_ineligible_reason or "Prognose nicht verfügbar"
-        raise HTTPException(
-            status_code=403,
-            detail=reason,
-        )
-    # Cache-first: return cached if data hasn't changed
-    if cache.is_ai_prediction_fresh():
-        return RedirectResponse(url=prediction_url, status_code=302)
-
-    cache.clear_ai_prediction_failed()
-    background_tasks.add_task(_run_prediction_narrative, config, ligaid)
-
-    return RedirectResponse(
-        url=f"{prediction_url}?generating=1",
-        status_code=302,
-    )
+        if view.prediction_eligible:
+            await _run_prediction_narrative(config, ligaid)
+    except CacheMiss:
+        pass
 
 
 async def _run_standings_narrative(config: AIConfig, ligaid: str) -> None:
@@ -808,40 +793,6 @@ async def _run_matchup_preview(
             away_slug,
         )
         cache.write_matchup_preview_failed(home_slug, away_slug)
-
-
-@app.post(
-    "/liga/{ligaid}/{liga_slug}/ki-ueberblick",
-    response_class=RedirectResponse,
-)
-async def generate_standings_narrative(
-    background_tasks: BackgroundTasks,
-    ligaid: str = URLPath(..., pattern=r"\d+"),
-    liga_slug: str = URLPath(...),
-) -> RedirectResponse:
-    """Trigger AI standings narrative generation."""
-    config = AIConfig.from_env()
-    if config is None:
-        raise HTTPException(
-            status_code=503,
-            detail="KI-Funktion nicht konfiguriert",
-        )
-
-    cache = CacheDir(ligaid)
-    standings_url = f"/liga/{ligaid}/{liga_slug}"
-
-    if not cache.liga_exists():
-        raise HTTPException(status_code=404, detail="Liga nicht gefunden")
-
-    if cache.is_standings_narrative_fresh():
-        return RedirectResponse(url=standings_url, status_code=302)
-
-    cache.clear_standings_narrative_failed()
-    background_tasks.add_task(_run_standings_narrative, config, ligaid)
-    return RedirectResponse(
-        url=f"{standings_url}?generating=1",
-        status_code=302,
-    )
 
 
 @app.get(

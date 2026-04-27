@@ -1,10 +1,5 @@
 {% extends "base.html" %}
 
-{% block head %}
-{% if ai_enabled and not ai_explanation and generating and not generation_failed %}
-<meta http-equiv="refresh" content="25">
-{% endif %}
-{% endblock %}
 
 {% block title %}{{ liga_name }} — Saisonprognose{% endblock %}
 {% block og_title %}{{ liga_name }} Saisonprognose & KI-Einordnung | korbPuls{% endblock %}
@@ -57,11 +52,6 @@
                 <p class="ai-panel__eyebrow">KI-gestützt</p>
                 <h2>KI-Einordnung</h2>
             </div>
-            {% if ai_explanation %}
-            <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
-                <button class="secondary-button" type="submit">↻ Neu</button>
-            </form>
-            {% endif %}
         </div>
         <p class="ai-teaser">Wie ordnet die KI den Saisonverlauf ein — Favoritencheck, offene Rennen und mögliche Überraschungen?</p>
         {% if ai_explanation %}
@@ -78,29 +68,13 @@
             </div>
         {% elif generation_failed %}
             <div class="ai-panel__body">
-                <p><em>Analyse fehlgeschlagen. Bitte erneut versuchen.</em></p>
-            </div>
-            <form class="inline-form"
-                  method="POST"
-                  action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
-                <button type="submit" class="primary-cta">↻ Erneut versuchen</button>
-            </form>
-        {% elif generating %}
-            <div class="ai-panel__loading">
-                <div class="spinner" aria-hidden="true"></div>
-                <p>Analyse läuft… Seite aktualisiert sich automatisch.</p>
+                <p><em>Analyse fehlgeschlagen.</em></p>
             </div>
         {% else %}
-            <ul class="benefit-list">
-                <li>Favoritenstatus und offene Rennen erkennen</li>
-                <li>Stärken und Schwächen der Liga einordnen</li>
-                <li>Mögliche Überraschungen identifizieren</li>
-            </ul>
-            <form class="inline-form"
-                  method="POST"
-                  action="/liga/{{ ligaid }}/{{ liga_slug }}/prognose/ki-analyse">
-                <button type="submit" class="primary-cta">KI-Einordnung erstellen</button>
-            </form>
+            <div class="ai-panel__loading">
+                <div class="spinner" aria-hidden="true"></div>
+                <p>Die KI kocht gerade die Prognose 🍳 — die Einordnung erscheint hier, sobald sie fertig ist.</p>
+            </div>
         {% endif %}
     </section>
     {% endif %}

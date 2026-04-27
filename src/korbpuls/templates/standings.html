@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+
 {% block title %}{{ liga_name }} — Tabelle{% endblock %}
 {% block og_title %}{{ liga_name }} Tabelle, Punkte & Teamvergleich | korbPuls{% endblock %}
 
@@ -116,27 +117,16 @@
             <p class="eyebrow">KI-Überblick</p>
             {{ ai_narrative | safe }}
         </div>
-        {% elif generating %}
-        <div class="ai-card ai-card--loading">
-            <p class="eyebrow">KI-Überblick</p>
-            <div class="spinner" aria-hidden="true"></div>
-            <p>Die KI analysiert die Tabelle…</p>
-        </div>
         {% elif generation_failed %}
         <div class="ai-card ai-card--error">
             <p class="eyebrow">KI-Überblick</p>
             <p>Die Analyse konnte nicht erstellt werden.</p>
-            <form method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/ki-ueberblick">
-                <button type="submit" class="primary-cta">Erneut versuchen</button>
-            </form>
         </div>
         {% else %}
-        <div class="ai-card ai-card--prompt">
+        <div class="ai-card ai-card--loading">
             <p class="eyebrow">KI-Überblick</p>
-            <p>Lass die KI eine kurze Analyse der aktuellen Tabellenlage schreiben.</p>
-            <form method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/ki-ueberblick">
-                <button type="submit" class="primary-cta">KI-Überblick generieren</button>
-            </form>
+            <div class="spinner" aria-hidden="true"></div>
+            <p>Die KI brütet gerade über der Tabelle 🍳 — der Überblick erscheint hier, sobald er fertig ist.</p>
         </div>
         {% endif %}
     </section>

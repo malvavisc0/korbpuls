@@ -52,6 +52,18 @@ run_korb_command('--json --ligaid <LIGA_ID> predict')
 
 ---
 
+## Step 2b — Handle early season
+
+If the standings show very few games played (1–3 games per team):
+
+- The data is too thin for deep analysis — acknowledge limited sample size
+- Write a brief **season-opening snapshot**: who started strong, who stumbled, and what's too early to tell
+- Avoid overinterpreting small samples — one win doesn't crown a champion
+- Frame statements with appropriate hedging: "nach den ersten Spieltagen", "bisher", "früh in der Saison"
+- Still use concrete data (e.g., "nach zwei Spielen ungeschlagen"), just don't draw sweeping conclusions
+
+---
+
 ## Step 3 — Choose one storyline
 
 Pick the **single most interesting angle** from:
