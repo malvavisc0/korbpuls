@@ -457,7 +457,7 @@ def _summary_from_standings(team_name: str, cache: CacheDir) -> tuple[str, str]:
                 f"{team['pf']} erzielt · {team['pa']} kassiert"
                 f" · Differenz {team['diff']:+d}"
             )
-            avg = f"{team['avg_pf']} erzielt" f" · {team['avg_pa']} kassiert"
+            avg = f"{team['avg_pf']} erzielt · {team['avg_pa']} kassiert"
             return pts, avg
     return "", ""
 
@@ -578,7 +578,7 @@ def _check_prediction_eligible(
     Conditions:
     1. Season must not be finished.
     2. At least half of the total season matches must have
-       been played (double round-robin: n × (n-1) total).
+       been played (double round-robin: n x (n-1) total).
 
     Args:
         cache: CacheDir for the league
@@ -751,8 +751,7 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     ai_reason: str | None = None
     if ai_enabled and not ai_eligible:
         ai_reason = (
-            f"Mindestens {min_games} Spiele nötig "
-            f"— bisher {games_played} absolviert."
+            f"Mindestens {min_games} Spiele nötig — bisher {games_played} absolviert."
         )
 
     return TeamView(

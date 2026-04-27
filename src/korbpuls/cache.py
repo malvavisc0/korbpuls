@@ -75,8 +75,7 @@ class CacheDir:
         if self.teams_path.exists():
             for f in self.teams_path.iterdir():
                 if f.suffix == ".json" and not (
-                    f.stem.endswith("_analysis")
-                    or f.stem.endswith("_analysis_failed")
+                    f.stem.endswith("_analysis") or f.stem.endswith("_analysis_failed")
                 ):
                     f.unlink()
 
@@ -90,8 +89,7 @@ class CacheDir:
         if self.teams_path.exists():
             for f in self.teams_path.iterdir():
                 if f.suffix == ".json" and (
-                    f.stem.endswith("_analysis")
-                    or f.stem.endswith("_analysis_failed")
+                    f.stem.endswith("_analysis") or f.stem.endswith("_analysis_failed")
                 ):
                     f.unlink()
 
@@ -155,8 +153,7 @@ class CacheDir:
         if self.teams_path.exists():
             for f in self.teams_path.iterdir():
                 if f.suffix == ".json" and (
-                    f.stem.endswith("_analysis")
-                    or f.stem.endswith("_analysis_failed")
+                    f.stem.endswith("_analysis") or f.stem.endswith("_analysis_failed")
                 ):
                     os.utime(f, (now, now))
 

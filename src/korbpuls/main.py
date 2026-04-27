@@ -11,9 +11,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException, Request
 from fastapi import Path as URLPath
-from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -623,7 +622,7 @@ async def generate_team_ai(
         )
 
     cache = CacheDir(ligaid)
-    team_url = f"/liga/{ligaid}/{liga_slug}" f"/team/{team_slug}"
+    team_url = f"/liga/{ligaid}/{liga_slug}/team/{team_slug}"
 
     # Check eligibility (need >= 4 games)
     try:
