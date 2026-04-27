@@ -6,7 +6,7 @@ services:
     environment:
       KORBPULS_API_KEY: ${KORBPULS_API_KEY}
       KORB_CMD: korb
-      CACHE_DIR: /cache
+      CACHE_DIR: /data/cache
       WORKERS: 2
       # AI settings (leave empty to disable)
       OPENAILIKE_API_BASE: ${OPENAILIKE_API_BASE:-}
