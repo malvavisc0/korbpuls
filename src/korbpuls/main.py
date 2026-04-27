@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import re
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -32,7 +35,7 @@ from korbpuls.ai.agents import (
     get_scout,
 )
 from korbpuls.auth import validate_api_key
-from korbpuls.cache import CacheDir, CacheMiss, LigaMeta
+from korbpuls.cache import CACHE_ROOT, CacheDir, CacheMiss, LigaMeta
 from korbpuls.korb_client import (
     KorbError,
     run_download,
@@ -47,7 +50,103 @@ from korbpuls.slugify import slugify
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
-app = FastAPI(title="korbPuls")
+
+
+async def _recover_ai_analyses() -> None:
+    """Scan cached leagues on startup and re-trigger missing AI.
+
+    Handles two scenarios:
+    1. Server restarted mid-task — data is ready but AI never ran.
+    2. AI failed on a previous run — failure markers exist.
+
+    In both cases, failure markers are cleared and AI generation
+    is re-attempted.  This runs once at startup as a background
+    task so it does not block uvicorn from accepting requests.
+    """
+    config = AIConfig.from_env()
+    if config is None:
+        logger.info("AI not configured — skipping AI recovery scan")
+        return
+
+    if not CACHE_ROOT.exists():
+        return
+
+    league_dirs = [d for d in CACHE_ROOT.iterdir() if d.is_dir()]
+    logger.info(
+        "Startup recovery scan: checking %d cached league(s)...",
+        len(league_dirs),
+    )
+
+    recovered = 0
+    for league_dir in sorted(league_dirs):
+        if not league_dir.is_dir():
+            continue
+        ligaid = league_dir.name
+        cache = CacheDir(ligaid)
+
+        status = cache.read_status()
+        if status.get("status") != "ready":
+            continue
+        if not cache.has_all_data():
+            continue
+
+        league_recovered = False
+
+        # --- standings narrative ---
+        standings_missing = not cache.is_standings_narrative_fresh()
+        standings_failed = cache.read_standings_narrative_failed()
+        if standings_missing or standings_failed:
+            league_recovered = True
+            if standings_failed:
+                cache.clear_standings_narrative_failed()
+                logger.info(
+                    "Startup recovery: clearing standings narrative "
+                    "failure marker for liga %s",
+                    ligaid,
+                )
+            await _run_standings_narrative(config, ligaid)
+
+        # --- prediction narrative (if eligible) ---
+        try:
+            view = presenters.present_prediction(ligaid)
+            if view.prediction_eligible:
+                pred_missing = not cache.is_ai_prediction_fresh()
+                pred_failed = cache.read_ai_prediction_failed()
+                if pred_missing or pred_failed:
+                    league_recovered = True
+                    if pred_failed:
+                        cache.clear_ai_prediction_failed()
+                        logger.info(
+                            "Startup recovery: clearing prediction "
+                            "narrative failure marker for liga %s",
+                            ligaid,
+                        )
+                    await _run_prediction_narrative(config, ligaid)
+        except CacheMiss:
+            pass
+
+        if league_recovered:
+            recovered += 1
+
+    logger.info(
+        "Startup recovery scan complete. " "(%d league(s) needed AI recovery)",
+        recovered,
+    )
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Application lifespan: recover AI analyses on startup."""
+    recovery_task = asyncio.create_task(_recover_ai_analyses())
+    yield
+    # Ensure recovery task completes on shutdown
+    if not recovery_task.done():
+        recovery_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await recovery_task
+
+
+app = FastAPI(title="korbPuls", lifespan=_lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 templates.env.globals["app_version"] = __import__("korbpuls").__version__
@@ -317,6 +416,12 @@ async def _run_prediction_narrative(config: AIConfig, ligaid: str) -> None:
         cache.write_ai_prediction_failed()
 
 
+@app.get("/healthz")
+async def healthz() -> dict[str, str]:
+    """Health check endpoint for monitoring and Docker."""
+    return {"status": "ok"}
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> HTMLResponse:
     """Render homepage with Liga-ID input form."""
@@ -465,7 +570,23 @@ async def loading_page(
             },
         )
 
-    # unknown or stale
+    # Stale: pending for > 10 minutes — treat as interrupted
+    # task (e.g. server restart) and auto-retry the full fetch.
+    if status["status"] == "stale":
+        cache_dir.clear_data_files()
+        cache_dir.ensure_exists()
+        cache_dir.write_status("pending")
+        background_tasks.add_task(
+            _fetch_and_auto_generate,
+            ligaid,
+        )
+        return templates.TemplateResponse(
+            request,
+            "loading.html",
+            {"ligaid": ligaid},
+        )
+
+    # unknown
     raise HTTPException(
         status_code=404,
         detail="Liga nicht gefunden",
@@ -683,11 +804,20 @@ async def generate_team_ai(
 
 
 async def _fetch_and_auto_generate(ligaid: str) -> None:
-    """Background: fetch data, then auto-generate AI if data changed."""
-    data_changed = await asyncio.to_thread(fetch_and_cache_league, ligaid)
+    """Background: fetch data, then auto-generate AI.
 
-    if not data_changed:
-        return
+    AI generation runs when:
+    1. Data changed (new or updated league data), OR
+    2. Data unchanged but AI analyses are missing or previously
+       failed (e.g. server restart, transient LLM failure).
+
+    In case 2, failure markers are cleared before retrying so
+    the AI gets a fresh attempt.
+    """
+    data_changed = await asyncio.to_thread(
+        fetch_and_cache_league,
+        ligaid,
+    )
 
     config = AIConfig.from_env()
     if config is None:
@@ -697,6 +827,20 @@ async def _fetch_and_auto_generate(ligaid: str) -> None:
     if cache.read_status()["status"] != "ready":
         return
 
+    # Determine if AI generation is needed
+    ai_needed = data_changed
+    if not ai_needed:
+        standings_missing = not cache.is_standings_narrative_fresh()
+        standings_failed = cache.read_standings_narrative_failed()
+        ai_needed = standings_missing or standings_failed
+
+    if not ai_needed:
+        return
+
+    # Clear failure markers before retrying
+    if cache.read_standings_narrative_failed():
+        cache.clear_standings_narrative_failed()
+
     # Auto-generate standings narrative
     await _run_standings_narrative(config, ligaid)
 
@@ -704,6 +848,8 @@ async def _fetch_and_auto_generate(ligaid: str) -> None:
     try:
         view = presenters.present_prediction(ligaid)
         if view.prediction_eligible:
+            if cache.read_ai_prediction_failed():
+                cache.clear_ai_prediction_failed()
             await _run_prediction_narrative(config, ligaid)
     except CacheMiss:
         pass

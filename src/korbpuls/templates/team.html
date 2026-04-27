@@ -94,19 +94,19 @@
     </section>
 
     {% if ai_enabled %}
-    <section class="ai-panel ai-panel--spotlight">
+    <section class="ai-panel">
         <div class="ai-panel__header">
             <div>
                 <p class="ai-panel__eyebrow">KI-gestützt</p>
-                <h2>KI-Analyse</h2>
+                <h2>KI-Teamprofil</h2>
             </div>
             {% if ai_analysis and not is_finished %}
             <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
-                <button class="secondary-button" type="submit">↻ Neu</button>
+                <button class="secondary-button" type="submit">Aktualisieren</button>
             </form>
             {% endif %}
         </div>
-        <p class="ai-teaser">Was sagt die KI zu diesem Team — Identität, Stärken, Schwächen und ehrliche Einordnung?</p>
+        <p class="ai-teaser">Stärken, aktuelle Form und mögliche Entwicklung dieses Teams in einer kompakten Einordnung.</p>
         {% if ai_analysis %}
             <div class="ai-panel__body">
                 {{ ai_analysis | safe }}
@@ -116,17 +116,17 @@
             </div>
         {% elif generation_failed %}
             <div class="ai-panel__body">
-                <p><em>Analyse fehlgeschlagen. Bitte erneut versuchen.</em></p>
+                <p><em>Das Teamprofil konnte gerade nicht erstellt werden.</em></p>
             </div>
             <form class="inline-form"
                   method="POST"
                   action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
-                <button type="submit" class="primary-cta">↻ Erneut versuchen</button>
+                <button type="submit" class="primary-cta">Teamprofil erneut erstellen</button>
             </form>
         {% elif generating %}
             <div class="ai-panel__loading">
                 <div class="spinner" aria-hidden="true"></div>
-                <p>Analyse läuft… Seite aktualisiert sich automatisch.</p>
+                <p>Das Teamprofil wird gerade erstellt.</p>
             </div>
         {% elif not ai_analysis_eligible %}
             <div class="ai-panel__body">
@@ -141,7 +141,7 @@
             <form class="inline-form"
                   method="POST"
                   action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
-                <button type="submit" class="primary-cta">KI-Analyse erstellen</button>
+                <button type="submit" class="primary-cta">KI-Teamprofil erstellen</button>
             </form>
         {% endif %}
     </section>

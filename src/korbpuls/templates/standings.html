@@ -111,22 +111,29 @@
     </section>
 
     {% if ai_enabled %}
-    <section class="ai-narrative">
+    <section class="ai-panel">
+        <div class="ai-panel__header">
+            <div>
+                <p class="ai-panel__eyebrow">KI-gestützt</p>
+                <h2>KI-Überblick zur Tabelle</h2>
+            </div>
+        </div>
+        <p class="ai-teaser">Eine kurze Einordnung zur aktuellen Lage: Spitze, Verfolgerfeld und auffällige Tendenzen.</p>
         {% if ai_narrative %}
-        <div class="ai-card">
-            <p class="eyebrow">KI-Überblick</p>
+        <div class="ai-panel__body">
             {{ ai_narrative | safe }}
         </div>
+        <div class="ai-panel__footer">
+            <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
+        </div>
         {% elif generation_failed %}
-        <div class="ai-card ai-card--error">
-            <p class="eyebrow">KI-Überblick</p>
-            <p>Die Analyse konnte nicht erstellt werden.</p>
+        <div class="ai-panel__body">
+            <p><em>Die Einordnung konnte gerade nicht geladen werden.</em></p>
         </div>
         {% else %}
-        <div class="ai-card ai-card--loading">
-            <p class="eyebrow">KI-Überblick</p>
+        <div class="ai-panel__loading">
             <div class="spinner" aria-hidden="true"></div>
-            <p>Die KI brütet gerade über der Tabelle 🍳 — der Überblick erscheint hier, sobald er fertig ist.</p>
+            <p>Die Einordnung zur Tabelle wird gerade erstellt.</p>
         </div>
         {% endif %}
     </section>

@@ -46,14 +46,14 @@
     {% else %}
 
     {% if ai_enabled %}
-    <section class="ai-panel ai-panel--spotlight">
+    <section class="ai-panel">
         <div class="ai-panel__header">
             <div>
                 <p class="ai-panel__eyebrow">KI-gestützt</p>
-                <h2>KI-Einordnung</h2>
+                <h2>KI-Einordnung zur Saison</h2>
             </div>
         </div>
-        <p class="ai-teaser">Wie ordnet die KI den Saisonverlauf ein — Favoritencheck, offene Rennen und mögliche Überraschungen?</p>
+        <p class="ai-teaser">Ein kompakter Blick auf Favoriten, offene Rennen und mögliche Verschiebungen bis zum Saisonende.</p>
         {% if ai_explanation %}
             <div class="ai-panel__body">
                 {{ ai_explanation | safe }}
@@ -68,12 +68,12 @@
             </div>
         {% elif generation_failed %}
             <div class="ai-panel__body">
-                <p><em>Analyse fehlgeschlagen.</em></p>
+                <p><em>Die Saison-Einordnung konnte gerade nicht geladen werden.</em></p>
             </div>
         {% else %}
             <div class="ai-panel__loading">
                 <div class="spinner" aria-hidden="true"></div>
-                <p>Die KI kocht gerade die Prognose 🍳 — die Einordnung erscheint hier, sobald sie fertig ist.</p>
+                <p>Die Saison-Einordnung wird gerade erstellt.</p>
             </div>
         {% endif %}
     </section>

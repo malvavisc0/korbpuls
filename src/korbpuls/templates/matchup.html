@@ -113,30 +113,36 @@
     {% endif %}
 
     {% if ai_enabled %}
-    <section class="ai-narrative">
+    <section class="ai-panel">
+        <div class="ai-panel__header">
+            <div>
+                <p class="ai-panel__eyebrow">KI-gestützt</p>
+                <h2>KI-Vorschau zum Spiel</h2>
+            </div>
+        </div>
+        <p class="ai-teaser">Vor dem Tip-off: Form, Vergleich und mögliche Vorteile beider Teams auf einen Blick.</p>
         {% if ai_analysis %}
-        <div class="ai-card">
-            <p class="eyebrow">KI-Analyse</p>
+        <div class="ai-panel__body">
             {{ ai_analysis | safe }}
         </div>
+        <div class="ai-panel__footer">
+            <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
+        </div>
         {% elif generating %}
-        <div class="ai-card ai-card--loading">
-            <p class="eyebrow">KI-Analyse</p>
+        <div class="ai-panel__loading">
             <div class="spinner" aria-hidden="true"></div>
-            <p>Die KI analysiert dieses Matchup…</p>
+            <p>Die Spielvorschau wird gerade erstellt.</p>
         </div>
         {% elif generation_failed %}
-        <div class="ai-card ai-card--error">
-            <p class="eyebrow">KI-Analyse</p>
-            <p>Die Analyse konnte nicht erstellt werden.</p>
+        <div class="ai-panel__body ai-panel__body--action">
+            <p><em>Die Spielvorschau konnte gerade nicht erstellt werden.</em></p>
             <form method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ home_slug }}/{{ away_slug }}/ki-generieren">
-                <button type="submit" class="primary-cta">Erneut versuchen</button>
+                <button type="submit" class="primary-cta">Vorschau erneut erstellen</button>
             </form>
         </div>
         {% else %}
-        <div class="ai-card ai-card--prompt">
-            <p class="eyebrow">KI-Analyse</p>
-            <p>Lass die KI dieses Matchup analysieren — Form, Stärken und was zu erwarten ist.</p>
+        <div class="ai-panel__body ai-panel__body--action">
+            <p>Erhalte eine kurze Vorschau mit Formtendenzen, Stärken und einem fairen Vergleich beider Teams.</p>
             <form method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ home_slug }}/{{ away_slug }}/ki-generieren">
                 <button type="submit" class="primary-cta">KI-Vorschau generieren</button>
             </form>
