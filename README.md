@@ -153,7 +153,7 @@ WORKERS=4 ./run.sh
 | `HOST` | `0.0.0.0` | Bind address |
 | `WORKERS` | `2` | Uvicorn worker count (use 1 per CPU core) |
 | `RELOAD` | `false` | Enable live reload (development only) |
-| `CACHE_DIR` | `files` (local) / `/data/cache` (Docker) | Directory for cached league data |
+| `CACHE_DIR` | `files` (local) / `/data` (Docker) | Directory for cached league data |
 | `KORBPULS_API_KEY` | — | API key for protected `/api/` endpoints |
 | `KORB_CMD` | `uv run korb` (local) / `korb` (Docker) | Command to invoke the korb CLI |
 

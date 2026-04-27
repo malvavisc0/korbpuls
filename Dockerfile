@@ -25,7 +25,7 @@ RUN chmod +x run.sh
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV KORB_CMD="korb"
-ENV CACHE_DIR="/data/cache"
+ENV CACHE_DIR="/data"
 ENV PORT="8000"
 ENV WORKERS="2"
 ENV RUNNER=""
@@ -37,6 +37,6 @@ LABEL org.opencontainers.image.title="korbPuls" \
       org.opencontainers.image.source="https://github.com/malvavisc0/korbpuls"
 
 EXPOSE 8000
-VOLUME ["/data/cache"]
+VOLUME ["/data"]
 
 ENTRYPOINT ["./run.sh"]
