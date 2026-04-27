@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -49,6 +50,123 @@ class CacheDir:
         """Remove the entire cache directory for this league."""
         if self.base_path.exists():
             shutil.rmtree(self.base_path)
+
+    def clear_data_files(self) -> None:
+        """Remove only data files, preserving AI analysis files.
+
+        Deletes standings, schedule, ergebnisse, predict, meta,
+        status, and per-team data files, but keeps AI analysis
+        and AI failure marker files intact.
+        """
+        data_files = [
+            "standings.json",
+            "schedule.json",
+            "ergebnisse.json",
+            "predict.json",
+            "meta.json",
+            "status.json",
+        ]
+        for name in data_files:
+            path = self.base_path / name
+            if path.exists():
+                path.unlink()
+
+        # Remove per-team data files but keep AI files
+        if self.teams_path.exists():
+            for f in self.teams_path.iterdir():
+                if f.suffix == ".json" and not (
+                    f.stem.endswith("_analysis")
+                    or f.stem.endswith("_analysis_failed")
+                ):
+                    f.unlink()
+
+    def clear_ai_files(self) -> None:
+        """Remove all AI-related files (analysis + failure markers).
+
+        Deletes per-team AI analyses, prediction narratives,
+        and all failure marker files.
+        """
+        # Per-team AI files
+        if self.teams_path.exists():
+            for f in self.teams_path.iterdir():
+                if f.suffix == ".json" and (
+                    f.stem.endswith("_analysis")
+                    or f.stem.endswith("_analysis_failed")
+                ):
+                    f.unlink()
+
+        # Prediction narrative + failure marker
+        for name in [
+            "prediction_narrative.json",
+            "prediction_narrative_failed.json",
+        ]:
+            path = self.base_path / name
+            if path.exists():
+                path.unlink()
+
+    def compute_data_hash(self) -> str:
+        """Compute a SHA-256 hash of all cached data files.
+
+        Includes standings, schedule, ergebnisse, predict, and
+        per-team data files. Excludes meta, status, and AI files.
+
+        Returns:
+            Hex digest string, or empty string if no data files exist.
+        """
+        hasher = hashlib.sha256()
+        found = False
+
+        data_names = [
+            "standings.json",
+            "schedule.json",
+            "ergebnisse.json",
+            "predict.json",
+        ]
+        for name in sorted(data_names):
+            path = self.base_path / name
+            if path.exists():
+                hasher.update(path.read_bytes())
+                found = True
+
+        # Include per-team data files
+        if self.teams_path.exists():
+            team_files = sorted(
+                f
+                for f in self.teams_path.iterdir()
+                if f.suffix == ".json"
+                and not f.stem.endswith("_analysis")
+                and not f.stem.endswith("_analysis_failed")
+            )
+            for f in team_files:
+                hasher.update(f.read_bytes())
+                found = True
+
+        return hasher.hexdigest() if found else ""
+
+    def touch_ai_files(self) -> None:
+        """Update mtime of all AI files to now.
+
+        Keeps AI analyses "fresh" relative to meta.json so
+        is_ai_analysis_fresh() / is_ai_prediction_fresh()
+        continue to return True after a no-change re-fetch.
+        """
+        now = time.time()
+
+        if self.teams_path.exists():
+            for f in self.teams_path.iterdir():
+                if f.suffix == ".json" and (
+                    f.stem.endswith("_analysis")
+                    or f.stem.endswith("_analysis_failed")
+                ):
+                    os.utime(f, (now, now))
+
+        for name in [
+            "prediction_narrative.json",
+            "prediction_narrative_failed.json",
+        ]:
+            path = self.base_path / name
+            if path.exists():
+                os.utime(path, (now, now))
 
     def write_json(self, filename: str, data: dict[str, Any]) -> None:
         """Write JSON data to a file.

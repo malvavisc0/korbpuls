@@ -75,11 +75,17 @@ def fetch_and_cache_league(ligaid: str) -> None:
     Runs as a background task. Handles errors internally by
     writing status.json instead of propagating exceptions.
 
+    Preserves existing AI analyses when the downloaded data
+    is identical to the previously cached data.
+
     Args:
         ligaid: League ID number
     """
     cache_dir = CacheDir(ligaid)
     cache_dir.ensure_exists()
+
+    # Snapshot old data hash before overwriting
+    old_hash = cache_dir.compute_data_hash()
 
     try:
         run_download(ligaid)
@@ -130,6 +136,23 @@ def fetch_and_cache_league(ligaid: str) -> None:
             team_slugs=team_slugs,
         )
         cache_dir.write_meta(meta)
+
+        # Compare new data with old — preserve AI work if unchanged
+        new_hash = cache_dir.compute_data_hash()
+        if old_hash and old_hash == new_hash:
+            cache_dir.touch_ai_files()
+            logger.info(
+                "Data unchanged for liga %s — AI analyses preserved",
+                ligaid,
+            )
+        else:
+            cache_dir.clear_ai_files()
+            if old_hash:
+                logger.info(
+                    "Data changed for liga %s — AI analyses invalidated",
+                    ligaid,
+                )
+
         cache_dir.write_status("ready")
     except KorbError as e:
         cache_dir.write_status("error", str(e))
@@ -316,7 +339,7 @@ async def fetch_league(
         )
 
     # Start background fetch and redirect to loading page
-    cache_dir.clear()
+    cache_dir.clear_data_files()
     cache_dir.ensure_exists()
     cache_dir.write_status("pending")
     background_tasks.add_task(fetch_and_cache_league, ligaid)
@@ -358,7 +381,7 @@ async def refresh_league(
     if not cache_dir.liga_exists():
         raise HTTPException(status_code=404, detail="Liga nicht gefunden")
 
-    cache_dir.clear()
+    cache_dir.clear_data_files()
     cache_dir.ensure_exists()
     cache_dir.write_status("pending")
     background_tasks.add_task(fetch_and_cache_league, ligaid)
@@ -404,7 +427,7 @@ async def loading_page(
         if status_path.exists():
             age = time.time() - status_path.stat().st_mtime
             if age < 10:
-                cache_dir.clear()
+                cache_dir.clear_data_files()
                 cache_dir.ensure_exists()
                 cache_dir.write_status("pending")
                 background_tasks.add_task(
