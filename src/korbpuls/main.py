@@ -21,7 +21,16 @@ from pydantic import BaseModel
 
 from korbpuls import presenters
 from korbpuls.ai import AIConfig
-from korbpuls.ai.agents import LeaguePrediction, TeamAnalysis, get_analyst, get_oracle
+from korbpuls.ai.agents import (
+    LeaguePrediction,
+    MatchupPreview,
+    StandingsNarrative,
+    TeamAnalysis,
+    get_analyst,
+    get_commentator,
+    get_oracle,
+    get_scout,
+)
 from korbpuls.auth import validate_api_key
 from korbpuls.cache import CacheDir, CacheMiss, LigaMeta
 from korbpuls.korb_client import (
@@ -466,18 +475,23 @@ async def standings_page(
     liga_slug: str = URLPath(...),
 ) -> HTMLResponse:
     """Render standings page."""
+    ai_enabled = AIConfig.from_env() is not None
     try:
-        view = presenters.present_standings(ligaid)
+        view = presenters.present_standings(ligaid, ai_enabled=ai_enabled)
     except CacheMiss as e:
         raise HTTPException(
             status_code=404,
             detail="Daten nicht gefunden",
         ) from e
 
+    cache = CacheDir(ligaid)
+    ctx = view.model_dump()
+    ctx["generating"] = request.query_params.get("generating") == "1"
+    ctx["generation_failed"] = cache.read_standings_narrative_failed()
     return templates.TemplateResponse(
         request,
         "standings.html",
-        view.model_dump(),
+        ctx,
     )
 
 
@@ -706,6 +720,216 @@ async def generate_prediction_ai(
 
     return RedirectResponse(
         url=f"{prediction_url}?generating=1",
+        status_code=302,
+    )
+
+
+async def _run_standings_narrative(config: AIConfig, ligaid: str) -> None:
+    """Background task: generate AI standings narrative."""
+    cache = CacheDir(ligaid)
+    try:
+        commentator = get_commentator(
+            api_base=config.api_base,
+            api_key=config.api_key,
+            model=config.model,
+        )
+        prompt = (
+            f"LIGA_ID={ligaid}\n"
+            f"LANGUAGE=de\n\n"
+            "Describe the current league standings following "
+            "the skill steps. Use the exact team names from "
+            "the standings data — never 'Team A', 'Team B', "
+            "or any placeholder. "
+            "Return a single <p> element with 3-5 sentences "
+            "of accessible, conversational league analysis. "
+            "No markdown. No jargon. "
+            "Correct German with proper umlauts (ä, ö, ü, ß). "
+            "Do NOT copy or paraphrase the examples from "
+            "the skill. Write like a local sports columnist."
+        )
+        result: StandingsNarrative = await _retry_agent(
+            commentator,
+            prompt,
+            StandingsNarrative,
+        )
+        cache.write_standings_narrative(result.narrative)
+    except Exception:
+        logger.exception(
+            "AI standings narrative failed for %s",
+            ligaid,
+        )
+        cache.write_standings_narrative_failed()
+
+
+async def _run_matchup_preview(
+    config: AIConfig,
+    ligaid: str,
+    home_slug: str,
+    away_slug: str,
+    home_name: str,
+    away_name: str,
+) -> None:
+    """Background task: generate AI matchup preview."""
+    cache = CacheDir(ligaid)
+    try:
+        scout = get_scout(
+            api_base=config.api_base,
+            api_key=config.api_key,
+            model=config.model,
+        )
+        prompt = (
+            f"HOME_TEAM={home_name}\n"
+            f"AWAY_TEAM={away_name}\n"
+            f"LIGA_ID={ligaid}\n"
+            f"LANGUAGE=de\n\n"
+            f"Analyze the matchup between '{home_name}' "
+            f"(home) and '{away_name}' (away) following the "
+            "skill steps. Use the exact team names from the "
+            "standings data — never 'Team A', 'Team B', or "
+            "any placeholder. "
+            "Return 2-3 <p> elements with 8-12 sentences of "
+            "detailed matchup analysis. "
+            "No markdown. No jargon. "
+            "Correct German with proper umlauts (ä, ö, ü, ß). "
+            "Do NOT copy or paraphrase the examples from the "
+            "skill. Sound like a basketball scout."
+        )
+        result: MatchupPreview = await _retry_agent(
+            scout,
+            prompt,
+            MatchupPreview,
+        )
+        cache.write_matchup_preview(home_slug, away_slug, result.analysis)
+    except Exception:
+        logger.exception(
+            "AI matchup preview failed for %s/%s vs %s",
+            ligaid,
+            home_slug,
+            away_slug,
+        )
+        cache.write_matchup_preview_failed(home_slug, away_slug)
+
+
+@app.post(
+    "/liga/{ligaid}/{liga_slug}/ki-ueberblick",
+    response_class=RedirectResponse,
+)
+async def generate_standings_narrative(
+    background_tasks: BackgroundTasks,
+    ligaid: str = URLPath(..., pattern=r"\d+"),
+    liga_slug: str = URLPath(...),
+) -> RedirectResponse:
+    """Trigger AI standings narrative generation."""
+    config = AIConfig.from_env()
+    if config is None:
+        raise HTTPException(
+            status_code=503,
+            detail="KI-Funktion nicht konfiguriert",
+        )
+
+    cache = CacheDir(ligaid)
+    standings_url = f"/liga/{ligaid}/{liga_slug}"
+
+    if not cache.liga_exists():
+        raise HTTPException(status_code=404, detail="Liga nicht gefunden")
+
+    if cache.is_standings_narrative_fresh():
+        return RedirectResponse(url=standings_url, status_code=302)
+
+    cache.clear_standings_narrative_failed()
+    background_tasks.add_task(_run_standings_narrative, config, ligaid)
+    return RedirectResponse(
+        url=f"{standings_url}?generating=1",
+        status_code=302,
+    )
+
+
+@app.get(
+    "/liga/{ligaid}/{liga_slug}/spielplan/vorschau/{home_slug}/{away_slug}",
+    response_class=HTMLResponse,
+)
+async def matchup_preview_page(
+    request: Request,
+    ligaid: str = URLPath(..., pattern=r"\d+"),
+    liga_slug: str = URLPath(...),
+    home_slug: str = URLPath(...),
+    away_slug: str = URLPath(...),
+) -> HTMLResponse:
+    """Render matchup preview page."""
+    ai_enabled = AIConfig.from_env() is not None
+    try:
+        view = presenters.present_matchup(
+            ligaid,
+            home_slug,
+            away_slug,
+            ai_enabled=ai_enabled,
+        )
+    except CacheMiss as e:
+        raise HTTPException(
+            status_code=404,
+            detail="Matchup nicht gefunden",
+        ) from e
+
+    cache = CacheDir(ligaid)
+    ctx = view.model_dump()
+    ctx["generating"] = request.query_params.get("generating") == "1"
+    ctx["generation_failed"] = cache.read_matchup_preview_failed(home_slug, away_slug)
+    return templates.TemplateResponse(
+        request,
+        "matchup.html",
+        ctx,
+    )
+
+
+@app.post(
+    "/liga/{ligaid}/{liga_slug}/spielplan"
+    "/vorschau/{home_slug}/{away_slug}/ki-generieren",
+    response_class=RedirectResponse,
+)
+async def generate_matchup_preview(
+    background_tasks: BackgroundTasks,
+    ligaid: str = URLPath(..., pattern=r"\d+"),
+    liga_slug: str = URLPath(...),
+    home_slug: str = URLPath(...),
+    away_slug: str = URLPath(...),
+) -> RedirectResponse:
+    """Trigger AI matchup preview generation."""
+    config = AIConfig.from_env()
+    if config is None:
+        raise HTTPException(
+            status_code=503,
+            detail="KI-Funktion nicht konfiguriert",
+        )
+
+    cache = CacheDir(ligaid)
+    matchup_url = (
+        f"/liga/{ligaid}/{liga_slug}/spielplan/vorschau/{home_slug}/{away_slug}"
+    )
+
+    meta = cache.read_meta()
+    home_name = meta.team_slugs.get(home_slug)
+    away_name = meta.team_slugs.get(away_slug)
+    if not home_name or not away_name:
+        raise HTTPException(
+            status_code=404,
+            detail="Team nicht gefunden",
+        )
+
+    if cache.is_matchup_preview_fresh(home_slug, away_slug):
+        return RedirectResponse(url=matchup_url, status_code=302)
+
+    cache.clear_matchup_preview_failed(home_slug, away_slug)
+    background_tasks.add_task(
+        _run_matchup_preview,
+        config,
+        ligaid,
+        home_slug,
+        away_slug,
+        home_name,
+        away_name,
+    )
+    return RedirectResponse(
+        url=f"{matchup_url}?generating=1",
         status_code=302,
     )
 

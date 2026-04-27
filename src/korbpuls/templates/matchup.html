@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block head %}
+{% if ai_enabled and not ai_analysis and generating and not generation_failed %}
+<meta http-equiv="refresh" content="15">
+{% endif %}
+{% endblock %}
+
+{% block title %}{{ home_name }} vs {{ away_name }} — KI-Vorschau{% endblock %}
+
+{% block meta_description %}KI-Vorschau für {{ home_name }} gegen {{ away_name }} in der {{ liga_name }}: Head-to-Head, Formanalyse und Matchup-Bewertung bei korbPuls.{% endblock %}
+
+{% block main %}
+<article class="page">
+    <header class="page-intro">
+        <p class="eyebrow">KI-Vorschau</p>
+        <h1>{{ home_name }} <span class="muted">vs</span> {{ away_name }}</h1>
+        <p class="page-meta">{{ liga_name }}</p>
+    </header>
+
+    <nav class="segmented-nav" aria-label="Seitennavigation">
+        <div class="segmented-nav__tabs">
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}" class="segmented-nav__tab">Tabelle</a>
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/ergebnisse" class="segmented-nav__tab">Ergebnisse</a>
+            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan" class="segmented-nav__tab">Spielplan</a>
+        </div>
+    </nav>
+
+    <section class="surface">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Vergleich</p>
+                <h2>Tabellenvergleich</h2>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Team</th>
+                        <th class="col-short">#</th>
+                        <th class="col-points">Pkt</th>
+                        <th class="col-number">Bilanz</th>
+                        <th class="col-diff">Diff</th>
+                        <th class="col-number hide-mobile">Ø PF</th>
+                        <th class="col-number hide-mobile">Ø PA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if home_row %}
+                    <tr>
+                        <td><strong>{{ home_row.name }}</strong></td>
+                        <td class="col-short">{{ home_row.rank }}</td>
+                        <td class="col-points"><strong>{{ home_row.pts }}</strong></td>
+                        <td class="col-number">{{ home_row.w }}-{{ home_row.losses }}</td>
+                        <td class="col-diff {% if home_row.diff > 0 %}diff-positive{% elif home_row.diff < 0 %}diff-negative{% endif %}">{{ home_row.diff }}</td>
+                        <td class="col-number hide-mobile">{{ home_row.avg_pf }}</td>
+                        <td class="col-number hide-mobile">{{ home_row.avg_pa }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if away_row %}
+                    <tr>
+                        <td><strong>{{ away_row.name }}</strong></td>
+                        <td class="col-short">{{ away_row.rank }}</td>
+                        <td class="col-points"><strong>{{ away_row.pts }}</strong></td>
+                        <td class="col-number">{{ away_row.w }}-{{ away_row.losses }}</td>
+                        <td class="col-diff {% if away_row.diff > 0 %}diff-positive{% elif away_row.diff < 0 %}diff-negative{% endif %}">{{ away_row.diff }}</td>
+                        <td class="col-number hide-mobile">{{ away_row.avg_pf }}</td>
+                        <td class="col-number hide-mobile">{{ away_row.avg_pa }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    {% if head_to_head %}
+    <section class="surface">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Direktvergleich</p>
+                <h2>Bisherige Begegnungen</h2>
+            </div>
+        </div>
+        <div class="latest-results__grid">
+            {% for game in head_to_head %}
+            <div class="result-card">
+                <span class="result-card__date">{{ game.date }}</span>
+                <div class="result-card__teams">
+                    <div class="result-card__row">
+                        <span class="result-card__name {% if game.winner == 'home' %}result-card__name--winner{% endif %}">
+                            <span class="result-card__name-primary">{{ game.home_display_primary }}</span>
+                            {% if game.home_display_secondary %}
+                            <span class="result-card__name-secondary">{{ game.home_display_secondary }}</span>
+                            {% endif %}
+                        </span>
+                        <span class="result-card__score {% if game.winner == 'home' %}result-card__score--winner{% elif game.winner == 'draw' %}result-card__score--draw{% endif %}">{{ game.home_score }}</span>
+                    </div>
+                    <div class="result-card__row">
+                        <span class="result-card__name {% if game.winner == 'away' %}result-card__name--winner{% endif %}">
+                            <span class="result-card__name-primary">{{ game.away_display_primary }}</span>
+                            {% if game.away_display_secondary %}
+                            <span class="result-card__name-secondary">{{ game.away_display_secondary }}</span>
+                            {% endif %}
+                        </span>
+                        <span class="result-card__score {% if game.winner == 'away' %}result-card__score--winner{% elif game.winner == 'draw' %}result-card__score--draw{% endif %}">{{ game.away_score }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if ai_enabled %}
+    <section class="ai-narrative">
+        {% if ai_analysis %}
+        <div class="ai-card">
+            <p class="eyebrow">KI-Analyse</p>
+            {{ ai_analysis | safe }}
+        </div>
+        {% elif generating %}
+        <div class="ai-card ai-card--loading">
+            <p class="eyebrow">KI-Analyse</p>
+            <div class="spinner" aria-hidden="true"></div>
+            <p>Die KI analysiert dieses Matchup…</p>
+        </div>
+        {% elif generation_failed %}
+        <div class="ai-card ai-card--error">
+            <p class="eyebrow">KI-Analyse</p>
+            <p>Die Analyse konnte nicht erstellt werden.</p>
+            <form method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ home_slug }}/{{ away_slug }}/ki-generieren">
+                <button type="submit" class="primary-cta">Erneut versuchen</button>
+            </form>
+        </div>
+        {% else %}
+        <div class="ai-card ai-card--prompt">
+            <p class="eyebrow">KI-Analyse</p>
+            <p>Lass die KI dieses Matchup analysieren — Form, Stärken und was zu erwarten ist.</p>
+            <form method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ home_slug }}/{{ away_slug }}/ki-generieren">
+                <button type="submit" class="primary-cta">KI-Vorschau generieren</button>
+            </form>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    <p class="note">
+        <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">← Zurück zum Spielplan</a>
+    </p>
+</article>
+{% endblock %}

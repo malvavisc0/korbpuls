@@ -74,29 +74,46 @@ class CacheDir:
         # Remove per-team data files but keep AI files
         if self.teams_path.exists():
             for f in self.teams_path.iterdir():
-                if f.suffix == ".json" and not (
-                    f.stem.endswith("_analysis") or f.stem.endswith("_analysis_failed")
-                ):
+                if f.suffix == ".json" and not self._is_ai_file(f):
                     f.unlink()
+
+    @staticmethod
+    def _is_ai_file(path: Path) -> bool:
+        """Check if a path is an AI-related cache file.
+
+        Matches files ending in _analysis, _analysis_failed,
+        _preview, or _preview_failed.
+        """
+        stem = path.stem
+        return any(
+            stem.endswith(suffix)
+            for suffix in (
+                "_analysis",
+                "_analysis_failed",
+                "_preview",
+                "_preview_failed",
+            )
+        )
 
     def clear_ai_files(self) -> None:
         """Remove all AI-related files (analysis + failure markers).
 
-        Deletes per-team AI analyses, prediction narratives,
+        Deletes per-team AI analyses, matchup previews,
+        prediction narratives, standings narratives,
         and all failure marker files.
         """
-        # Per-team AI files
+        # Per-team AI files (analysis + preview)
         if self.teams_path.exists():
             for f in self.teams_path.iterdir():
-                if f.suffix == ".json" and (
-                    f.stem.endswith("_analysis") or f.stem.endswith("_analysis_failed")
-                ):
+                if f.suffix == ".json" and self._is_ai_file(f):
                     f.unlink()
 
-        # Prediction narrative + failure marker
+        # League-level AI files + failure markers
         for name in [
             "prediction_narrative.json",
             "prediction_narrative_failed.json",
+            "standings_narrative.json",
+            "standings_narrative_failed.json",
         ]:
             path = self.base_path / name
             if path.exists():
@@ -126,14 +143,12 @@ class CacheDir:
                 hasher.update(path.read_bytes())
                 found = True
 
-        # Include per-team data files
+        # Include per-team data files (exclude AI files)
         if self.teams_path.exists():
             team_files = sorted(
                 f
                 for f in self.teams_path.iterdir()
-                if f.suffix == ".json"
-                and not f.stem.endswith("_analysis")
-                and not f.stem.endswith("_analysis_failed")
+                if f.suffix == ".json" and not self._is_ai_file(f)
             )
             for f in team_files:
                 hasher.update(f.read_bytes())
@@ -145,21 +160,22 @@ class CacheDir:
         """Update mtime of all AI files to now.
 
         Keeps AI analyses "fresh" relative to meta.json so
-        is_ai_analysis_fresh() / is_ai_prediction_fresh()
+        is_ai_analysis_fresh() / is_ai_prediction_fresh() /
+        is_standings_narrative_fresh() / is_matchup_preview_fresh()
         continue to return True after a no-change re-fetch.
         """
         now = time.time()
 
         if self.teams_path.exists():
             for f in self.teams_path.iterdir():
-                if f.suffix == ".json" and (
-                    f.stem.endswith("_analysis") or f.stem.endswith("_analysis_failed")
-                ):
+                if f.suffix == ".json" and self._is_ai_file(f):
                     os.utime(f, (now, now))
 
         for name in [
             "prediction_narrative.json",
             "prediction_narrative_failed.json",
+            "standings_narrative.json",
+            "standings_narrative_failed.json",
         ]:
             path = self.base_path / name
             if path.exists():
@@ -394,6 +410,89 @@ class CacheDir:
             return False
         return ai_path.stat().st_mtime >= meta_path.stat().st_mtime
 
+    # -- Standings narrative -------------------------------------------------
+
+    def read_standings_narrative(self) -> str | None:
+        """Read cached AI standings narrative.
+
+        Returns:
+            Narrative HTML or None if not cached
+        """
+        path = self.base_path / "standings_narrative.json"
+        if not path.exists():
+            return None
+        data = json.loads(path.read_text())
+        return data.get("narrative")
+
+    def write_standings_narrative(self, narrative: str) -> None:
+        """Write AI standings narrative to cache."""
+        path = self.base_path / "standings_narrative.json"
+        path.write_text(
+            json.dumps(
+                {"narrative": narrative},
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+
+    def is_standings_narrative_fresh(self) -> bool:
+        """Check if standings narrative cache is fresh.
+
+        Returns True if narrative exists AND meta.json hasn't been
+        updated since the narrative was generated.
+        """
+        ai_path = self.base_path / "standings_narrative.json"
+        meta_path = self.base_path / "meta.json"
+        if not ai_path.exists() or not meta_path.exists():
+            return False
+        return ai_path.stat().st_mtime >= meta_path.stat().st_mtime
+
+    # -- Matchup preview -----------------------------------------------------
+
+    def _matchup_key(self, home_slug: str, away_slug: str) -> str:
+        """Generate cache key for a matchup preview."""
+        return f"{home_slug}_vs_{away_slug}_preview"
+
+    def read_matchup_preview(self, home_slug: str, away_slug: str) -> str | None:
+        """Read cached AI matchup preview.
+
+        Returns:
+            Analysis HTML or None if not cached
+        """
+        key = self._matchup_key(home_slug, away_slug)
+        path = self.teams_path / f"{key}.json"
+        if not path.exists():
+            return None
+        data = json.loads(path.read_text())
+        return data.get("analysis")
+
+    def write_matchup_preview(
+        self, home_slug: str, away_slug: str, analysis: str
+    ) -> None:
+        """Write AI matchup preview to cache."""
+        key = self._matchup_key(home_slug, away_slug)
+        path = self.teams_path / f"{key}.json"
+        path.write_text(
+            json.dumps(
+                {"analysis": analysis},
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+
+    def is_matchup_preview_fresh(self, home_slug: str, away_slug: str) -> bool:
+        """Check if matchup preview cache is fresh.
+
+        Returns True if preview exists AND meta.json hasn't been
+        updated since the preview was generated.
+        """
+        key = self._matchup_key(home_slug, away_slug)
+        ai_path = self.teams_path / f"{key}.json"
+        meta_path = self.base_path / "meta.json"
+        if not ai_path.exists() or not meta_path.exists():
+            return False
+        return ai_path.stat().st_mtime >= meta_path.stat().st_mtime
+
     # -- AI failure markers --------------------------------------------------
 
     def write_ai_analysis_failed(self, team_slug: str) -> None:
@@ -444,5 +543,40 @@ class CacheDir:
     def clear_ai_prediction_failed(self) -> None:
         """Remove failure marker for AI prediction narrative."""
         path = self.base_path / "prediction_narrative_failed.json"
+        if path.exists():
+            path.unlink()
+
+    def write_standings_narrative_failed(self) -> None:
+        """Write a failure marker for AI standings narrative."""
+        path = self.base_path / "standings_narrative_failed.json"
+        path.write_text(json.dumps({"failed": True}))
+
+    def read_standings_narrative_failed(self) -> bool:
+        """Check if AI standings narrative has a failure marker."""
+        path = self.base_path / "standings_narrative_failed.json"
+        return path.exists()
+
+    def clear_standings_narrative_failed(self) -> None:
+        """Remove failure marker for AI standings narrative."""
+        path = self.base_path / "standings_narrative_failed.json"
+        if path.exists():
+            path.unlink()
+
+    def write_matchup_preview_failed(self, home_slug: str, away_slug: str) -> None:
+        """Write a failure marker for AI matchup preview."""
+        key = self._matchup_key(home_slug, away_slug)
+        path = self.teams_path / f"{key}_failed.json"
+        path.write_text(json.dumps({"failed": True}))
+
+    def read_matchup_preview_failed(self, home_slug: str, away_slug: str) -> bool:
+        """Check if AI matchup preview has a failure marker."""
+        key = self._matchup_key(home_slug, away_slug)
+        path = self.teams_path / f"{key}_failed.json"
+        return path.exists()
+
+    def clear_matchup_preview_failed(self, home_slug: str, away_slug: str) -> None:
+        """Remove failure marker for AI matchup preview."""
+        key = self._matchup_key(home_slug, away_slug)
+        path = self.teams_path / f"{key}_failed.json"
         if path.exists():
             path.unlink()

@@ -75,6 +75,7 @@
                         <th>Gast</th>
                         <th class="hide-mobile">Halle</th>
                         <th class="col-short">Status</th>
+                        <th class="col-short hide-mobile">KI</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -107,6 +108,15 @@
                             <span class="cancelled-badge">Abgesagt</span>
                             {% else %}
                             <span class="status-badge">Geplant</span>
+                            {% endif %}
+                        </td>
+                        <td class="col-short hide-mobile">
+                            {% if not game.cancelled %}
+                            <a class="team-link"
+                               href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ game.home_slug }}/{{ game.away_slug }}"
+                               aria-label="KI-Vorschau: {{ game.home }} vs {{ game.away }}">
+                                🔍
+                            </a>
                             {% endif %}
                         </td>
                     </tr>

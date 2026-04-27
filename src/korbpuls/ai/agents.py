@@ -50,6 +50,35 @@ class LeaguePrediction(BaseModel):
     )
 
 
+class StandingsNarrative(BaseModel):
+    """Structured output for standings narrative."""
+
+    narrative: str = Field(
+        description=(
+            "A single HTML <p> element containing 3-5 sentences of "
+            "accessible league analysis. Cover the most interesting "
+            "storyline from the current standings. Use <strong> "
+            "sparingly for team names. No markdown, no bullet lists, "
+            "no headings. Must be wrapped in <p>...</p>."
+        ),
+    )
+
+
+class MatchupPreview(BaseModel):
+    """Structured output for matchup preview."""
+
+    analysis: str = Field(
+        description=(
+            "2-3 HTML <p> elements containing 8-12 sentences of "
+            "detailed matchup analysis comparing two teams. Cover "
+            "standings comparison, recent form, head-to-head history, "
+            "and what to watch for. Use <strong> sparingly for team "
+            "names. No markdown, no bullet lists, no headings. "
+            "Each paragraph must be wrapped in <p>...</p> tags."
+        ),
+    )
+
+
 def _load_skill(filename: str) -> str:
     """Load a skill markdown file."""
     return (SKILLS_DIR / filename).read_text(encoding="utf-8")
@@ -138,4 +167,74 @@ def get_oracle(
             f"Follow these instructions step by step:\n\n{skill}"
         ),
         output_cls=LeaguePrediction,
+    )
+
+
+def get_commentator(
+    api_base: str,
+    api_key: str,
+    model: str,
+    language: str = "de",
+) -> FunctionAgent:
+    """Create and return the Commentator agent."""
+    skill = _load_skill("STANDINGS_NARRATIVE.md")
+
+    return FunctionAgent(
+        name="Commentator",
+        description="Write a brief standings overview for a league.",
+        llm=_make_llm(api_base, api_key, model),
+        tools=[run_korb_command],
+        system_prompt=(
+            "You are the basketball standings commentator.\n\n"
+            "Call `run_korb_command` with only flags and subcommand; "
+            "the binary is prepended automatically. Do not include "
+            "'uv run korb'.\n"
+            f"Write the final narrative in {language}.\n"
+            "CRITICAL: Always use the exact team names from the "
+            "standings data — never 'Team A', 'Team B', or any "
+            "placeholder.\n"
+            "Write grammatically correct German with proper umlauts "
+            "(ä, ö, ü, ß). Do not garble or approximate characters.\n"
+            "Generate original analysis from the data. Do not copy "
+            "or paraphrase the examples in the skill.\n"
+            "Return only structured output that satisfies the schema "
+            "exactly.\n\n"
+            f"Follow these instructions step by step:\n\n{skill}"
+        ),
+        output_cls=StandingsNarrative,
+    )
+
+
+def get_scout(
+    api_base: str,
+    api_key: str,
+    model: str,
+    language: str = "de",
+) -> FunctionAgent:
+    """Create and return the Scout agent."""
+    skill = _load_skill("MATCHUP_PREVIEW.md")
+
+    return FunctionAgent(
+        name="Scout",
+        description="Analyze a matchup between two basketball teams.",
+        llm=_make_llm(api_base, api_key, model),
+        tools=[run_korb_command],
+        system_prompt=(
+            "You are the basketball matchup scout agent.\n\n"
+            "Call `run_korb_command` with only flags and subcommand; "
+            "the binary is prepended automatically. Do not include "
+            "'uv run korb'.\n"
+            f"Write the final analysis in {language}.\n"
+            "CRITICAL: Always use the exact team names from the "
+            "standings data — never 'Team A', 'Team B', or any "
+            "placeholder.\n"
+            "Write grammatically correct German with proper umlauts "
+            "(ä, ö, ü, ß). Do not garble or approximate characters.\n"
+            "Generate original analysis from the data. Do not copy "
+            "or paraphrase the examples in the skill.\n"
+            "Return only structured output that satisfies the schema "
+            "exactly.\n\n"
+            f"Follow these instructions step by step:\n\n{skill}"
+        ),
+        output_cls=MatchupPreview,
     )

@@ -41,6 +41,8 @@ class StandingsView(BaseModel):
     is_finished: bool = False
     prediction_eligible: bool = True
     latest_games: list[ErgebnisGame] = []
+    ai_narrative: str | None = None
+    ai_enabled: bool = False
 
 
 class GameResult(BaseModel):
@@ -197,6 +199,23 @@ class ErgebnisseView(BaseModel):
     games: list[ErgebnisGame]
     is_finished: bool = False
     prediction_eligible: bool = True
+
+
+class MatchupPreviewView(BaseModel):
+    """View model for the matchup preview page."""
+
+    liga_name: str
+    liga_slug: str
+    ligaid: str
+    home_name: str
+    home_slug: str
+    away_name: str
+    away_slug: str
+    home_row: StandingsRow | None = None
+    away_row: StandingsRow | None = None
+    head_to_head: list[ErgebnisGame] = []
+    ai_analysis: str | None = None
+    ai_enabled: bool = False
 
 
 _RESULT_MAP = {"W": "Sieg", "L": "Niederlage", "D": "Unentschieden"}
@@ -622,11 +641,12 @@ def _check_prediction_eligible(
     return True, None
 
 
-def present_standings(ligaid: str) -> StandingsView:
+def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView:
     """Build view model for standings page.
 
     Args:
         ligaid: League ID
+        ai_enabled: Whether AI features are enabled
 
     Returns:
         StandingsView for template rendering
@@ -679,6 +699,10 @@ def present_standings(ligaid: str) -> StandingsView:
     except (CacheMiss, FileNotFoundError):
         pass
 
+    ai_narrative = None
+    if ai_enabled:
+        ai_narrative = cache.read_standings_narrative()
+
     return StandingsView(
         liga_name=meta.league_name,
         liga_slug=meta.liga_slug,
@@ -688,6 +712,8 @@ def present_standings(ligaid: str) -> StandingsView:
         is_finished=is_finished,
         prediction_eligible=eligible,
         latest_games=latest_games,
+        ai_narrative=ai_narrative,
+        ai_enabled=ai_enabled,
     )
 
 
@@ -947,4 +973,104 @@ def present_ergebnisse(ligaid: str) -> ErgebnisseView:
         games=games,
         is_finished=is_finished,
         prediction_eligible=eligible,
+    )
+
+
+def _find_standings_row(
+    standings_data: dict[str, Any], team_name: str
+) -> StandingsRow | None:
+    """Find a team's standings row by name.
+
+    Args:
+        standings_data: Raw standings JSON
+        team_name: Full team name to find
+
+    Returns:
+        StandingsRow if found, None otherwise
+    """
+    for rank, team in enumerate(standings_data.get("standings", []), start=1):
+        if team["name"] == team_name:
+            return StandingsRow(
+                rank=rank,
+                name=team["name"],
+                slug=slugify(team["name"]),
+                gp=team["gp"],
+                w=team["w"],
+                losses=team["l"],
+                d=team["d"],
+                pf=team["pf"],
+                pa=team["pa"],
+                diff=team["diff"],
+                pts=team["pts"],
+                avg_pf=team["avg_pf"],
+                avg_pa=team["avg_pa"],
+            )
+    return None
+
+
+def present_matchup(
+    ligaid: str,
+    home_slug: str,
+    away_slug: str,
+    *,
+    ai_enabled: bool = False,
+) -> MatchupPreviewView:
+    """Build view model for matchup preview page.
+
+    Args:
+        ligaid: League ID
+        home_slug: Home team slug
+        away_slug: Away team slug
+        ai_enabled: Whether AI features are enabled
+
+    Returns:
+        MatchupPreviewView for template rendering
+
+    Raises:
+        CacheMiss: If cache files not found
+    """
+    cache = CacheDir(ligaid)
+    meta = cache.read_meta()
+
+    home_name = meta.team_slugs.get(home_slug)
+    away_name = meta.team_slugs.get(away_slug)
+    if not home_name or not away_name:
+        raise CacheMiss(f"Team slug not found: {home_slug} or {away_slug}")
+
+    standings_data = cache.read_json("standings.json")
+    home_row = _find_standings_row(standings_data, home_name)
+    away_row = _find_standings_row(standings_data, away_name)
+
+    # Find head-to-head games from ergebnisse
+    head_to_head: list[ErgebnisGame] = []
+    try:
+        ergebnisse_data = cache.read_json("ergebnisse.json")
+        for raw in ergebnisse_data.get("ergebnisse", []):
+            h = raw.get("home", "")
+            a = raw.get("away", "")
+            if (h == home_name and a == away_name) or (
+                h == away_name and a == home_name
+            ):
+                head_to_head.append(_parse_ergebnis_game(raw))
+        head_to_head.reverse()  # oldest first
+    except (CacheMiss, FileNotFoundError):
+        pass
+
+    ai_analysis = None
+    if ai_enabled:
+        ai_analysis = cache.read_matchup_preview(home_slug, away_slug)
+
+    return MatchupPreviewView(
+        liga_name=meta.league_name,
+        liga_slug=meta.liga_slug,
+        ligaid=meta.ligaid,
+        home_name=home_name,
+        home_slug=home_slug,
+        away_name=away_name,
+        away_slug=away_slug,
+        home_row=home_row,
+        away_row=away_row,
+        head_to_head=head_to_head,
+        ai_analysis=ai_analysis,
+        ai_enabled=ai_enabled,
     )

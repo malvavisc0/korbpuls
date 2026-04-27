@@ -560,6 +560,65 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     color: var(--kp-on-accent);
 }
 
+/* ── AI Narrative / Matchup Cards ─────────────────────── */
+
+.ai-narrative {
+    margin-block: 1.5rem;
+}
+
+.ai-card {
+    background: var(--kp-surface);
+    border: 1px solid var(--kp-border);
+    border-radius: 0.75rem;
+    padding: 1.25rem 1.5rem;
+}
+
+.ai-card .eyebrow {
+    margin-bottom: 0.5rem;
+    color: var(--kp-ai);
+}
+
+.ai-card p {
+    margin-block: 0.5rem;
+    line-height: 1.6;
+}
+
+.ai-card--loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+    padding: 2rem 1.5rem;
+}
+
+.ai-card--loading .spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid var(--kp-border);
+    border-top-color: var(--kp-ai);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.ai-card--error {
+    border-color: var(--kp-error, #dc3545);
+}
+
+.ai-card--error .eyebrow {
+    color: var(--kp-error, #dc3545);
+}
+
+.ai-card--prompt {
+    text-align: center;
+    padding: 1.75rem 1.5rem;
+}
+
+.ai-card--prompt p {
+    color: var(--kp-text-secondary);
+    margin-bottom: 1rem;
+}
+
 /* ── Latest Results Strip ──────────────────────────────── */
 
 .latest-results {
