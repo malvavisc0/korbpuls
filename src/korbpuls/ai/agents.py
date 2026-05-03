@@ -79,6 +79,20 @@ class MatchupPreview(BaseModel):
     )
 
 
+_COMMON_INSTRUCTIONS = (
+    "Call `run_korb_command` with only flags and subcommand; "
+    "the binary is prepended automatically.\n"
+    "Always use the exact team names from the standings data "
+    "— never placeholders.\n"
+    "Write grammatically correct German with proper umlauts "
+    "(ä, ö, ü, ß). Characters like û or ô do not exist.\n"
+    "Generate original analysis from the data. Never copy or "
+    "paraphrase examples from the skill.\n"
+    "Always use HTML, never Markdown. No jargon.\n"
+    "Return only the structured output required by the schema."
+)
+
+
 def _load_skill(filename: str) -> str:
     """Load a skill markdown file."""
     return (SKILLS_DIR / filename).read_text(encoding="utf-8")
@@ -116,19 +130,8 @@ def get_analyst(
         llm=_make_llm(api_base, api_key, model),
         tools=[run_korb_command],
         system_prompt=(
-            "You are the basketball team analysis agent.\n\n"
-            "Call `run_korb_command` with only flags and subcommand; "
-            "the binary is prepended automatically. Do not include "
-            "'uv run korb'.\n"
-            f"Write the final answer in {language}.\n"
-            "CRITICAL: Always use the exact team name from the "
-            "standings data — never 'Team X' or any placeholder.\n"
-            "Write grammatically correct German with proper umlauts "
-            "(ä, ö, ü, ß). Do not garble or approximate characters.\n"
-            "Generate original analysis from the data. Do not copy "
-            "or paraphrase the examples in the skill.\n"
-            "Return only structured output that satisfies the schema "
-            "exactly.\n\n"
+            f"{_COMMON_INSTRUCTIONS}\n"
+            f"Write the final answer in {language}.\n\n"
             f"Follow these instructions step by step:\n\n{skill}"
         ),
         output_cls=TeamAnalysis,
@@ -150,20 +153,8 @@ def get_oracle(
         llm=_make_llm(api_base, api_key, model),
         tools=[run_korb_command],
         system_prompt=(
-            "You are the basketball league prediction agent.\n\n"
-            "Call `run_korb_command` with only flags and subcommand; "
-            "the binary is prepended automatically. Do not include "
-            "'uv run korb'.\n"
-            f"Write the final explanation in {language}.\n"
-            "CRITICAL: Always use the exact team names from the "
-            "standings data — never 'Team A', 'Team B', or any "
-            "placeholder.\n"
-            "Write grammatically correct German with proper umlauts "
-            "(ä, ö, ü, ß). Do not garble or approximate characters.\n"
-            "Generate original analysis from the data. Do not copy "
-            "or paraphrase the examples in the skill.\n"
-            "Return only structured output that satisfies the schema "
-            "exactly.\n\n"
+            f"{_COMMON_INSTRUCTIONS}\n"
+            f"Write the final explanation in {language}.\n\n"
             f"Follow these instructions step by step:\n\n{skill}"
         ),
         output_cls=LeaguePrediction,
@@ -185,20 +176,8 @@ def get_commentator(
         llm=_make_llm(api_base, api_key, model),
         tools=[run_korb_command],
         system_prompt=(
-            "You are the basketball standings commentator.\n\n"
-            "Call `run_korb_command` with only flags and subcommand; "
-            "the binary is prepended automatically. Do not include "
-            "'uv run korb'.\n"
-            f"Write the final narrative in {language}.\n"
-            "CRITICAL: Always use the exact team names from the "
-            "standings data — never 'Team A', 'Team B', or any "
-            "placeholder.\n"
-            "Write grammatically correct German with proper umlauts "
-            "(ä, ö, ü, ß). Do not garble or approximate characters.\n"
-            "Generate original analysis from the data. Do not copy "
-            "or paraphrase the examples in the skill.\n"
-            "Return only structured output that satisfies the schema "
-            "exactly.\n\n"
+            f"{_COMMON_INSTRUCTIONS}\n"
+            f"Write the final narrative in {language}.\n\n"
             f"Follow these instructions step by step:\n\n{skill}"
         ),
         output_cls=StandingsNarrative,
@@ -220,20 +199,8 @@ def get_scout(
         llm=_make_llm(api_base, api_key, model),
         tools=[run_korb_command],
         system_prompt=(
-            "You are the basketball matchup scout agent.\n\n"
-            "Call `run_korb_command` with only flags and subcommand; "
-            "the binary is prepended automatically. Do not include "
-            "'uv run korb'.\n"
-            f"Write the final analysis in {language}.\n"
-            "CRITICAL: Always use the exact team names from the "
-            "standings data — never 'Team A', 'Team B', or any "
-            "placeholder.\n"
-            "Write grammatically correct German with proper umlauts "
-            "(ä, ö, ü, ß). Do not garble or approximate characters.\n"
-            "Generate original analysis from the data. Do not copy "
-            "or paraphrase the examples in the skill.\n"
-            "Return only structured output that satisfies the schema "
-            "exactly.\n\n"
+            f"{_COMMON_INSTRUCTIONS}\n"
+            f"Write the final analysis in {language}.\n\n"
             f"Follow these instructions step by step:\n\n{skill}"
         ),
         output_cls=MatchupPreview,

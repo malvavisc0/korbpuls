@@ -12,19 +12,7 @@ _KORB_CMD = shlex.split(os.environ.get("KORB_CMD", "uv run korb"))
 
 
 def run_korb_command(args: str, timeout: int = 60) -> dict[str, Any]:
-    """Execute a korb CLI command and return the result.
-
-    This tool only runs the korb CLI with the provided arguments.
-    The korb binary path is handled automatically — pass only
-    the subcommand and flags, e.g. '--json --ligaid 51491 standings'.
-
-    Args:
-        args: korb subcommand and flags (do NOT include 'uv run korb')
-        timeout: Maximum execution time in seconds
-
-    Returns:
-        Dict with success, stdout (parsed JSON when possible), stderr, error
-    """
+    """Run `korb <args>` and return {success, stdout, stderr, error}."""
     cmd = [*_KORB_CMD, *shlex.split(args)]
 
     try:
