@@ -45,6 +45,7 @@ from korbpuls.korb_client import (
 )
 from korbpuls.korb_client import run_standings as korb_standings
 from korbpuls.korb_client import run_team as korb_team
+from korbpuls.scheduler import daily_refresh_loop
 from korbpuls.slugify import slugify
 
 logger = logging.getLogger(__name__)
@@ -136,14 +137,16 @@ async def _recover_ai_analyses() -> None:
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    """Application lifespan: recover AI analyses on startup."""
+    """Application lifespan: recover AI analyses and start scheduler."""
     recovery_task = asyncio.create_task(_recover_ai_analyses())
+    scheduler_task = asyncio.create_task(daily_refresh_loop(_fetch_and_auto_generate))
     yield
-    # Ensure recovery task completes on shutdown
-    if not recovery_task.done():
-        recovery_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await recovery_task
+    # Ensure background tasks complete on shutdown
+    for task in (recovery_task, scheduler_task):
+        if not task.done():
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
 
 
 app = FastAPI(title="korbPuls", lifespan=_lifespan)

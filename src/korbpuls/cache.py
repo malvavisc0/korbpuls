@@ -42,6 +42,24 @@ class CacheDir:
         self.base_path = CACHE_ROOT / ligaid
         self.teams_path = self.base_path / "teams"
 
+    @classmethod
+    def list_all_league_ids(cls) -> list[str]:
+        """Return ligaid strings for all cached leagues.
+
+        Scans CACHE_ROOT for subdirectories that contain a
+        meta.json file, indicating a fully-fetched league.
+
+        Returns:
+            Sorted list of ligaid strings.
+        """
+        if not CACHE_ROOT.exists():
+            return []
+        return sorted(
+            d.name
+            for d in CACHE_ROOT.iterdir()
+            if d.is_dir() and (d / "meta.json").exists()
+        )
+
     def ensure_exists(self) -> None:
         """Create cache directory structure if it doesn't exist."""
         self.teams_path.mkdir(parents=True, exist_ok=True)
