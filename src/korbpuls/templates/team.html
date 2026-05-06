@@ -213,6 +213,7 @@
                         <th>Gast</th>
                         <th class="hide-mobile">Halle</th>
                         <th class="col-short">Status</th>
+                        <th class="col-short hide-mobile">KI</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -223,6 +224,15 @@
                         <td>{{ game.away }}</td>
                         <td class="hide-mobile"><span class="muted">{{ game.venue or 'Wird noch bestätigt' }}</span></td>
                         <td class="col-short"><span class="status-badge">Geplant</span></td>
+                        <td class="col-short hide-mobile">
+                            {% if not is_finished %}
+                            <a class="table-action-link"
+                               href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ game.home_slug }}/{{ game.away_slug }}"
+                                aria-label="KI-Vorschau: {{ game.home }} vs {{ game.away }}">
+                                KI-Vorschau
+                            </a>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
