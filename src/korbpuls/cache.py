@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import shutil
 import time
 from pathlib import Path
 from typing import Any, cast
@@ -63,11 +62,6 @@ class CacheDir:
     def ensure_exists(self) -> None:
         """Create cache directory structure if it doesn't exist."""
         self.teams_path.mkdir(parents=True, exist_ok=True)
-
-    def clear(self) -> None:
-        """Remove the entire cache directory for this league."""
-        if self.base_path.exists():
-            shutil.rmtree(self.base_path)
 
     def clear_data_files(self) -> None:
         """Remove only data files, preserving AI analysis files.
@@ -260,17 +254,6 @@ class CacheDir:
             "meta.json",
         ]
         return all((self.base_path / f).exists() for f in required)
-
-    def team_file_exists(self, team_slug: str) -> bool:
-        """Check if team cache file exists.
-
-        Args:
-            team_slug: Team slug string
-
-        Returns:
-            True if team file exists
-        """
-        return (self.teams_path / f"{team_slug}.json").exists()
 
     def read_team_json(self, team_slug: str) -> dict[str, Any]:
         """Read team JSON file.
