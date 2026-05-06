@@ -111,7 +111,7 @@
                             {% endif %}
                         </td>
                         <td class="col-short hide-mobile">
-                            {% if not game.cancelled %}
+                            {% if not game.cancelled and not is_finished %}
                             <a class="table-action-link"
                                href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ game.home_slug }}/{{ game.away_slug }}"
                                 aria-label="KI-Vorschau: {{ game.home }} vs {{ game.away }}">

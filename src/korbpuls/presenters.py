@@ -216,6 +216,8 @@ class MatchupPreviewView(BaseModel):
     head_to_head: list[ErgebnisGame] = []
     ai_analysis: str | None = None
     ai_enabled: bool = False
+    is_finished: bool = False
+    is_played: bool = False
 
 
 _RESULT_MAP = {"W": "Sieg", "L": "Niederlage", "D": "Unentschieden"}
@@ -1041,8 +1043,10 @@ def present_matchup(
     home_row = _find_standings_row(standings_data, home_name)
     away_row = _find_standings_row(standings_data, away_name)
 
-    # Find head-to-head games from ergebnisse
+    # Find head-to-head games from ergebnisse and detect if
+    # this specific matchup has already been played.
     head_to_head: list[ErgebnisGame] = []
+    is_played = False
     try:
         ergebnisse_data = cache.read_json("ergebnisse.json")
         for raw in ergebnisse_data.get("ergebnisse", []):
@@ -1053,8 +1057,21 @@ def present_matchup(
             ):
                 head_to_head.append(_parse_ergebnis_game(raw))
         head_to_head.reverse()  # oldest first
+
+        # Check if this exact matchup (home/away order) is in results
+        for raw in ergebnisse_data.get("ergebnisse", []):
+            if raw.get("home") == home_name and raw.get("away") == away_name:
+                is_played = True
+                break
     except (CacheMiss, FileNotFoundError):
         pass
+
+    # Check if season is finished
+    schedule_data = cache.read_json("schedule.json")
+    schedule_games = [
+        _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
+    ]
+    is_finished = _is_season_finished(schedule_games)
 
     ai_analysis = None
     if ai_enabled:
@@ -1073,4 +1090,6 @@ def present_matchup(
         head_to_head=head_to_head,
         ai_analysis=ai_analysis,
         ai_enabled=ai_enabled,
+        is_finished=is_finished,
+        is_played=is_played,
     )

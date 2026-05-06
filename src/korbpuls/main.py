@@ -978,6 +978,19 @@ async def generate_matchup_preview(
             detail="Team nicht gefunden",
         )
 
+    # Block generation for already-played games or finished seasons
+    try:
+        view = presenters.present_matchup(
+            ligaid, home_slug, away_slug, ai_enabled=True,
+        )
+        if view.is_played or view.is_finished:
+            raise HTTPException(
+                status_code=403,
+                detail="Dieses Spiel wurde bereits ausgetragen.",
+            )
+    except CacheMiss:
+        pass
+
     if cache.is_matchup_preview_fresh(home_slug, away_slug):
         return RedirectResponse(url=matchup_url, status_code=302)
 
