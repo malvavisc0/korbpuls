@@ -90,9 +90,7 @@ def _last_game_date(schedule_data: dict[str, Any]) -> datetime | None:
 _GRACE_DAYS = 7
 
 
-def _has_all_results(
-    cache: CacheDir, schedule_data: dict[str, Any]
-) -> bool:
+def _has_all_results(cache: CacheDir, schedule_data: dict[str, Any]) -> bool:
     """Check whether all non-cancelled games have results recorded.
 
     Compares the number of non-cancelled games in the schedule
@@ -111,9 +109,7 @@ def _has_all_results(
         return False
 
     expected = sum(
-        1
-        for g in schedule_data.get("schedule", [])
-        if not g.get("cancelled", False)
+        1 for g in schedule_data.get("schedule", []) if not g.get("cancelled", False)
     )
     actual = len(ergebnisse_data.get("ergebnisse", []))
     return actual >= expected

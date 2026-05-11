@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from llama_index.core.agent.workflow import FunctionAgent
-from llama_index.llms.openai_like import OpenAILike
+from llama_index.llms.openai_like import OpenAILike  # type: ignore[import-untyped]
 from pydantic import BaseModel, Field
 
 from korbpuls.ai.tools import run_korb_command
@@ -100,19 +99,18 @@ def _load_skill(filename: str) -> str:
 
 def _make_llm(api_base: str, api_key: str, model: str) -> OpenAILike:
     """Create a configured OpenAI-compatible LLM instance."""
-    llm_kwargs: dict[str, Any] = {
-        "model": model,
-        "api_base": api_base,
-        "api_key": api_key,
-        "is_chat_model": True,
-        "is_function_calling_model": True,
-        "timeout": 300,
-        "default_headers": {
+    return OpenAILike(
+        model=model,
+        api_base=api_base,
+        api_key=api_key,
+        is_chat_model=True,
+        is_function_calling_model=True,
+        timeout=300,
+        default_headers={
             "X-Title": "KorbPuls.de",
             "HTTP-Referer": "https://korbpuls.de",
         },
-    }
-    return OpenAILike(**llm_kwargs)
+    )
 
 
 def get_analyst(

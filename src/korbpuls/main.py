@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
 import re
 import time
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -146,7 +145,7 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     for task in (recovery_task, scheduler_task):
         if not task.done():
             task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
+            with suppress(asyncio.CancelledError):
                 await task
 
 
@@ -314,15 +313,12 @@ async def _retry_agent(
                 max_iterations=50,
                 debug=True,
             )
-            result = response.get_pydantic_model(output_cls)
+            result = response.get_pydantic_model(output_cls)  # type: ignore[attr-defined]
             if result is None:
-                # get_pydantic_model returns None silently
-                # when structured_response is None or when
-                # Pydantic validation fails — treat as retry
                 raise RuntimeError(
                     "LLM returned no valid structured output"
                     f" (structured_response="
-                    f"{response.structured_response!r})"
+                    f"{response.structured_response!r})"  # type: ignore[attr-defined]
                 )
             return result
         except Exception as exc:

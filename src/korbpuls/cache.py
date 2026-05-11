@@ -351,7 +351,8 @@ class CacheDir:
         if not path.exists():
             return None
         data = json.loads(path.read_text())
-        return data.get("analysis")
+        result: str | None = data.get("analysis")
+        return result
 
     def write_ai_analysis(self, team_slug: str, analysis: str) -> None:
         """Write AI team analysis to cache."""
@@ -423,7 +424,8 @@ class CacheDir:
         if not path.exists():
             return None
         data = json.loads(path.read_text())
-        return data.get("narrative")
+        result: str | None = data.get("narrative")
+        return result
 
     def write_standings_narrative(self, narrative: str) -> None:
         """Write AI standings narrative to cache."""
@@ -465,7 +467,8 @@ class CacheDir:
         if not path.exists():
             return None
         data = json.loads(path.read_text())
-        return data.get("analysis")
+        result: str | None = data.get("analysis")
+        return result
 
     def write_matchup_preview(
         self, home_slug: str, away_slug: str, analysis: str

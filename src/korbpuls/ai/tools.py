@@ -34,7 +34,6 @@ def run_korb_command(args: str, timeout: int = 60) -> dict[str, Any]:
                 "error": f"korb exited with code {result.returncode}",
             }
 
-        # Try to parse JSON output
         try:
             parsed = json.loads(stdout)
         except json.JSONDecodeError:

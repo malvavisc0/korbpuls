@@ -31,7 +31,6 @@ def slugify(text: str) -> str:
         >>> slugify("ESC Höchstadt")
         'esc-hoechstadt'
     """
-    # Replace German umlauts BEFORE normalization
     umlaut_map = {
         "ü": "ue",
         "ö": "oe",
@@ -44,19 +43,12 @@ def slugify(text: str) -> str:
     for char, replacement in umlaut_map.items():
         text = text.replace(char, replacement)
 
-    # Normalize unicode (NFD) and remove combining marks
     normalized = unicodedata.normalize("NFD", text)
     ascii_text = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
 
-    # Lowercase
     slug = ascii_text.lower()
-    # Replace ampersand with 'und'
     slug = slug.replace("&", "und")
-    # Replace non-alphanumeric characters with spaces
     slug = re.sub(r"[^a-z0-9\s-]", " ", slug)
-    # Replace spaces with hyphens
     slug = slug.replace(" ", "-")
-    # Collapse consecutive hyphens
     slug = re.sub(r"-+", "-", slug)
-    # Strip leading/trailing hyphens
     return slug.strip("-")
