@@ -85,19 +85,38 @@ def _last_game_date(schedule_data: dict[str, Any]) -> datetime | None:
     return last
 
 
-def _parse_cached_at(cached_at: str) -> datetime | None:
-    """Parse the cached_at string from meta.json.
+# Grace period (days after last scheduled game) during which
+# the scheduler keeps trying to collect missing results.
+_GRACE_DAYS = 7
+
+
+def _has_all_results(
+    cache: CacheDir, schedule_data: dict[str, Any]
+) -> bool:
+    """Check whether all non-cancelled games have results recorded.
+
+    Compares the number of non-cancelled games in the schedule
+    against the number of entries in ergebnisse.json.
 
     Args:
-        cached_at: Date string in "%d.%m.%Y %H:%M" format
+        cache: CacheDir for the league
+        schedule_data: Raw schedule.json content
 
     Returns:
-        Parsed datetime (UTC), or None on parse failure.
+        True if ergebnisse count >= non-cancelled game count.
     """
     try:
-        return datetime.strptime(cached_at, "%d.%m.%Y %H:%M").replace(tzinfo=UTC)
-    except (ValueError, TypeError):
-        return None
+        ergebnisse_data = cache.read_json("ergebnisse.json")
+    except CacheMiss:
+        return False
+
+    expected = sum(
+        1
+        for g in schedule_data.get("schedule", [])
+        if not g.get("cancelled", False)
+    )
+    actual = len(ergebnisse_data.get("ergebnisse", []))
+    return actual >= expected
 
 
 def _should_refresh_league(cache: CacheDir) -> bool:
@@ -105,9 +124,10 @@ def _should_refresh_league(cache: CacheDir) -> bool:
 
     Decision logic:
     - Active season (future games exist): always refresh.
-    - Finished season with old data (cached before last game):
-      refresh once to capture final results.
-    - Finished season with current data: skip.
+    - Finished season, all results collected: stop.
+    - Finished season, missing results, within 7-day grace
+      window after last scheduled game: keep refreshing.
+    - Finished season, past grace window: stop (give up).
 
     Args:
         cache: CacheDir for the league
@@ -131,19 +151,17 @@ def _should_refresh_league(cache: CacheDir) -> bool:
     if not _is_season_finished(schedule_data):
         return True  # active season — always refresh
 
-    # Season is finished — check if data predates season end
-    try:
-        meta = cache.read_meta()
-    except CacheMiss:
+    # Season dates are all past — check if results are complete
+    if _has_all_results(cache, schedule_data):
+        return False  # nothing more to collect
+
+    # Missing results — are we still within the grace period?
+    last_game_dt = _last_game_date(schedule_data)
+    if last_game_dt is None:
         return False
 
-    cached_at_dt = _parse_cached_at(meta.cached_at)
-    last_game_dt = _last_game_date(schedule_data)
-
-    if cached_at_dt is None or last_game_dt is None:
-        return False  # can't determine — be safe, skip
-
-    return cached_at_dt < last_game_dt  # old data → refresh
+    grace_deadline = last_game_dt + timedelta(days=_GRACE_DAYS)
+    return datetime.now(UTC) <= grace_deadline  # within grace period?
 
 
 async def daily_refresh_loop(
