@@ -851,6 +851,20 @@ def present_schedule(ligaid: str) -> ScheduleView:
     now = datetime.now(UTC)
     games = [_parse_schedule_game(g) for g in data.get("schedule", [])]
 
+    # Load ergebnisse to cross-reference already-played games
+    try:
+        ergebnisse_data = cache.read_json("ergebnisse.json")
+    except CacheMiss:
+        ergebnisse_data = None
+
+    played: set[tuple[str, str]] = set()
+    if ergebnisse_data:
+        for raw in ergebnisse_data.get("ergebnisse", []):
+            played.add((raw.get("home", ""), raw.get("away", "")))
+
+    # Filter out games that have already been played or are in the past
+    games = [g for g in games if (g.home, g.away) not in played and not g.cancelled]
+
     def _date_distance(g: ScheduleGame) -> float:
         dt = datetime.strptime(g.date, "%d.%m.%Y %H:%M").replace(tzinfo=UTC)
         return abs((dt - now).total_seconds())
