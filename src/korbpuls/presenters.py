@@ -533,13 +533,22 @@ def _get_team_rank_and_total(team_name: str, cache: CacheDir) -> tuple[int, int]
 
 
 def _get_upcoming_games(
-    schedule_data: dict[str, Any], team_name: str
+    schedule_data: dict[str, Any],
+    team_name: str,
+    ergebnisse_data: dict[str, Any] | None = None,
 ) -> list[ScheduleGame]:
     """Filter upcoming non-cancelled games for a team.
+
+    Cross-references against ergebnisse (results) data so that
+    games already played are excluded even if their scheduled
+    date hasn't technically passed yet.
 
     Args:
         schedule_data: Raw schedule JSON
         team_name: Full team name
+        ergebnisse_data: Raw ergebnisse JSON (optional).
+            When provided, games already present in results
+            are excluded regardless of scheduled date.
 
     Returns:
         Sorted list of upcoming ScheduleGame entries
@@ -547,10 +556,19 @@ def _get_upcoming_games(
     now = datetime.now(UTC)
     upcoming: list[tuple[datetime, ScheduleGame]] = []
 
+    # Build set of already-played matchups from ergebnisse
+    played: set[tuple[str, str]] = set()
+    if ergebnisse_data:
+        for raw in ergebnisse_data.get("ergebnisse", []):
+            played.add((raw.get("home", ""), raw.get("away", "")))
+
     for game in schedule_data.get("schedule", []):
         if game["home"] != team_name and game["away"] != team_name:
             continue
         if game.get("cancelled", False):
+            continue
+        # Skip games that have already been played
+        if (game["home"], game["away"]) in played:
             continue
         try:
             game_date = datetime.strptime(game["date"], "%d.%m.%Y %H:%M").replace(
@@ -760,7 +778,12 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     avg_pa = round(total_pa / total_games, 1) if total_games else 0.0
     total_diff = total_pf - total_pa
 
-    upcoming = _get_upcoming_games(schedule_data, team_name)
+    # Load ergebnisse to cross-reference already-played games
+    try:
+        ergebnisse_data = cache.read_json("ergebnisse.json")
+    except CacheMiss:
+        ergebnisse_data = None
+    upcoming = _get_upcoming_games(schedule_data, team_name, ergebnisse_data)
 
     # Check if season is finished
     all_schedule_games = [

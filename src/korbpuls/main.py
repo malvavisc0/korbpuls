@@ -14,8 +14,9 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException
 from fastapi import Path as URLPath
+from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -130,7 +131,7 @@ async def _recover_ai_analyses() -> None:
             recovered += 1
 
     logger.info(
-        "Startup recovery scan complete. " "(%d league(s) needed AI recovery)",
+        "Startup recovery scan complete. (%d league(s) needed AI recovery)",
         recovered,
     )
 
@@ -981,7 +982,10 @@ async def generate_matchup_preview(
     # Block generation for already-played games or finished seasons
     try:
         view = presenters.present_matchup(
-            ligaid, home_slug, away_slug, ai_enabled=True,
+            ligaid,
+            home_slug,
+            away_slug,
+            ai_enabled=True,
         )
         if view.is_played or view.is_finished:
             raise HTTPException(

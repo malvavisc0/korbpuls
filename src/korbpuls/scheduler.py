@@ -28,9 +28,7 @@ def _seconds_until_next_refresh() -> float:
         Number of seconds until 17:00 Europe/Berlin.
     """
     now = datetime.now(_REFRESH_TZ)
-    target = now.replace(
-        hour=_REFRESH_HOUR, minute=0, second=0, microsecond=0
-    )
+    target = now.replace(hour=_REFRESH_HOUR, minute=0, second=0, microsecond=0)
     if now >= target:
         target += timedelta(days=1)
     return (target - now).total_seconds()
@@ -53,9 +51,9 @@ def _is_season_finished(schedule_data: dict[str, Any]) -> bool:
         if game.get("cancelled", False):
             continue
         try:
-            game_date = datetime.strptime(
-                game["date"], "%d.%m.%Y %H:%M"
-            ).replace(tzinfo=UTC)
+            game_date = datetime.strptime(game["date"], "%d.%m.%Y %H:%M").replace(
+                tzinfo=UTC
+            )
             if game_date > now:
                 return False
         except (ValueError, KeyError):
@@ -77,9 +75,9 @@ def _last_game_date(schedule_data: dict[str, Any]) -> datetime | None:
         if game.get("cancelled", False):
             continue
         try:
-            game_date = datetime.strptime(
-                game["date"], "%d.%m.%Y %H:%M"
-            ).replace(tzinfo=UTC)
+            game_date = datetime.strptime(game["date"], "%d.%m.%Y %H:%M").replace(
+                tzinfo=UTC
+            )
             if last is None or game_date > last:
                 last = game_date
         except (ValueError, KeyError):
@@ -97,9 +95,7 @@ def _parse_cached_at(cached_at: str) -> datetime | None:
         Parsed datetime (UTC), or None on parse failure.
     """
     try:
-        return datetime.strptime(cached_at, "%d.%m.%Y %H:%M").replace(
-            tzinfo=UTC
-        )
+        return datetime.strptime(cached_at, "%d.%m.%Y %H:%M").replace(tzinfo=UTC)
     except (ValueError, TypeError):
         return None
 
@@ -194,9 +190,7 @@ async def daily_refresh_loop(
                 await fetch_fn(ligaid)
                 refreshed += 1
             except Exception:
-                logger.exception(
-                    "Daily refresh: failed for liga %s", ligaid
-                )
+                logger.exception("Daily refresh: failed for liga %s", ligaid)
 
             # Throttle between leagues
             await asyncio.sleep(_LEAGUE_DELAY)
