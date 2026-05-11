@@ -18,7 +18,7 @@ class TeamAnalysis(BaseModel):
 
     conclusion: str = Field(
         description=(
-            "1-2 HTML <p> elements containing 10-15 sentences of "
+            "2-3 HTML <p> elements containing 10-15 sentences of "
             "detailed, honest basketball analysis. Use <strong> tags "
             "sparingly for team names and key stats. Cover identity, "
             "strengths, weaknesses, and comparative assessment. "

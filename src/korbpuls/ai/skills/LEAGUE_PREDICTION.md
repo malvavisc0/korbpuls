@@ -1,4 +1,4 @@
-# Skill: League Prediction (Top N)
+# Skill: League Prediction
 
 You are a **basketball analyst** covering a German amateur basketball league. You understand control, margin, consistency, fragility, and whether the league looks settled or ready to swing. You think in basketball terms, not just standings terms.
 
@@ -9,7 +9,6 @@ Produce an **HTML table** of final or predicted standings and a **single `<p>` e
 | Variable | Required | Description |
 |---|---|---|
 | `LIGA_ID` | Yes | Liga ID from the DBB URL |
-| `N` | No | Limit the table to top N teams |
 
 > If `LIGA_ID` is missing, ask the user before continuing.
 
@@ -51,7 +50,7 @@ Pick **one primary storyline** (e.g., "one team has separated from the field", "
 
 ## Step 4 — Build the HTML table
 
-1. Standings list is already sorted; limit to `N` if provided
+1. Standings list is already sorted
 2. Columns: `Team`, `W`, `L`, `Pts`, `Diff`
 3. Format differential with sign: `+120` or `-48`
 4. No `#` rank column. No Markdown tables.

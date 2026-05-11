@@ -21,7 +21,7 @@ Produce **2–3 `<p>` elements** (10–15 sentences) of expert analysis for one 
 run_korb_command('--json --ligaid <LIGA_ID> standings')
 ```
 
-Find the team: exact match → single substring match → ask to clarify.
+Find the team: exact match → single substring match → use best match.
 
 Extract: rank, record (w/l/d), points, scoring profile (avg_pf, avg_pa, diff).
 
