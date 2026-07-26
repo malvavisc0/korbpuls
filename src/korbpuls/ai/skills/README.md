@@ -20,7 +20,6 @@ graph LR
     SK --> AG[FunctionAgent]
     TO[run_korb_command tool] --> AG
     AG -->|structured output| PY[Pydantic Model]
-    AG -->|retry up to 3x| AG
 ```
 
 - **Common instructions** (`agents.py` → `_COMMON_INSTRUCTIONS`): shared
@@ -28,8 +27,8 @@ graph LR
 - **Skill markdown**: step-by-step analysis workflow loaded per agent.
 - **Tool**: `run_korb_command` — scoped access to the `korb` CLI for fetching
   standings, schedules, results, and predictions.
-- **Retry logic** (`main.py` → `_retry_agent`): up to 3 attempts with
-  exponential backoff. Handles both exceptions and `None` structured output.
+- **Agent run** (`main.py` → `_run_agent_once`): single attempt; raises on
+  exceptions or `None` structured output.
 
 ### Trigger Modes
 

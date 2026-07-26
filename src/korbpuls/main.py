@@ -277,69 +277,35 @@ def fetch_and_cache_league(ligaid: str) -> bool:
         return False
 
 
-async def _retry_agent(
+async def _run_agent_once(
     agent: FunctionAgent,
     prompt: str,
     output_cls: type,
-    max_attempts: int = 3,
-    base_delay: float = 2.0,
 ) -> Any:
-    """Run an AI agent with retry logic and exponential backoff.
+    """Run an AI agent once and parse its structured output.
 
-    Handles two failure modes:
-    1. agent.run() raises an exception (network/timeout)
-    2. get_pydantic_model() returns None because the LLM
-       didn't produce valid structured output — the most
-       common cause of "works on second try" failures.
-
-    Args:
-        agent: FunctionAgent instance
-        prompt: User message prompt
-        output_cls: Pydantic model class for structured output
-        max_attempts: Maximum number of attempts (default 3)
-        base_delay: Base delay in seconds between retries
-
-    Returns:
-        Parsed Pydantic model from the agent response
-
-    Raises:
-        RuntimeError: When all retries are exhausted
+    Raises if the agent call fails or the LLM returns no valid
+    structured output.
     """
-    last_exc: Exception | None = None
-    for attempt in range(1, max_attempts + 1):
-        try:
-            response = await agent.run(
-                user_msg=prompt,
-                max_iterations=50,
-                debug=True,
-            )
-            result = response.get_pydantic_model(output_cls)  # type: ignore[attr-defined]
-            if result is None:
-                raise RuntimeError(
-                    "LLM returned no valid structured output"
-                    f" (structured_response="
-                    f"{response.structured_response!r})"  # type: ignore[attr-defined]
-                )
-            return result
-        except Exception as exc:
-            last_exc = exc
-            logger.warning(
-                "AI agent attempt %d/%d failed: %s: %s",
-                attempt,
-                max_attempts,
-                type(exc).__name__,
-                exc,
-            )
-            if attempt < max_attempts:
-                delay = base_delay * (2 ** (attempt - 1))
-                await asyncio.sleep(delay)
-    raise last_exc  # type: ignore[misc]
+    response = await agent.run(
+        user_msg=prompt,
+        max_iterations=50,
+        debug=True,
+    )
+    result = response.get_pydantic_model(output_cls)  # type: ignore[attr-defined]
+    if result is None:
+        raise RuntimeError(
+            "LLM returned no valid structured output"
+            f" (structured_response="
+            f"{response.structured_response!r})"  # type: ignore[attr-defined]
+        )
+    return result
 
 
 async def _run_team_analysis(
     config: AIConfig, ligaid: str, team_slug: str, team_name: str
 ) -> None:
-    """Background task: generate AI team analysis with retry."""
+    """Background task: generate AI team analysis."""
     cache = CacheDir(ligaid)
     try:
         analyst = get_analyst(
@@ -353,7 +319,7 @@ async def _run_team_analysis(
             f"LANGUAGE=de\n\n"
             f"Analyze the team '{team_name}' following the skill steps."
         )
-        result: TeamAnalysis = await _retry_agent(
+        result: TeamAnalysis = await _run_agent_once(
             analyst,
             prompt,
             TeamAnalysis,
@@ -361,7 +327,7 @@ async def _run_team_analysis(
         cache.write_ai_analysis(team_slug, result.conclusion)
     except Exception:
         logger.exception(
-            "AI team analysis failed after all retries for %s/%s",
+            "AI team analysis failed for %s/%s",
             ligaid,
             team_slug,
         )
@@ -369,7 +335,7 @@ async def _run_team_analysis(
 
 
 async def _run_prediction_narrative(config: AIConfig, ligaid: str) -> None:
-    """Background task: generate AI prediction narrative with retry."""
+    """Background task: generate AI prediction narrative."""
     cache = CacheDir(ligaid)
     try:
         oracle = get_oracle(
@@ -382,7 +348,7 @@ async def _run_prediction_narrative(config: AIConfig, ligaid: str) -> None:
             f"LANGUAGE=de\n\n"
             "Analyze this league following the skill steps."
         )
-        result: LeaguePrediction = await _retry_agent(
+        result: LeaguePrediction = await _run_agent_once(
             oracle,
             prompt,
             LeaguePrediction,
@@ -390,7 +356,7 @@ async def _run_prediction_narrative(config: AIConfig, ligaid: str) -> None:
         cache.write_ai_prediction(result.table, result.explanation)
     except Exception:
         logger.exception(
-            "AI prediction narrative failed after all retries for %s",
+            "AI prediction narrative failed for %s",
             ligaid,
         )
         cache.write_ai_prediction_failed()
@@ -850,7 +816,7 @@ async def _run_standings_narrative(config: AIConfig, ligaid: str) -> None:
             "Describe the current league standings following "
             "the skill steps."
         )
-        result: StandingsNarrative = await _retry_agent(
+        result: StandingsNarrative = await _run_agent_once(
             commentator,
             prompt,
             StandingsNarrative,
@@ -888,7 +854,7 @@ async def _run_matchup_preview(
             f"Analyze the matchup between '{home_name}' (home) "
             f"and '{away_name}' (away) following the skill steps."
         )
-        result: MatchupPreview = await _retry_agent(
+        result: MatchupPreview = await _run_agent_once(
             scout,
             prompt,
             MatchupPreview,
