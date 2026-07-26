@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import statistics
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any
 
@@ -222,6 +223,24 @@ class MatchupPreviewView(BaseModel):
 
 _RESULT_MAP = {"W": "Sieg", "L": "Niederlage", "D": "Unentschieden"}
 
+_DATE_FORMAT = "%d.%m.%Y %H:%M"
+
+
+def _parse_game_date(date: str) -> datetime | None:
+    """Parse a korb game date string, or return None if malformed.
+
+    Args:
+        date: Date string in ``%d.%m.%Y %H:%M`` format
+
+    Returns:
+        Timezone-aware datetime, or None when the string cannot be
+        parsed (e.g. placeholder dates like "TBD").
+    """
+    try:
+        return datetime.strptime(date, _DATE_FORMAT).replace(tzinfo=UTC)
+    except ValueError:
+        return None
+
 
 def _result_to_german(result: str) -> str:
     """Convert W/L/D result code to German display text.
@@ -332,6 +351,23 @@ def _parse_game_result(raw: dict[str, Any]) -> GameResult:
     )
 
 
+def _parse_results_newest_first(
+    raw_results: list[dict[str, Any]],
+) -> list[GameResult]:
+    """Parse raw results, sorted newest-first by game date.
+
+    Sorting here means streak and last-5 logic does not depend on the
+    ordering korb happens to emit. Unparseable dates sort last (oldest).
+    """
+    epoch = datetime.min.replace(tzinfo=UTC)
+    ordered = sorted(
+        raw_results,
+        key=lambda r: _parse_game_date(r.get("date", "")) or epoch,
+        reverse=True,
+    )
+    return [_parse_game_result(r) for r in ordered]
+
+
 def _compute_streak(results: list[GameResult]) -> str:
     """Compute current streak from most recent result backward.
 
@@ -367,6 +403,61 @@ def _compute_streak(results: list[GameResult]) -> str:
             return f"{streak_count} {first_result}"
 
 
+def _last_5_summary(results: list[GameResult]) -> str:
+    """Summarize the five most recent results.
+
+    Draws are included only when at least one occurred, so the common
+    draw-free case stays concise while no game is silently dropped.
+    """
+    recent = results[:5]
+    wins = sum(1 for r in recent if r.result == "Sieg")
+    losses = sum(1 for r in recent if r.result == "Niederlage")
+    draws = sum(1 for r in recent if r.result == "Unentschieden")
+    summary = f"{wins} Siege, {losses} Niederlagen"
+    if draws:
+        summary += f", {draws} Unentschieden"
+    return summary
+
+
+def _mean(values: Sequence[float]) -> float:
+    """Mean of a sequence, or 0.0 when empty."""
+    return statistics.mean(values) if values else 0.0
+
+
+class _MarginStats(BaseModel):
+    """Intermediate scoring aggregates for metric computation."""
+
+    win_count: int
+    avg_win_margin: float
+    avg_loss_margin: float
+    blowouts: int
+    close_games: int
+
+
+def _margin_stats(results: list[GameResult]) -> _MarginStats:
+    """Aggregate win/loss margins and game-closeness in a single pass."""
+    win_margins: list[int] = []
+    loss_margins: list[int] = []
+    blowouts = 0
+    close_games = 0
+    for r in results:
+        if abs(r.diff) <= 5:
+            close_games += 1
+        if r.result == "Sieg":
+            win_margins.append(r.diff)
+            if r.diff >= 15:
+                blowouts += 1
+        elif r.result == "Niederlage":
+            loss_margins.append(abs(r.diff))
+    return _MarginStats(
+        win_count=len(win_margins),
+        avg_win_margin=_mean(win_margins),
+        avg_loss_margin=_mean(loss_margins),
+        blowouts=blowouts,
+        close_games=close_games,
+    )
+
+
 def _compute_metrics(results: list[GameResult]) -> TeamMetrics:
     """Compute quality metrics from game results.
 
@@ -376,51 +467,19 @@ def _compute_metrics(results: list[GameResult]) -> TeamMetrics:
     Returns:
         Computed TeamMetrics
     """
-    if not results:
-        return TeamMetrics(
-            win_rate=0.0,
-            avg_win_margin=0.0,
-            avg_loss_margin=0.0,
-            blowouts=0,
-            close_games=0,
-            volatility=0.0,
-            last_5="0 Siege, 0 Niederlagen",
-            current_streak="",
-        )
-
-    wins = [r for r in results if r.result == "Sieg"]
-    losses = [r for r in results if r.result == "Niederlage"]
-
-    win_rate = (len(wins) / len(results)) * 100
-
-    win_margins = [r.diff for r in wins]
-    loss_margins = [abs(r.diff) for r in losses]
-
-    avg_win = statistics.mean(win_margins) if win_margins else 0.0
-    avg_loss = statistics.mean(loss_margins) if loss_margins else 0.0
-
-    blowouts = sum(1 for r in wins if r.diff >= 15)
-    close_games = sum(1 for r in results if abs(r.diff) <= 5)
-
+    total = len(results)
+    stats = _margin_stats(results)
     diffs = [r.diff for r in results]
-    volatility = statistics.stdev(diffs) if len(diffs) > 1 else 0.0
-
-    last_5_results = results[:5]
-    wins_l5 = sum(1 for r in last_5_results if r.result == "Sieg")
-    losses_l5 = sum(1 for r in last_5_results if r.result == "Niederlage")
-
-    last_5 = f"{wins_l5} Siege, {losses_l5} Niederlagen"
-    current_streak = _compute_streak(results)
 
     return TeamMetrics(
-        win_rate=win_rate,
-        avg_win_margin=avg_win,
-        avg_loss_margin=avg_loss,
-        blowouts=blowouts,
-        close_games=close_games,
-        volatility=volatility,
-        last_5=last_5,
-        current_streak=current_streak,
+        win_rate=(stats.win_count / total * 100) if total else 0.0,
+        avg_win_margin=stats.avg_win_margin,
+        avg_loss_margin=stats.avg_loss_margin,
+        blowouts=stats.blowouts,
+        close_games=stats.close_games,
+        volatility=statistics.stdev(diffs) if len(diffs) > 1 else 0.0,
+        last_5=_last_5_summary(results),
+        current_streak=_compute_streak(results),
     )
 
 
@@ -532,6 +591,31 @@ def _get_team_rank_and_total(team_name: str, cache: CacheDir) -> tuple[int, int]
     return 0, total_teams
 
 
+def _played_matchups(
+    ergebnisse_data: dict[str, Any] | None,
+) -> set[tuple[str, str]]:
+    """Build the set of already-played (home, away) matchups."""
+    if not ergebnisse_data:
+        return set()
+    return {
+        (raw.get("home", ""), raw.get("away", ""))
+        for raw in ergebnisse_data.get("ergebnisse", [])
+    }
+
+
+def _is_upcoming_for(
+    game: dict[str, Any],
+    team_name: str,
+    played: set[tuple[str, str]],
+) -> bool:
+    """Whether a schedule game is an upcoming fixture for the team."""
+    if game["home"] != team_name and game["away"] != team_name:
+        return False
+    if game.get("cancelled", False):
+        return False
+    return (game["home"], game["away"]) not in played
+
+
 def _get_upcoming_games(
     schedule_data: dict[str, Any],
     team_name: str,
@@ -554,30 +638,17 @@ def _get_upcoming_games(
         Sorted list of upcoming ScheduleGame entries
     """
     now = datetime.now(UTC)
+    played = _played_matchups(ergebnisse_data)
+
     upcoming: list[tuple[datetime, ScheduleGame]] = []
-
-    # Build set of already-played matchups from ergebnisse
-    played: set[tuple[str, str]] = set()
-    if ergebnisse_data:
-        for raw in ergebnisse_data.get("ergebnisse", []):
-            played.add((raw.get("home", ""), raw.get("away", "")))
-
     for game in schedule_data.get("schedule", []):
-        if game["home"] != team_name and game["away"] != team_name:
-            continue
-        if game.get("cancelled", False):
-            continue
-        # Skip games that have already been played
-        if (game["home"], game["away"]) in played:
-            continue
-        try:
-            game_date = datetime.strptime(game["date"], "%d.%m.%Y %H:%M").replace(
-                tzinfo=UTC
-            )
-            if game_date > now:
-                upcoming.append((game_date, _parse_schedule_game(game)))
-        except ValueError:
-            continue
+        game_date = _parse_game_date(game["date"])
+        if (
+            game_date is not None
+            and game_date > now
+            and _is_upcoming_for(game, team_name, played)
+        ):
+            upcoming.append((game_date, _parse_schedule_game(game)))
 
     upcoming.sort(key=lambda pair: pair[0])
     return [game for _, game in upcoming]
@@ -596,15 +667,29 @@ def _is_season_finished(schedule_games: list[ScheduleGame]) -> bool:
     for game in schedule_games:
         if game.cancelled:
             continue
-        try:
-            game_date = datetime.strptime(game.date, "%d.%m.%Y %H:%M").replace(
-                tzinfo=UTC
-            )
-            if game_date > now:
-                return False
-        except ValueError:
-            continue
+        game_date = _parse_game_date(game.date)
+        if game_date is not None and game_date > now:
+            return False
     return True
+
+
+def _count_remaining_games(schedule_games: list[ScheduleGame]) -> int:
+    """Count remaining fixtures: future, non-cancelled, valid dates.
+
+    Counting only future games keeps the result consistent whether the
+    caller passes the full schedule or a list already filtered to
+    upcoming fixtures, and it ignores placeholder dates so they do not
+    inflate the season total.
+    """
+    now = datetime.now(UTC)
+    count = 0
+    for game in schedule_games:
+        if game.cancelled:
+            continue
+        game_date = _parse_game_date(game.date)
+        if game_date is not None and game_date > now:
+            count += 1
+    return count
 
 
 def _check_prediction_eligible(
@@ -647,8 +732,20 @@ def _check_prediction_eligible(
         return False, "Zu wenige Teams für eine Prognose."
 
     total_gp = sum(t.get("gp", 0) for t in teams)
+    if total_gp % 2 != 0:
+        # Inconsistent standings snapshot (e.g. mid-update where one
+        # team's gp updated before its opponent's). Degrade to
+        # ineligible instead of raising, so standings/schedule pages
+        # keep rendering.
+        return False, (
+            "Tabellendaten sind unvollständig — Prognose vorübergehend nicht verfügbar."
+        )
+
     games_played = total_gp // 2
-    total_season_games = n * (n - 1)
+    # Derive the season total from real data — games already played
+    # plus remaining future fixtures — instead of assuming a specific
+    # round-robin format.
+    total_season_games = games_played + _count_remaining_games(schedule_games)
     half = total_season_games // 2
 
     if games_played < half:
@@ -737,6 +834,39 @@ def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView
     )
 
 
+_MIN_AI_GAMES = 4
+
+
+def _compute_averages(results: list[GameResult]) -> tuple[float, float, int]:
+    """Return (avg points for, avg points against, total point diff)."""
+    total = len(results)
+    total_pf = sum(r.our_score for r in results)
+    total_pa = sum(r.opp_score for r in results)
+    avg_pf = round(total_pf / total, 1) if total else 0.0
+    avg_pa = round(total_pa / total, 1) if total else 0.0
+    return avg_pf, avg_pa, total_pf - total_pa
+
+
+def _read_ergebnisse(cache: CacheDir) -> dict[str, Any] | None:
+    """Read the ergebnisse cache, or None when it is missing."""
+    try:
+        return cache.read_json("ergebnisse.json")
+    except CacheMiss:
+        return None
+
+
+def _ai_eligibility(ai_enabled: bool, games_played: int) -> tuple[bool, str | None]:
+    """Return (eligible, reason) for AI analysis based on games played."""
+    if not ai_enabled:
+        return False, None
+    if games_played < _MIN_AI_GAMES:
+        return False, (
+            f"Mindestens {_MIN_AI_GAMES} Spiele nötig "
+            f"— bisher {games_played} absolviert."
+        )
+    return True, None
+
+
 def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> TeamView:
     """Build view model for team page.
 
@@ -759,7 +889,7 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
         raise CacheMiss(f"Team slug not found: {team_slug}")
 
     team_data = cache.read_team_json(team_slug)
-    results = [_parse_game_result(r) for r in team_data.get("results", [])]
+    results = _parse_results_newest_first(team_data.get("results", []))
 
     schedule_data = cache.read_json("schedule.json")
     record, pts_summary, avg_summary = _compute_summary(
@@ -769,21 +899,8 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     )
     metrics = _compute_metrics(results)
     rank, total_teams = _get_team_rank_and_total(team_name, cache)
-
-    # Compute clean numeric averages and diff for stat cards
-    total_games = len(results)
-    total_pf = sum(r.our_score for r in results)
-    total_pa = sum(r.opp_score for r in results)
-    avg_pf = round(total_pf / total_games, 1) if total_games else 0.0
-    avg_pa = round(total_pa / total_games, 1) if total_games else 0.0
-    total_diff = total_pf - total_pa
-
-    # Load ergebnisse to cross-reference already-played games
-    try:
-        ergebnisse_data = cache.read_json("ergebnisse.json")
-    except CacheMiss:
-        ergebnisse_data = None
-    upcoming = _get_upcoming_games(schedule_data, team_name, ergebnisse_data)
+    avg_pf, avg_pa, total_diff = _compute_averages(results)
+    upcoming = _get_upcoming_games(schedule_data, team_name, _read_ergebnisse(cache))
 
     # Check if season is finished
     all_schedule_games = [
@@ -791,19 +908,8 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     ]
     is_finished = _is_season_finished(all_schedule_games)
 
-    ai_analysis = None
-    if ai_enabled:
-        ai_analysis = cache.read_ai_analysis(team_slug)
-
-    # AI analysis eligibility: need >= 4 games
-    min_games = 4
-    games_played = len(results)
-    ai_eligible = ai_enabled and games_played >= min_games
-    ai_reason: str | None = None
-    if ai_enabled and not ai_eligible:
-        ai_reason = (
-            f"Mindestens {min_games} Spiele nötig — bisher {games_played} absolviert."
-        )
+    ai_analysis = cache.read_ai_analysis(team_slug) if ai_enabled else None
+    ai_eligible, ai_reason = _ai_eligibility(ai_enabled, len(results))
 
     return TeamView(
         team_name=team_name,
@@ -848,7 +954,6 @@ def present_schedule(ligaid: str) -> ScheduleView:
     meta = cache.read_meta()
     data = cache.read_json("schedule.json")
 
-    now = datetime.now(UTC)
     games = [_parse_schedule_game(g) for g in data.get("schedule", [])]
 
     # Load ergebnisse to cross-reference already-played games
@@ -865,11 +970,14 @@ def present_schedule(ligaid: str) -> ScheduleView:
     # Filter out games that have already been played or are in the past
     games = [g for g in games if (g.home, g.away) not in played and not g.cancelled]
 
-    def _date_distance(g: ScheduleGame) -> float:
-        dt = datetime.strptime(g.date, "%d.%m.%Y %H:%M").replace(tzinfo=UTC)
-        return abs((dt - now).total_seconds())
+    # Sort chronologically. Games with unparseable dates sort last
+    # instead of crashing the page.
+    _far_future = datetime.max.replace(tzinfo=UTC)
 
-    games.sort(key=_date_distance)
+    def _sort_key(g: ScheduleGame) -> datetime:
+        return _parse_game_date(g.date) or _far_future
+
+    games.sort(key=_sort_key)
 
     is_finished = _is_season_finished(games)
     eligible, _ = _check_prediction_eligible(
@@ -1047,6 +1155,35 @@ def _find_standings_row(
     return None
 
 
+def _head_to_head(
+    cache: CacheDir,
+    home_name: str,
+    away_name: str,
+) -> tuple[list[ErgebnisGame], bool]:
+    """Return (head-to-head games oldest-first, matchup already played).
+
+    ``is_played`` is True only when the exact home/away order has a
+    result; head-to-head includes both orderings.
+    """
+    try:
+        ergebnisse_data = cache.read_json("ergebnisse.json")
+    except (CacheMiss, FileNotFoundError):
+        return [], False
+
+    pair = {home_name, away_name}
+    head_to_head: list[ErgebnisGame] = []
+    is_played = False
+    for raw in ergebnisse_data.get("ergebnisse", []):
+        h, a = raw.get("home", ""), raw.get("away", "")
+        if {h, a} == pair:
+            head_to_head.append(_parse_ergebnis_game(raw))
+            if h == home_name and a == away_name:
+                is_played = True
+
+    head_to_head.reverse()  # oldest first
+    return head_to_head, is_played
+
+
 def present_matchup(
     ligaid: str,
     home_slug: str,
@@ -1082,26 +1219,7 @@ def present_matchup(
 
     # Find head-to-head games from ergebnisse and detect if
     # this specific matchup has already been played.
-    head_to_head: list[ErgebnisGame] = []
-    is_played = False
-    try:
-        ergebnisse_data = cache.read_json("ergebnisse.json")
-        for raw in ergebnisse_data.get("ergebnisse", []):
-            h = raw.get("home", "")
-            a = raw.get("away", "")
-            if (h == home_name and a == away_name) or (
-                h == away_name and a == home_name
-            ):
-                head_to_head.append(_parse_ergebnis_game(raw))
-        head_to_head.reverse()  # oldest first
-
-        # Check if this exact matchup (home/away order) is in results
-        for raw in ergebnisse_data.get("ergebnisse", []):
-            if raw.get("home") == home_name and raw.get("away") == away_name:
-                is_played = True
-                break
-    except (CacheMiss, FileNotFoundError):
-        pass
+    head_to_head, is_played = _head_to_head(cache, home_name, away_name)
 
     # Check if season is finished
     schedule_data = cache.read_json("schedule.json")

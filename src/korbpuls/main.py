@@ -6,16 +6,15 @@ import asyncio
 import logging
 import re
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException, Request
 from fastapi import Path as URLPath
-from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -80,53 +79,10 @@ async def _recover_ai_analyses() -> None:
 
     recovered = 0
     for league_dir in sorted(league_dirs):
-        if not league_dir.is_dir():
+        cache = CacheDir(league_dir.name)
+        if cache.read_status().get("status") != "ready" or not cache.has_all_data():
             continue
-        ligaid = league_dir.name
-        cache = CacheDir(ligaid)
-
-        status = cache.read_status()
-        if status.get("status") != "ready":
-            continue
-        if not cache.has_all_data():
-            continue
-
-        league_recovered = False
-
-        # --- standings narrative ---
-        standings_missing = not cache.is_standings_narrative_fresh()
-        standings_failed = cache.read_standings_narrative_failed()
-        if standings_missing or standings_failed:
-            league_recovered = True
-            if standings_failed:
-                cache.clear_standings_narrative_failed()
-                logger.info(
-                    "Startup recovery: clearing standings narrative "
-                    "failure marker for liga %s",
-                    ligaid,
-                )
-            await _run_standings_narrative(config, ligaid)
-
-        # --- prediction narrative (if eligible) ---
-        try:
-            view = presenters.present_prediction(ligaid)
-            if view.prediction_eligible:
-                pred_missing = not cache.is_ai_prediction_fresh()
-                pred_failed = cache.read_ai_prediction_failed()
-                if pred_missing or pred_failed:
-                    league_recovered = True
-                    if pred_failed:
-                        cache.clear_ai_prediction_failed()
-                        logger.info(
-                            "Startup recovery: clearing prediction "
-                            "narrative failure marker for liga %s",
-                            ligaid,
-                        )
-                    await _run_prediction_narrative(config, ligaid)
-        except CacheMiss:
-            pass
-
-        if league_recovered:
+        if await _recover_league_ai(config, cache):
             recovered += 1
 
     logger.info(
@@ -135,8 +91,52 @@ async def _recover_ai_analyses() -> None:
     )
 
 
+async def _recover_standings_narrative(config: AIConfig, cache: CacheDir) -> bool:
+    """Re-run standings narrative if missing or previously failed."""
+    failed = cache.read_standings_narrative_failed()
+    if cache.is_standings_narrative_fresh() and not failed:
+        return False
+    if failed:
+        cache.clear_standings_narrative_failed()
+        logger.info(
+            "Startup recovery: clearing standings narrative failure marker for liga %s",
+            cache.ligaid,
+        )
+    await _run_standings_narrative(config, cache.ligaid)
+    return True
+
+
+async def _recover_prediction_narrative(config: AIConfig, cache: CacheDir) -> bool:
+    """Re-run prediction narrative when eligible and missing or failed."""
+    try:
+        view = presenters.present_prediction(cache.ligaid)
+    except CacheMiss:
+        return False
+    if not view.prediction_eligible:
+        return False
+    failed = cache.read_ai_prediction_failed()
+    if cache.is_ai_prediction_fresh() and not failed:
+        return False
+    if failed:
+        cache.clear_ai_prediction_failed()
+        logger.info(
+            "Startup recovery: clearing prediction narrative "
+            "failure marker for liga %s",
+            cache.ligaid,
+        )
+    await _run_prediction_narrative(config, cache.ligaid)
+    return True
+
+
+async def _recover_league_ai(config: AIConfig, cache: CacheDir) -> bool:
+    """Recover all AI artifacts for one league. Returns True if any ran."""
+    standings_recovered = await _recover_standings_narrative(config, cache)
+    prediction_recovered = await _recover_prediction_narrative(config, cache)
+    return standings_recovered or prediction_recovered
+
+
 @asynccontextmanager
-async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+async def _lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan: recover AI analyses and start scheduler."""
     recovery_task = asyncio.create_task(_recover_ai_analyses())
     scheduler_task = asyncio.create_task(daily_refresh_loop(_fetch_and_auto_generate))
