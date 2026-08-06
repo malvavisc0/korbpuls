@@ -20,6 +20,7 @@ dependencies = [
     "python-multipart",
     "python-dotenv",
     "langfuse",
+    "sentry-sdk>=2.66.1",
 ]
 
 [dependency-groups]
