@@ -59,6 +59,7 @@
         </div>
     </section>
 
+    {% if games %}
     <section class="table-shell">
         <div class="table-scroll">
             <table>
@@ -99,6 +100,12 @@
             </table>
         </div>
     </section>
+    {% else %}
+    <section class="surface">
+        <p>Noch keine Ergebnisse — die Saison hat noch nicht begonnen.</p>
+        <p>Spielplan ansehen: <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan →</a></p>
+    </section>
+    {% endif %}
 </article>
 {% endblock %}
 

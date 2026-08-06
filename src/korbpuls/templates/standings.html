@@ -110,7 +110,7 @@
         </div>
     </section>
 
-    {% if ai_enabled %}
+    {% if ai_enabled and standings_eligible %}
     <section class="ai-panel">
         <div class="ai-panel__header">
             <div>
@@ -139,6 +139,7 @@
     </section>
     {% endif %}
 
+    {% if standings_eligible %}
     <section class="table-shell">
         <div class="table-scroll">
             <table>
@@ -175,5 +176,11 @@
     </section>
 
     <p class="note">Auf den Teamnamen tippen für mehr Details, Form und erweiterte Statistiken.</p>
+    {% else %}
+    <section class="surface">
+        <p>Die Saison hat noch nicht begonnen — die Tabelle erscheint, sobald das erste Spiel gespielt wurde.</p>
+        <p>Spielplan ansehen: <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan →</a></p>
+    </section>
+    {% endif %}
 </article>
 {% endblock %}

@@ -112,7 +112,13 @@ async def _recover_ai_analyses() -> None:
 
 
 async def _recover_standings_narrative(config: AIConfig, cache: CacheDir) -> bool:
-    """Re-run standings narrative if missing or previously failed."""
+    """Re-run standings narrative if missing or previously failed.
+
+    Skipped during off-season (no games played yet) so empty leagues
+    never trigger an LLM call or a failure marker.
+    """
+    if not presenters.standings_ai_eligible(cache.ligaid):
+        return False
     failed = cache.read_standings_narrative_failed()
     if cache.is_standings_narrative_fresh() and not failed:
         return False
@@ -852,7 +858,13 @@ async def _fetch_and_auto_generate(ligaid: str) -> None:
 
 
 async def _run_standings_narrative(config: AIConfig, ligaid: str) -> None:
-    """Background task: generate AI standings narrative."""
+    """Background task: generate AI standings narrative.
+
+    No-ops during off-season (no games played yet) so an empty
+    standings table never triggers an LLM call.
+    """
+    if not presenters.standings_ai_eligible(ligaid):
+        return
     cache = CacheDir(ligaid)
     try:
         commentator = get_commentator(

@@ -41,6 +41,7 @@ class StandingsView(BaseModel):
     rows: list[StandingsRow]
     is_finished: bool = False
     prediction_eligible: bool = True
+    standings_eligible: bool = False
     latest_games: list[ErgebnisGame] = []
     ai_narrative: str | None = None
     ai_enabled: bool = False
@@ -758,6 +759,19 @@ def _check_prediction_eligible(
     return True, None
 
 
+def standings_ai_eligible(ligaid: str) -> bool:
+    """Whether the standings AI narrative should run.
+
+    True once at least one game has been played (``total_gp > 0``).
+    Returns False for off-season leagues and for missing caches so
+    callers can short-circuit without an LLM call.
+    """
+    try:
+        return present_standings(ligaid).standings_eligible
+    except CacheMiss:
+        return False
+
+
 def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView:
     """Build view model for standings page.
 
@@ -776,7 +790,9 @@ def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView
     data = cache.read_json("standings.json")
 
     rows: list[StandingsRow] = []
+    total_gp = 0
     for rank, team in enumerate(data.get("standings", []), start=1):
+        total_gp += team["gp"]
         rows.append(
             StandingsRow(
                 rank=rank,
@@ -828,6 +844,7 @@ def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView
         rows=rows,
         is_finished=is_finished,
         prediction_eligible=eligible,
+        standings_eligible=total_gp > 0,
         latest_games=latest_games,
         ai_narrative=ai_narrative,
         ai_enabled=ai_enabled,
