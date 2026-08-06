@@ -136,7 +136,7 @@
         {% elif generation_failed %}
         <div class="ai-panel__body ai-panel__body--action">
             <p><em>Die Spielvorschau konnte gerade nicht erstellt werden.</em></p>
-            {% if not is_played and not is_finished %}
+            {% if not is_played and not is_finished and ai_eligible %}
             <form method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ home_slug }}/{{ away_slug }}/ki-generieren">
                 <button type="submit" class="primary-cta">Vorschau erneut erstellen</button>
             </form>
@@ -145,6 +145,10 @@
         {% elif is_played or is_finished %}
         <div class="ai-panel__body">
             <p class="muted">Dieses Spiel wurde bereits ausgetragen. Eine KI-Vorschau ist nicht mehr möglich.</p>
+        </div>
+        {% elif not ai_eligible %}
+        <div class="ai-panel__body">
+            <p class="muted">{{ ai_ineligible_reason }}</p>
         </div>
         {% else %}
         <div class="ai-panel__body ai-panel__body--action">

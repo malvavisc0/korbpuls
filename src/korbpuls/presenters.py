@@ -82,6 +82,8 @@ class ScheduleGame(BaseModel):
     away_slug: str
     venue: str
     cancelled: bool
+    # True when both teams have played enough games for an AI matchup preview.
+    matchup_eligible: bool = False
 
 
 class ScheduleView(BaseModel):
@@ -206,6 +208,8 @@ class MatchupPreviewView(BaseModel):
     head_to_head: list[ErgebnisGame] = []
     ai_analysis: str | None = None
     ai_enabled: bool = False
+    ai_eligible: bool = False
+    ai_ineligible_reason: str | None = None
     is_finished: bool = False
     is_played: bool = False
 
@@ -273,6 +277,28 @@ def _parse_schedule_game(game: dict[str, Any]) -> ScheduleGame:
         venue=game["venue"],
         cancelled=game.get("cancelled", False),
     )
+
+
+def collect_team_slugs(
+    standings_data: dict[str, Any], schedule_data: dict[str, Any]
+) -> dict[str, str]:
+    """Build a slug -> team name map from standings and schedule.
+
+    Standings teams take precedence; schedule home/away names cover the
+    pre-season case where standings is empty.
+    """
+    slugs: dict[str, str] = {}
+    for team in standings_data.get("standings", []):
+        name = team["name"]
+        slugs[slugify(name)] = name
+    for game in schedule_data.get("schedule", []):
+        parsed = _parse_schedule_game(game)
+        for name, slug in (
+            (parsed.home, parsed.home_slug),
+            (parsed.away, parsed.away_slug),
+        ):
+            slugs.setdefault(slug, name)
+    return slugs
 
 
 def _parse_ergebnis_game(raw: dict[str, Any]) -> ErgebnisGame:
@@ -754,6 +780,16 @@ def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView
 _MIN_AI_GAMES = 4
 
 
+def _standings_gp_map(standings_data: dict[str, Any]) -> dict[str, int]:
+    """Map team name -> games played from raw standings JSON."""
+    return {team["name"]: team["gp"] for team in standings_data.get("standings", [])}
+
+
+def _matchup_eligible(home_gp: int, away_gp: int) -> bool:
+    """True when both teams have played enough games for an AI matchup preview."""
+    return home_gp >= _MIN_AI_GAMES and away_gp >= _MIN_AI_GAMES
+
+
 def _compute_averages(results: list[GameResult]) -> tuple[float, float, int]:
     """Return (avg points for, avg points against, total point diff)."""
     total = len(results)
@@ -813,6 +849,12 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     rank, total_teams = _get_team_rank_and_total(team_name, cache)
     avg_pf, avg_pa, total_diff = _compute_averages(results)
     upcoming = _get_upcoming_games(schedule_data, team_name, _read_ergebnisse(cache))
+
+    gp_map = _standings_gp_map(cache.read_json("standings.json"))
+    for game in upcoming:
+        game.matchup_eligible = _matchup_eligible(
+            gp_map.get(game.home, 0), gp_map.get(game.away, 0)
+        )
 
     # Check if season is finished
     all_schedule_games = [
@@ -878,6 +920,12 @@ def present_schedule(ligaid: str) -> ScheduleView:
 
     # Filter out games that have already been played or are in the past
     games = [g for g in games if (g.home, g.away) not in played and not g.cancelled]
+
+    gp_map = _standings_gp_map(cache.read_json("standings.json"))
+    for game in games:
+        game.matchup_eligible = _matchup_eligible(
+            gp_map.get(game.home, 0), gp_map.get(game.away, 0)
+        )
 
     # Sort chronologically. Games with unparseable dates sort last
     # instead of crashing the page.
@@ -1135,6 +1183,18 @@ def present_matchup(
     if ai_enabled:
         ai_analysis = cache.read_matchup_preview(home_slug, away_slug)
 
+    home_gp = home_row.gp if home_row else 0
+    away_gp = away_row.gp if away_row else 0
+    if _matchup_eligible(home_gp, away_gp):
+        ai_eligible = True
+        ai_ineligible_reason = None
+    else:
+        ai_eligible = False
+        ai_ineligible_reason = (
+            f"Mindestens {_MIN_AI_GAMES} Spiele pro Team nötig "
+            f"— aktuell {home_gp} und {away_gp}."
+        )
+
     return MatchupPreviewView(
         liga_name=meta.league_name,
         liga_slug=meta.liga_slug,
@@ -1148,6 +1208,8 @@ def present_matchup(
         head_to_head=head_to_head,
         ai_analysis=ai_analysis,
         ai_enabled=ai_enabled,
+        ai_eligible=ai_eligible,
+        ai_ineligible_reason=ai_ineligible_reason,
         is_finished=is_finished,
         is_played=is_played,
     )

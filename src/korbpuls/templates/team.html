@@ -225,7 +225,7 @@
                         <td class="hide-mobile"><span class="muted">{{ game.venue or 'Wird noch bestätigt' }}</span></td>
                         <td class="col-short"><span class="status-badge">Geplant</span></td>
                         <td class="col-short hide-mobile">
-                            {% if not is_finished %}
+                            {% if not is_finished and game.matchup_eligible %}
                             <a class="table-action-link"
                                href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ game.home_slug }}/{{ game.away_slug }}"
                                 aria-label="KI-Vorschau: {{ game.home }} vs {{ game.away }}">

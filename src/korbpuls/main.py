@@ -250,13 +250,10 @@ def fetch_and_cache_league(ligaid: str) -> bool:
         league_name: str = standings_data.get("liga_name", "")
         liga_slug = slugify(league_name)
 
-        team_slugs: dict[str, str] = {}
-        for team in standings_data.get("standings", []):
-            name: str = team["name"]
-            team_slugs[slugify(name)] = name
-
         schedule_data = run_schedule(ligaid)
         cache_dir.write_json("schedule.json", schedule_data)
+
+        team_slugs = presenters.collect_team_slugs(standings_data, schedule_data)
 
         ergebnisse_data = run_ergebnisse(ligaid)
         cache_dir.write_json("ergebnisse.json", ergebnisse_data)
@@ -1026,6 +1023,11 @@ async def generate_matchup_preview(
             raise HTTPException(
                 status_code=403,
                 detail="Dieses Spiel wurde bereits ausgetragen.",
+            )
+        if not view.ai_eligible:
+            raise HTTPException(
+                status_code=403,
+                detail=view.ai_ineligible_reason,
             )
     except CacheMiss:
         pass
