@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import re
 import time
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager, nullcontext, suppress
 from datetime import datetime
+from functools import cache
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -18,6 +20,7 @@ from fastapi import Path as URLPath
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from langfuse import Langfuse
 from llama_index.core.agent.workflow import FunctionAgent
 from pydantic import BaseModel
 
@@ -50,6 +53,23 @@ from korbpuls.slugify import slugify
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
+
+
+@cache
+def get_langfuse() -> Langfuse | None:
+    """Return the shared Langfuse client, created once on first use.
+
+    Returns None when ``LANGFUSE_SECRET_KEY`` is unset, so tracing is
+    fully opt-in with zero overhead.  The client is built once (cached
+    via ``functools.cache``) and reused for every agent call.
+    """
+    if not os.environ.get("LANGFUSE_SECRET_KEY"):
+        return None
+    return Langfuse(
+        secret_key=os.environ["LANGFUSE_SECRET_KEY"],
+        public_key=os.environ.get("LANGFUSE_PUBLIC_KEY"),
+        base_url=os.environ.get("LANGFUSE_BASE_URL"),
+    )
 
 
 async def _recover_ai_analyses() -> None:
@@ -147,6 +167,10 @@ async def _lifespan(_app: FastAPI) -> AsyncGenerator[None]:
             task.cancel()
             with suppress(asyncio.CancelledError):
                 await task
+    # Flush any pending Langfuse events so traces are not lost
+    lf = get_langfuse()
+    if lf is not None:
+        lf.flush()
 
 
 app = FastAPI(title="korbPuls", lifespan=_lifespan)
@@ -285,20 +309,46 @@ async def _run_agent_once(
     """Run an AI agent once and parse its structured output.
 
     Raises if the agent call fails or the LLM returns no valid
-    structured output.
+    structured output.  When Langfuse is configured, the call is
+    wrapped in a trace observation that records input, output and
+    any failure.
     """
-    response = await agent.run(
-        user_msg=prompt,
-        max_iterations=50,
-        debug=True,
-    )
-    result = response.get_pydantic_model(output_cls)  # type: ignore[attr-defined]
-    if result is None:
-        raise RuntimeError(
-            "LLM returned no valid structured output"
-            f" (structured_response="
-            f"{response.structured_response!r})"  # type: ignore[attr-defined]
+    lf = get_langfuse()
+    cm = (
+        lf.start_as_current_observation(
+            name=agent.name,
+            as_type="chain",
+            input=prompt,
+            metadata={"agent": agent.name},
         )
+        if lf is not None
+        else nullcontext()
+    )
+    with cm as observation:
+        try:
+            response = await agent.run(
+                user_msg=prompt,
+                max_iterations=50,
+                debug=True,
+            )
+        except Exception as exc:
+            if observation is not None:
+                observation.update(level="ERROR", status_message=str(exc))
+            raise
+        result = response.get_pydantic_model(output_cls)  # type: ignore[attr-defined]
+        if result is None:
+            exc = RuntimeError(
+                "LLM returned no valid structured output"
+                f" (structured_response="
+                f"{response.structured_response!r})"  # type: ignore[attr-defined]
+            )
+            if observation is not None:
+                observation.update(level="ERROR", status_message=str(exc))
+            raise exc
+        if observation is not None:
+            observation.update(
+                output=response.structured_response  # type: ignore[attr-defined]
+            )
     return result
 
 

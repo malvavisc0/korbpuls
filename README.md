@@ -105,6 +105,11 @@ and includes a built-in health check on `/healthz`.
    OPENAILIKE_API_BASE=https://api.example.com/v1
    OPENAILIKE_API_KEY=sk-...
    OPENAILIKE_LLM=gpt-4o-mini
+
+   # Optional — Langfuse tracing (leave empty to disable)
+   LANGFUSE_SECRET_KEY=sk-lf-...
+   LANGFUSE_PUBLIC_KEY=pk-lf-...
+   LANGFUSE_BASE_URL=https://cloud.langfuse.com
    ```
 
 3. Start the service:
@@ -180,6 +185,20 @@ WORKERS=4 ./run.sh
 | `OPENAILIKE_LLM` | — | Model name (e.g., `gpt-4o-mini`, `qwen/qwen-turbo`) |
 
 Set all three to enable AI features. Leave any empty to disable.
+
+### Langfuse tracing (optional)
+
+| Variable | Default | Description |
+|---|---|---|
+| `LANGFUSE_SECRET_KEY` | — | Langfuse secret key (enables tracing when set) |
+| `LANGFUSE_PUBLIC_KEY` | — | Langfuse public key |
+| `LANGFUSE_BASE_URL` | Langfuse cloud | Langfuse host URL (self-hosted or cloud) |
+
+When `LANGFUSE_SECRET_KEY` is set, every AI agent call (Analyst, Oracle,
+Commentator, Scout) is traced to Langfuse with its input, output and any
+errors. Tracing is fully opt-in: with the secret key unset there is zero
+overhead. Get the keys from your Langfuse project settings. See
+[`.env.example`](.env.example) for a full configuration template.
 
 ## 📡 API
 

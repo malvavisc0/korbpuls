@@ -14,6 +14,9 @@ services:
       OPENAILIKE_API_BASE: ${OPENAILIKE_API_BASE:-}
       OPENAILIKE_API_KEY: ${OPENAILIKE_API_KEY:-}
       OPENAILIKE_LLM: ${OPENAILIKE_LLM:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
     volumes:
       - data:/data
     restart: unless-stopped
