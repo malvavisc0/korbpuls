@@ -1015,6 +1015,27 @@ table tbody td {
     white-space: nowrap;
 }
 
+.fixture-location {
+    padding: 0.18rem 0.4rem;
+    border: 1px solid var(--kp-border-subtle);
+    color: var(--kp-text-secondary);
+    font-family: var(--kp-font-mono);
+    font-size: 0.68rem;
+    white-space: nowrap;
+}
+
+.fixture-preview-link {
+    display: block;
+    width: fit-content;
+    margin-top: 0.2rem;
+    color: var(--kp-ai);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.fixture-preview-link:hover { color: var(--kp-text); }
+
 /* ── Team Link ──────────────────────────────────────────────── */
 
 .team-link {
@@ -1511,4 +1532,5 @@ details.ai-details summary {
     .table-scroll table { min-width: 480px; }
 
     .hide-mobile { display: none; }
+
 }

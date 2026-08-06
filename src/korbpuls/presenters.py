@@ -87,6 +87,26 @@ class ScheduleGame(BaseModel):
     matchup_eligible: bool = False
 
 
+class TeamFixture(BaseModel):
+    """A team-centric presentation of an upcoming fixture."""
+
+    date_label: str
+    opponent: str
+    opponent_slug: str
+    location: str
+    venue: str
+    matchup_eligible: bool
+    home_slug: str
+    away_slug: str
+
+
+class TeamFixtureMonth(BaseModel):
+    """Upcoming team fixtures grouped by calendar month."""
+
+    label: str
+    fixtures: list[TeamFixture]
+
+
 class ScheduleView(BaseModel):
     """View model for the schedule page."""
 
@@ -116,7 +136,7 @@ class TeamView(BaseModel):
     total_diff: int
     metrics: TeamMetrics
     results: list[GameResult]
-    upcoming_games: list[ScheduleGame]
+    upcoming_fixture_months: list[TeamFixtureMonth]
     is_finished: bool = False
     archived: bool = False
     ai_analysis: str | None = None
@@ -223,6 +243,21 @@ class MatchupPreviewView(BaseModel):
 _RESULT_MAP = {"W": "Sieg", "L": "Niederlage", "D": "Unentschieden"}
 
 _DATE_FORMAT = "%d.%m.%Y %H:%M"
+_WEEKDAYS = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
+_MONTHS = (
+    "Januar",
+    "Februar",
+    "März",
+    "April",
+    "Mai",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "Dezember",
+)
 
 
 def _parse_game_date(date: str) -> datetime | None:
@@ -587,6 +622,43 @@ def _get_upcoming_games(
     return [game for _, game in upcoming]
 
 
+def _present_upcoming_fixtures(
+    games: list[ScheduleGame], team_name: str
+) -> list[TeamFixtureMonth]:
+    """Make upcoming fixtures compact and meaningful for a team page."""
+    months: list[TeamFixtureMonth] = []
+    for game in games:
+        game_date = _parse_game_date(game.date)
+        if game_date is None:
+            continue
+        month_label = f"{_MONTHS[game_date.month - 1]} {game_date.year}"
+        if not months or months[-1].label != month_label:
+            months.append(TeamFixtureMonth(label=month_label, fixtures=[]))
+        is_home = game.home == team_name
+        time_label = (
+            "Uhrzeit folgt"
+            if game_date.hour == 0 and game_date.minute == 0
+            else game_date.strftime("%H:%M")
+        )
+        months[-1].fixtures.append(
+            TeamFixture(
+                date_label=(
+                    f"{_WEEKDAYS[game_date.weekday()]}, "
+                    f"{game_date.day:02d}. {_MONTHS[game_date.month - 1][:3]}."
+                    f" · {time_label}"
+                ),
+                opponent=game.away if is_home else game.home,
+                opponent_slug=game.away_slug if is_home else game.home_slug,
+                location="Heimspiel" if is_home else "Auswärts",
+                venue=game.venue or "Halle noch offen",
+                matchup_eligible=game.matchup_eligible,
+                home_slug=game.home_slug,
+                away_slug=game.away_slug,
+            )
+        )
+    return months
+
+
 def _is_season_finished(schedule_games: list[ScheduleGame]) -> bool:
     """Detect if season is finished (no future non-cancelled games).
 
@@ -862,6 +934,7 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
         game.matchup_eligible = _matchup_eligible(
             gp_map.get(game.home, 0), gp_map.get(game.away, 0)
         )
+    upcoming_fixture_months = _present_upcoming_fixtures(upcoming, team_name)
 
     # Check if season is finished
     all_schedule_games = [
@@ -887,7 +960,7 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
         total_diff=total_diff,
         metrics=metrics,
         results=results,
-        upcoming_games=upcoming,
+        upcoming_fixture_months=upcoming_fixture_months,
         is_finished=is_finished,
         archived=meta.archived,
         ai_analysis=ai_analysis,

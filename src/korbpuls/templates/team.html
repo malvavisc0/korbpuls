@@ -155,7 +155,6 @@
             </div>
             <p class="section-meta">Letzte 5: {{ metrics.last_5 }}</p>
         </div>
-        <p class="note">Jüngste Ergebnisse von {{ team_name }} mit Gegner, Endstand und Korbdifferenz.</p>
         <div class="table-scroll">
             <table>
                 <thead>
@@ -195,7 +194,7 @@
         </div>
     </section>
 
-    {% if upcoming_games %}
+    {% if upcoming_fixture_months %}
     <section class="table-shell">
         <div class="section-heading">
             <div>
@@ -203,37 +202,31 @@
                 <h2>Kommende Spiele</h2>
             </div>
         </div>
-        <p class="note">Die nächsten Termine zeigen dir, gegen wen {{ team_name }} als Nächstes antritt und wo gespielt wird.</p>
         <div class="table-scroll">
-            <table>
+            <table class="team-fixtures-table">
                 <thead>
                     <tr>
-                        <th>Datum</th>
-                        <th>Heim</th>
-                        <th>Gast</th>
-                        <th class="hide-mobile">Halle</th>
-                        <th class="col-short">Status</th>
-                        <th class="col-short hide-mobile">KI</th>
+                        <th class="col-date">Datum</th>
+                        <th>Gegner</th>
+                        <th>Ort</th>
+                        <th>Halle</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for game in upcoming_games %}
+                    {% for month in upcoming_fixture_months %}
+                    {% for fixture in month.fixtures %}
                     <tr>
-                        <td>{{ game.date }}</td>
-                        <td>{{ game.home }}</td>
-                        <td>{{ game.away }}</td>
-                        <td class="hide-mobile"><span class="muted">{{ game.venue or 'Wird noch bestätigt' }}</span></td>
-                        <td class="col-short"><span class="status-badge">Geplant</span></td>
-                        <td class="col-short hide-mobile">
-                            {% if not is_finished and game.matchup_eligible %}
-                            <a class="table-action-link"
-                               href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ game.home_slug }}/{{ game.away_slug }}"
-                                aria-label="KI-Vorschau: {{ game.home }} vs {{ game.away }}">
-                                KI-Vorschau
-                            </a>
+                        <td class="col-date">{{ fixture.date_label }}</td>
+                        <td>
+                            <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ fixture.opponent_slug }}">{{ fixture.opponent }}</a>
+                            {% if not is_finished and fixture.matchup_eligible %}
+                            <a class="fixture-preview-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ fixture.home_slug }}/{{ fixture.away_slug }}">KI-Vorschau</a>
                             {% endif %}
                         </td>
+                        <td><span class="fixture-location">{{ fixture.location }}</span></td>
+                        <td><span class="muted">{{ fixture.venue }}</span></td>
                     </tr>
+                    {% endfor %}
                     {% endfor %}
                 </tbody>
             </table>
