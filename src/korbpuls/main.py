@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+import sentry_sdk
 from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException, Request
 from fastapi import Path as URLPath
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -25,7 +26,7 @@ from llama_index.core.agent.workflow import FunctionAgent
 from pydantic import BaseModel
 
 from korbpuls import presenters
-from korbpuls.ai import AIConfig
+from korbpuls.ai import AIConfig, AppConfig
 from korbpuls.ai.agents import (
     LeaguePrediction,
     MatchupPreview,
@@ -181,6 +182,16 @@ async def _lifespan(_app: FastAPI) -> AsyncGenerator[None]:
 
 app = FastAPI(title="korbPuls", lifespan=_lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+app_config = AppConfig.from_env()
+if app_config is not None:
+    sentry_sdk.init(
+        app_config.sentry_dsn,
+        send_default_pii=True,
+        max_request_body_size="always",
+        traces_sample_rate=0,
+        send_client_reports=False,
+        auto_session_tracking=False,
+    )
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 templates.env.globals["app_version"] = __import__("korbpuls").__version__
 

@@ -29,3 +29,21 @@ class AIConfig:
             return None
 
         return cls(api_base=api_base, api_key=api_key, model=model)
+
+
+@dataclass(frozen=True)
+class AppConfig:
+    """Configuration for the App."""
+
+    sentry_dsn: str
+
+    @classmethod
+    def from_env(cls) -> AppConfig | None:
+        """Create config from environment variables.
+
+        Returns None if SENTRY_DSN is unset, which disables Sentry.
+        """
+        sentry_dsn = os.environ.get("SENTRY_DSN", "")
+        if not sentry_dsn:
+            return None
+        return cls(sentry_dsn=sentry_dsn)
