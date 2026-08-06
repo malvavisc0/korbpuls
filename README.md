@@ -48,6 +48,20 @@ the app works without them.
 
 ## 🚀 Quickstart
 
+### Generating an API key
+
+`KORBPULS_API_KEY` is a secret used to protect the `/api/` endpoints. Generate a secure random key:
+
+```bash
+# Python
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# or OpenSSL
+openssl rand -base64 32
+```
+
+Copy the output and use it as the value for `KORBPULS_API_KEY`.
+
 ### Local development
 
 ```bash
