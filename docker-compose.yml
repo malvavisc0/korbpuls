@@ -1,3 +1,5 @@
+name: korbpuls
+
 services:
   web:
     image: ghcr.io/malvavisc0/korbpuls:latest
