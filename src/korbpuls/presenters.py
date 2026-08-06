@@ -68,7 +68,6 @@ class TeamMetrics(BaseModel):
     avg_loss_margin: float
     blowouts: int  # wins by >= 15
     close_games: int  # games decided by <= 5
-    volatility: float  # stddev of point differential
     last_5: str  # e.g., "4 Siege, 1 Niederlage"
     current_streak: str  # e.g., "3 Siege in Folge"
 
@@ -76,8 +75,6 @@ class TeamMetrics(BaseModel):
 class ScheduleGame(BaseModel):
     """A single game in the schedule."""
 
-    nr: int
-    day: int
     date: str
     home: str
     home_slug: str
@@ -108,11 +105,8 @@ class TeamView(BaseModel):
     ligaid: str
     rank: int
     total_teams: int
-    record: str
     wins: int
     losses: int
-    points_summary: str
-    avg_summary: str
     avg_pf: float
     avg_pa: float
     total_diff: int
@@ -130,9 +124,7 @@ class PredictionGame(BaseModel):
     """A predicted game result."""
 
     home: str
-    home_slug: str
     away: str
-    away_slug: str
     home_score: int
     away_score: int
     winner: str  # "home" or "away"
@@ -144,16 +136,12 @@ class PredictionStandingsRow(BaseModel):
     rank: int
     name: str
     slug: str
-    gp: int
     w: int
     losses: int
-    d: int
     pf: int
     pa: int
     diff: int
     pts: int
-    avg_pf: float
-    avg_pa: float
 
 
 class PredictionView(BaseModel):
@@ -277,8 +265,6 @@ def _parse_schedule_game(game: dict[str, Any]) -> ScheduleGame:
         ScheduleGame model
     """
     return ScheduleGame(
-        nr=game["nr"],
-        day=game["day"],
         date=game["date"],
         home=game["home"],
         home_slug=slugify(game["home"]),
@@ -470,101 +456,15 @@ def _compute_metrics(results: list[GameResult]) -> TeamMetrics:
     """
     total = len(results)
     stats = _margin_stats(results)
-    diffs = [r.diff for r in results]
-
     return TeamMetrics(
         win_rate=(stats.win_count / total * 100) if total else 0.0,
         avg_win_margin=stats.avg_win_margin,
         avg_loss_margin=stats.avg_loss_margin,
         blowouts=stats.blowouts,
         close_games=stats.close_games,
-        volatility=statistics.stdev(diffs) if len(diffs) > 1 else 0.0,
         last_5=_last_5_summary(results),
         current_streak=_compute_streak(results),
     )
-
-
-def _compute_summary(
-    results: list[GameResult],
-    team_name: str,
-    cache: CacheDir,
-) -> tuple[str, str, str]:
-    """Compute record, points summary, and average summary strings.
-
-    Args:
-        results: Parsed game results
-        team_name: Full team name for standings lookup
-        cache: CacheDir to read standings from
-
-    Returns:
-        Tuple of (record, points_summary, avg_summary)
-    """
-    total = len(results)
-    wins = sum(1 for r in results if r.result == "Sieg")
-    losses = sum(1 for r in results if r.result == "Niederlage")
-    draws = sum(1 for r in results if r.result == "Unentschieden")
-
-    record = f"{wins} Siege · {losses} Niederlagen"
-    if draws > 0:
-        record += f" · {draws} Unentschieden"
-    record += f" · {total} Spiele"
-
-    # Try to get stats from standings for accuracy
-    pts_summary, avg_summary = _summary_from_standings(team_name, cache)
-    if not pts_summary:
-        pts_summary, avg_summary = _summary_from_results(results)
-
-    return record, pts_summary, avg_summary
-
-
-def _summary_from_standings(team_name: str, cache: CacheDir) -> tuple[str, str]:
-    """Extract points/avg summary from standings data.
-
-    Args:
-        team_name: Full team name
-        cache: CacheDir to read standings from
-
-    Returns:
-        Tuple of (points_summary, avg_summary), empty if not found
-    """
-    try:
-        standings_data = cache.read_json("standings.json")
-    except CacheMiss:
-        return "", ""
-
-    for team in standings_data.get("standings", []):
-        if team["name"] == team_name:
-            pts = (
-                f"{team['pf']} erzielt · {team['pa']} kassiert"
-                f" · Differenz {team['diff']:+d}"
-            )
-            avg = f"{team['avg_pf']} erzielt · {team['avg_pa']} kassiert"
-            return pts, avg
-    return "", ""
-
-
-def _summary_from_results(
-    results: list[GameResult],
-) -> tuple[str, str]:
-    """Compute points/avg summary from raw results.
-
-    Args:
-        results: List of game results
-
-    Returns:
-        Tuple of (points_summary, avg_summary)
-    """
-    total = len(results)
-    total_pf = sum(r.our_score for r in results)
-    total_pa = sum(r.opp_score for r in results)
-    diff = total_pf - total_pa
-    pts = f"{total_pf} erzielt · {total_pa} kassiert · Diff {diff:+d}"
-
-    avg_pf = total_pf / total if total else 0.0
-    avg_pa = total_pa / total if total else 0.0
-    avg = f"{avg_pf:.1f} erzielt · {avg_pa:.1f} kassiert"
-
-    return pts, avg
 
 
 def _get_team_rank_and_total(team_name: str, cache: CacheDir) -> tuple[int, int]:
@@ -909,11 +809,6 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     results = _parse_results_newest_first(team_data.get("results", []))
 
     schedule_data = cache.read_json("schedule.json")
-    record, pts_summary, avg_summary = _compute_summary(
-        results,
-        team_name,
-        cache,
-    )
     metrics = _compute_metrics(results)
     rank, total_teams = _get_team_rank_and_total(team_name, cache)
     avg_pf, avg_pa, total_diff = _compute_averages(results)
@@ -936,11 +831,8 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
         ligaid=meta.ligaid,
         rank=rank,
         total_teams=total_teams,
-        record=record,
         wins=sum(1 for r in results if r.result == "Sieg"),
         losses=sum(1 for r in results if r.result == "Niederlage"),
-        points_summary=pts_summary,
-        avg_summary=avg_summary,
         avg_pf=avg_pf,
         avg_pa=avg_pa,
         total_diff=total_diff,
@@ -1044,9 +936,7 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
     predictions = [
         PredictionGame(
             home=p["home"],
-            home_slug=slugify(p["home"]),
             away=p["away"],
-            away_slug=slugify(p["away"]),
             home_score=p["home_score"],
             away_score=p["away_score"],
             winner=p["winner"],
@@ -1060,16 +950,12 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
             rank=rank,
             name=t["name"],
             slug=slugify(t["name"]),
-            gp=t["gp"],
             w=t["w"],
             losses=t["l"],
-            d=t["d"],
             pf=t["pf"],
             pa=t["pa"],
             diff=t["diff"],
             pts=t["pts"],
-            avg_pf=t["avg_pf"],
-            avg_pa=t["avg_pa"],
         )
         for rank, t in enumerate(data.get("standings", []), start=1)
     ]
