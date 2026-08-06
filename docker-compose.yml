@@ -17,6 +17,7 @@ services:
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
+      SENTRY_DNS: ${SENTRY_DNS:-}
     volumes:
       - data:/data
     restart: unless-stopped
