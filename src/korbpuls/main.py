@@ -48,7 +48,7 @@ from korbpuls.korb_client import (
 )
 from korbpuls.korb_client import run_standings as korb_standings
 from korbpuls.korb_client import run_team as korb_team
-from korbpuls.scheduler import daily_refresh_loop
+from korbpuls.scheduler import daily_refresh_loop, is_season_finished
 from korbpuls.slugify import slugify
 
 logger = logging.getLogger(__name__)
@@ -241,6 +241,12 @@ def fetch_and_cache_league(ligaid: str) -> bool:
     # Snapshot old data hash before overwriting
     old_hash = cache_dir.compute_data_hash()
 
+    # Archived is sticky: once a season finished it stays archived
+    # even if upstream later returns an empty/partial schedule.
+    old_archived = False
+    with suppress(CacheMiss, FileNotFoundError):
+        old_archived = cache_dir.read_meta().archived
+
     try:
         run_download(ligaid)
 
@@ -285,6 +291,11 @@ def fetch_and_cache_league(ligaid: str) -> bool:
             liga_slug=liga_slug,
             cached_at=format_datetime(datetime.now(ZoneInfo("Europe/Berlin"))),
             team_slugs=team_slugs,
+            archived=old_archived
+            or (
+                bool(schedule_data.get("schedule"))
+                and is_season_finished(schedule_data)
+            ),
         )
         cache_dir.write_meta(meta)
 
@@ -460,6 +471,15 @@ async def fetch_league(
             status_code=302,
         )
 
+    # Archived seasons are frozen — no re-fetch allowed
+    with suppress(CacheMiss, FileNotFoundError):
+        meta = cache_dir.read_meta()
+        if meta.archived:
+            return RedirectResponse(
+                url=f"/liga/{meta.ligaid}/{meta.liga_slug}",
+                status_code=302,
+            )
+
     # Already pending → redirect to loading page
     status = cache_dir.read_status()
     if status["status"] == "pending":
@@ -510,6 +530,13 @@ async def refresh_league(
     cache_dir = CacheDir(ligaid)
     if not cache_dir.liga_exists():
         raise HTTPException(status_code=404, detail="Liga nicht gefunden")
+
+    with suppress(CacheMiss, FileNotFoundError):
+        if cache_dir.read_meta().archived:
+            raise HTTPException(
+                status_code=403,
+                detail="Saison ist archiviert — keine Aktualisierung mehr möglich.",
+            )
 
     cache_dir.clear_data_files()
     cache_dir.ensure_exists()

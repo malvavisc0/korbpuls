@@ -39,6 +39,9 @@
                 </a>
                 {% if liga_name %}
                 <a class="league-pill" href="/liga/{{ ligaid }}/{{ liga_slug }}">{{ liga_name }}</a>
+                {% if archived %}
+                <span class="archived-badge" title="Saison beendet — Daten archiviert">▰ Archiv</span>
+                {% endif %}
                 {% endif %}
             </nav>
         </div>

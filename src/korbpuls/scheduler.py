@@ -34,7 +34,7 @@ def _seconds_until_next_refresh() -> float:
     return (target - now).total_seconds()
 
 
-def _is_season_finished(schedule_data: dict[str, Any]) -> bool:
+def is_season_finished(schedule_data: dict[str, Any]) -> bool:
     """Check whether all scheduled games are in the past.
 
     Works directly with raw schedule JSON to avoid circular
@@ -144,7 +144,7 @@ def _should_refresh_league(cache: CacheDir) -> bool:
     except CacheMiss:
         return False
 
-    if not _is_season_finished(schedule_data):
+    if not is_season_finished(schedule_data):
         return True  # active season — always refresh
 
     # Season dates are all past — check if results are complete

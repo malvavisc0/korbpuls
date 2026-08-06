@@ -26,6 +26,8 @@ class LigaMeta(BaseModel):
     liga_slug: str
     cached_at: str
     team_slugs: dict[str, str]
+    # Sticky flag set once a season is finished; freezes the cache.
+    archived: bool = False
 
 
 class CacheDir:

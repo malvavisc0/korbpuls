@@ -40,6 +40,7 @@ class StandingsView(BaseModel):
     cached_at: str
     rows: list[StandingsRow]
     is_finished: bool = False
+    archived: bool = False
     prediction_eligible: bool = True
     standings_eligible: bool = False
     latest_games: list[ErgebnisGame] = []
@@ -94,6 +95,7 @@ class ScheduleView(BaseModel):
     ligaid: str
     games: list[ScheduleGame]
     is_finished: bool = False
+    archived: bool = False
     prediction_eligible: bool = True
 
 
@@ -116,6 +118,7 @@ class TeamView(BaseModel):
     results: list[GameResult]
     upcoming_games: list[ScheduleGame]
     is_finished: bool = False
+    archived: bool = False
     ai_analysis: str | None = None
     ai_enabled: bool = False
     ai_analysis_eligible: bool = False
@@ -154,6 +157,7 @@ class PredictionView(BaseModel):
     ligaid: str
     cached_at: str
     is_finished: bool
+    archived: bool = False
     prediction_eligible: bool = True
     prediction_ineligible_reason: str | None = None
     predictions: list[PredictionGame]
@@ -190,6 +194,7 @@ class ErgebnisseView(BaseModel):
     cached_at: str
     games: list[ErgebnisGame]
     is_finished: bool = False
+    archived: bool = False
     prediction_eligible: bool = True
 
 
@@ -212,6 +217,7 @@ class MatchupPreviewView(BaseModel):
     ai_ineligible_reason: str | None = None
     is_finished: bool = False
     is_played: bool = False
+    archived: bool = False
 
 
 _RESULT_MAP = {"W": "Sieg", "L": "Niederlage", "D": "Unentschieden"}
@@ -769,6 +775,7 @@ def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView
         cached_at=meta.cached_at,
         rows=rows,
         is_finished=is_finished,
+        archived=meta.archived,
         prediction_eligible=eligible,
         standings_eligible=total_gp > 0,
         latest_games=latest_games,
@@ -882,6 +889,7 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
         results=results,
         upcoming_games=upcoming,
         is_finished=is_finished,
+        archived=meta.archived,
         ai_analysis=ai_analysis,
         ai_enabled=ai_enabled,
         ai_analysis_eligible=ai_eligible,
@@ -948,6 +956,7 @@ def present_schedule(ligaid: str) -> ScheduleView:
         ligaid=meta.ligaid,
         games=games,
         is_finished=is_finished,
+        archived=meta.archived,
         prediction_eligible=eligible,
     )
 
@@ -1023,6 +1032,7 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
         ligaid=meta.ligaid,
         cached_at=meta.cached_at,
         is_finished=is_finished,
+        archived=meta.archived,
         prediction_eligible=eligible,
         prediction_ineligible_reason=reason,
         predictions=predictions,
@@ -1070,6 +1080,7 @@ def present_ergebnisse(ligaid: str) -> ErgebnisseView:
         cached_at=meta.cached_at,
         games=games,
         is_finished=is_finished,
+        archived=meta.archived,
         prediction_eligible=eligible,
     )
 
@@ -1211,5 +1222,6 @@ def present_matchup(
         ai_eligible=ai_eligible,
         ai_ineligible_reason=ai_ineligible_reason,
         is_finished=is_finished,
+        archived=meta.archived,
         is_played=is_played,
     )
