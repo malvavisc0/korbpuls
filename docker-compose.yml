@@ -17,7 +17,12 @@ services:
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
-      SENTRY_DNS: ${SENTRY_DNS:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      # Rybbit analytics: disabled by default. The production deployment
+      # sets DISABLE_TELEMETRY=false to load the analytics script.
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY:-true}
+      RYBBIT_SCRIPT_URL: ${RYBBIT_SCRIPT_URL:-https://analytics.dextopia.de/api/script.js}
+      RYBBIT_SITE_ID: ${RYBBIT_SITE_ID:-9feb491675c0}
     volumes:
       - data:/data
     restart: unless-stopped
