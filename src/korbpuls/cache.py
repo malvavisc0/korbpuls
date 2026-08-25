@@ -198,12 +198,17 @@ class CacheDir:
     def write_json(self, filename: str, data: dict[str, Any]) -> None:
         """Write JSON data to a file.
 
+        Writes atomically (temp file + os.replace) so concurrent
+        readers never observe a truncated or partially-written file.
+
         Args:
             filename: Name of the file (e.g., 'standings.json')
             data: Dictionary to write as JSON
         """
         path = self.base_path / filename
-        path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+        os.replace(tmp, path)
 
     def read_json(self, filename: str) -> dict[str, Any]:
         """Read JSON data from a file.
@@ -282,7 +287,9 @@ class CacheDir:
             data: Team data dictionary
         """
         path = self.teams_path / f"{team_slug}.json"
-        path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+        os.replace(tmp, path)
 
     def liga_exists(self) -> bool:
         """Check if league cache directory exists.
@@ -292,14 +299,21 @@ class CacheDir:
         """
         return self.base_path.exists()
 
-    def write_status(self, status: str, error: str | None = None) -> None:
+    def write_status(
+        self,
+        status: str,
+        error: str | None = None,
+        attempts: int = 0,
+    ) -> None:
         """Write status.json to track download progress.
 
         Args:
             status: One of "pending", "ready", "error"
             error: Optional error message when status is "error"
+            attempts: Number of fetch attempts made for this cycle
+                (used to cap automatic retries from the loading page)
         """
-        data: dict[str, str] = {"status": status}
+        data: dict[str, Any] = {"status": status, "attempts": attempts}
         if error is not None:
             data["error"] = error
         self.write_json("status.json", data)
@@ -317,7 +331,12 @@ class CacheDir:
         if not path.exists():
             return {"status": "unknown"}
 
-        data = cast(dict[str, str], json.loads(path.read_text()))
+        try:
+            data = cast(dict[str, str], json.loads(path.read_text()))
+        except json.JSONDecodeError:
+            # Corrupted (e.g. crash mid-write by an older version) —
+            # treat as stale so the interrupted fetch gets retried.
+            return {"status": "stale"}
         status = data.get("status", "unknown")
 
         # Staleness check: if pending for more than 10 minutes, treat as stale

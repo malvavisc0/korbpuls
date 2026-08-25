@@ -6,6 +6,7 @@ import asyncio
 import logging
 import os
 import re
+import threading
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, nullcontext, suppress
@@ -15,6 +16,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+import nh3
 import sentry_sdk
 from fastapi import BackgroundTasks, Depends, FastAPI, Form, HTTPException, Request
 from fastapi import Path as URLPath
@@ -23,10 +25,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from langfuse import Langfuse
 from llama_index.core.agent.workflow import FunctionAgent
+from markupsafe import Markup
 from pydantic import BaseModel
 
 from korbpuls import presenters
-from korbpuls.ai import AIConfig, AppConfig
+from korbpuls.ai import AIConfig, AppConfig, telemetry_enabled
 from korbpuls.ai.agents import (
     LeaguePrediction,
     MatchupPreview,
@@ -195,6 +198,37 @@ if app_config is not None:
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 templates.env.globals["app_version"] = __import__("korbpuls").__version__
 
+# AI output is rendered as HTML but originates from an LLM fed with
+# externally-controlled text (team names, scraped data).  Sanitize to
+# a strict allowlist before it ever reaches a browser.
+_AI_ALLOWED_TAGS = {
+    "p", "br", "strong", "em", "b", "i", "ul", "ol", "li",
+    "table", "thead", "tbody", "tr", "th", "td",
+    "h3", "h4", "h5", "a", "span", "code", "blockquote",
+}
+_AI_ALLOWED_ATTRS = {"a": {"href", "title"}}
+
+
+def ai_html(value: str) -> Markup:
+    """Sanitize LLM-generated HTML for safe rendering."""
+    return Markup(
+        nh3.clean(value or "", tags=_AI_ALLOWED_TAGS, attributes=_AI_ALLOWED_ATTRS)
+    )
+
+
+templates.env.filters["ai_html"] = ai_html
+
+_rybbit_script_url = os.environ.get(
+    "RYBBIT_SCRIPT_URL", "https://analytics.dextopia.de/api/script.js"
+)
+_rybbit_site_id = os.environ.get("RYBBIT_SITE_ID", "9feb491675c0")
+templates.env.globals["analytics_tag"] = (
+    f'<script src="{_rybbit_script_url}"'
+    f' data-site-id="{_rybbit_site_id}" defer></script>'
+    if telemetry_enabled() and _rybbit_site_id
+    else ""
+)
+
 
 def validate_ligaid_format(ligaid: str) -> bool:
     """Validate ligaid is digits only.
@@ -209,15 +243,41 @@ def validate_ligaid_format(ligaid: str) -> bool:
 
 
 def format_datetime(dt: datetime) -> str:
-    """Format datetime for display.
+    """Format a datetime for display.
 
     Args:
-        dt: Datetime to format
+        dt: Naive or aware datetime
 
     Returns:
         German-formatted date string
     """
     return dt.strftime("%d.%m.%Y %H:%M")
+
+
+# One in-flight fetch per league: deduplicates concurrent refreshes
+# triggered by user buttons, the loading-page retry, and the scheduler.
+_fetch_claims_guard = threading.Lock()
+_inflight_fetches: set[str] = set()
+
+
+def _try_claim_fetch(ligaid: str) -> bool:
+    """Claim exclusive fetch rights for a league.
+
+    Returns:
+        True if claimed (caller must run the fetch and release),
+        False if a fetch for this league is already running.
+    """
+    with _fetch_claims_guard:
+        if ligaid in _inflight_fetches:
+            return False
+        _inflight_fetches.add(ligaid)
+        return True
+
+
+def _release_fetch(ligaid: str) -> None:
+    """Release the fetch claim for a league."""
+    with _fetch_claims_guard:
+        _inflight_fetches.discard(ligaid)
 
 
 def fetch_and_cache_league(ligaid: str) -> bool:
@@ -238,6 +298,22 @@ def fetch_and_cache_league(ligaid: str) -> bool:
     cache_dir = CacheDir(ligaid)
     cache_dir.ensure_exists()
 
+    if not _try_claim_fetch(ligaid):
+        logger.info("Fetch already in flight for liga %s — skipping", ligaid)
+        return False
+    try:
+        return _fetch_and_cache_locked(ligaid, cache_dir)
+    finally:
+        _release_fetch(ligaid)
+
+
+def _fetch_and_cache_locked(ligaid: str, cache_dir: CacheDir) -> bool:
+    """Run the actual league fetch (caller holds the fetch claim).
+
+    Writes are atomic, and existing data files are overwritten in
+    place rather than deleted up front, so readers keep seeing the
+    previous complete dataset while a refresh is running.
+    """
     # Snapshot old data hash before overwriting
     old_hash = cache_dir.compute_data_hash()
 
@@ -284,6 +360,17 @@ def fetch_and_cache_league(ligaid: str) -> bool:
                 cache_dir.write_team_json(ts, team_data)
             except KorbError:
                 pass
+
+        # Remove orphaned team files (teams that left the league)
+        if cache_dir.teams_path.exists():
+            for f in cache_dir.teams_path.iterdir():
+                stem = f.stem
+                if (
+                    f.suffix == ".json"
+                    and not cache_dir._is_ai_file(f)
+                    and stem not in team_slugs
+                ):
+                    f.unlink(missing_ok=True)
 
         meta = LigaMeta(
             ligaid=ligaid,
@@ -488,8 +575,9 @@ async def fetch_league(
             status_code=302,
         )
 
-    # Start background fetch and redirect to loading page
-    cache_dir.clear_data_files()
+    # Start background fetch and redirect to loading page.
+    # Existing data stays in place (atomic overwrite on success) so
+    # visitors keep seeing the previous dataset during the refresh.
     cache_dir.ensure_exists()
     cache_dir.write_status("pending")
     background_tasks.add_task(_fetch_and_auto_generate, ligaid)
@@ -538,7 +626,6 @@ async def refresh_league(
                 detail="Saison ist archiviert — keine Aktualisierung mehr möglich.",
             )
 
-    cache_dir.clear_data_files()
     cache_dir.ensure_exists()
     cache_dir.write_status("pending")
     background_tasks.add_task(_fetch_and_auto_generate, ligaid)
@@ -560,6 +647,9 @@ async def loading_page(
 ) -> HTMLResponse | RedirectResponse:
     """Loading page that auto-refreshes until data is ready."""
     cache_dir = CacheDir(ligaid)
+    if not cache_dir.liga_exists():
+        raise HTTPException(status_code=404, detail="Liga nicht gefunden")
+
     status = cache_dir.read_status()
 
     if status["status"] == "pending":
@@ -579,16 +669,19 @@ async def loading_page(
     if status["status"] == "error":
         # If the error is very recent (< 10s), it is likely a race
         # condition where the background task failed before the
-        # browser followed the redirect.  Auto-retry once.
+        # browser followed the redirect.  Auto-retry once per fetch
+        # cycle (tracked via attempts in status.json) so fast,
+        # permanent failures (e.g. bogus league IDs) can't turn the
+        # loading page into an infinite retry loop.
         status_path = cache_dir.base_path / "status.json"
-        if status_path.exists():
+        attempts = int(status.get("attempts", 0))
+        if status_path.exists() and attempts < 1:
             age = time.time() - status_path.stat().st_mtime
             if age < 10:
-                cache_dir.clear_data_files()
                 cache_dir.ensure_exists()
-                cache_dir.write_status("pending")
+                cache_dir.write_status("pending", attempts=attempts + 1)
                 background_tasks.add_task(
-                    fetch_and_cache_league,
+                    _fetch_and_auto_generate,
                     ligaid,
                 )
                 return templates.TemplateResponse(
@@ -610,7 +703,6 @@ async def loading_page(
     # Stale: pending for > 10 minutes — treat as interrupted
     # task (e.g. server restart) and auto-retry the full fetch.
     if status["status"] == "stale":
-        cache_dir.clear_data_files()
         cache_dir.ensure_exists()
         cache_dir.write_status("pending")
         background_tasks.add_task(
@@ -1029,7 +1121,10 @@ async def generate_matchup_preview(
         f"/liga/{ligaid}/{liga_slug}/spielplan/vorschau/{home_slug}/{away_slug}"
     )
 
-    meta = cache.read_meta()
+    try:
+        meta = cache.read_meta()
+    except CacheMiss:
+        raise HTTPException(status_code=404, detail="Liga nicht gefunden") from None
     home_name = meta.team_slugs.get(home_slug)
     away_name = meta.team_slugs.get(away_slug)
     if not home_name or not away_name:

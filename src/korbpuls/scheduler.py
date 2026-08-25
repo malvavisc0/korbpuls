@@ -9,6 +9,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from korbpuls.bbtime import parse_bb_datetime
 from korbpuls.cache import CacheDir, CacheMiss
 
 logger = logging.getLogger(__name__)
@@ -40,24 +41,32 @@ def is_season_finished(schedule_data: dict[str, Any]) -> bool:
     Works directly with raw schedule JSON to avoid circular
     imports with the presenters module.
 
+    Deliberately strict: any game whose date cannot be parsed
+    (placeholder dates, upstream format drift) makes the result
+    "not finished" so a league never gets archived based on an
+    incomplete snapshot — a wrongly-sticky archived flag would
+    permanently block refreshes.
+
     Args:
         schedule_data: Raw schedule.json content
 
     Returns:
-        True if no future non-cancelled games remain.
+        True if no future non-cancelled games remain AND every
+        non-cancelled game has a parseable date.
     """
     now = datetime.now(UTC)
     for game in schedule_data.get("schedule", []):
         if game.get("cancelled", False):
             continue
-        try:
-            game_date = datetime.strptime(game["date"], "%d.%m.%Y %H:%M").replace(
-                tzinfo=UTC
+        game_date = parse_bb_datetime(game.get("date", ""))
+        if game_date is None:
+            logger.warning(
+                "Unparseable game date %r — treating season as not finished",
+                game.get("date"),
             )
-            if game_date > now:
-                return False
-        except (ValueError, KeyError):
-            continue
+            return False
+        if game_date > now:
+            return False
     return True
 
 
@@ -74,14 +83,9 @@ def _last_game_date(schedule_data: dict[str, Any]) -> datetime | None:
     for game in schedule_data.get("schedule", []):
         if game.get("cancelled", False):
             continue
-        try:
-            game_date = datetime.strptime(game["date"], "%d.%m.%Y %H:%M").replace(
-                tzinfo=UTC
-            )
-            if last is None or game_date > last:
-                last = game_date
-        except (ValueError, KeyError):
-            continue
+        game_date = parse_bb_datetime(game.get("date", ""))
+        if game_date is not None and (last is None or game_date > last):
+            last = game_date
     return last
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import secrets
 
 from dotenv import load_dotenv
 from fastapi import Header, HTTPException
@@ -26,6 +27,6 @@ async def validate_api_key(x_api_key: str = Header(...)) -> str:
     Raises:
         HTTPException: If key doesn't match
     """
-    if x_api_key != KORBPULS_API_KEY:
+    if not secrets.compare_digest(x_api_key, KORBPULS_API_KEY):
         raise HTTPException(status_code=401, detail="Invalid API key")
     return x_api_key

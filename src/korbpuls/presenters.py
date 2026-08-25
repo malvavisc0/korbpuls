@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import statistics
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -9,8 +10,32 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from korbpuls.bbtime import parse_bb_datetime
 from korbpuls.cache import CacheDir, CacheMiss
 from korbpuls.slugify import slugify
+
+logger = logging.getLogger(__name__)
+
+# Reverse of LigaMeta.team_slugs: canonical (disambiguated) slug per
+# exact team name.  Hydrated from meta on every presenter read so URL
+# slugs stay stable even across process restarts.
+_TEAM_SLUGS_BY_NAME: dict[str, str] = {}
+
+
+def _hydrate_team_slugs(meta: Any) -> None:
+    """Refresh the name->slug registry from a league's meta."""
+    _TEAM_SLUGS_BY_NAME.clear()
+    for slug, name in meta.team_slugs.items():
+        _TEAM_SLUGS_BY_NAME[name] = slug
+
+
+def team_slug(name: str) -> str:
+    """Canonical URL slug for a team name.
+
+    Falls back to plain slugify() for unknown names; names that
+    collide under slugify() carry their registered ``-2`` suffix.
+    """
+    return _TEAM_SLUGS_BY_NAME.get(name, "") or slugify(name)
 
 
 class StandingsRow(BaseModel):
@@ -242,7 +267,6 @@ class MatchupPreviewView(BaseModel):
 
 _RESULT_MAP = {"W": "Sieg", "L": "Niederlage", "D": "Unentschieden"}
 
-_DATE_FORMAT = "%d.%m.%Y %H:%M"
 _WEEKDAYS = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
 _MONTHS = (
     "Januar",
@@ -267,13 +291,10 @@ def _parse_game_date(date: str) -> datetime | None:
         date: Date string in ``%d.%m.%Y %H:%M`` format
 
     Returns:
-        Timezone-aware datetime, or None when the string cannot be
-        parsed (e.g. placeholder dates like "TBD").
+        Timezone-aware datetime in Europe/Berlin local time, or None
+        when the string cannot be parsed (e.g. placeholder dates).
     """
-    try:
-        return datetime.strptime(date, _DATE_FORMAT).replace(tzinfo=UTC)
-    except ValueError:
-        return None
+    return parse_bb_datetime(date)
 
 
 def _result_to_german(result: str) -> str:
@@ -312,9 +333,9 @@ def _parse_schedule_game(game: dict[str, Any]) -> ScheduleGame:
     return ScheduleGame(
         date=game["date"],
         home=game["home"],
-        home_slug=slugify(game["home"]),
+        home_slug=team_slug(game["home"]),
         away=game["away"],
-        away_slug=slugify(game["away"]),
+        away_slug=team_slug(game["away"]),
         venue=game["venue"],
         cancelled=game.get("cancelled", False),
     )
@@ -327,28 +348,81 @@ def collect_team_slugs(
 
     Standings teams take precedence; schedule home/away names cover the
     pre-season case where standings is empty.
+
+    Distinct team names that normalize to the same slug (differing
+    only in punctuation/case) get deterministic ``-2``/``-3`` suffixes
+    instead of silently collapsing — a silent merge would make one
+    team's page show another team's data.
     """
     slugs: dict[str, str] = {}
+    names: list[str] = []
+    seen_names: set[str] = set()
     for team in standings_data.get("standings", []):
         name = team["name"]
-        slugs[slugify(name)] = name
+        if name not in seen_names:
+            seen_names.add(name)
+            names.append(name)
     for game in schedule_data.get("schedule", []):
         parsed = _parse_schedule_game(game)
-        for name, slug in (
-            (parsed.home, parsed.home_slug),
-            (parsed.away, parsed.away_slug),
-        ):
-            slugs.setdefault(slug, name)
+        for name in (parsed.home, parsed.away):
+            if name not in seen_names:
+                seen_names.add(name)
+                names.append(name)
+
+    # Assign suffixes in sorted-name order so slug assignment is
+    # stable across fetches regardless of row ordering.
+    for name in sorted(names):
+        slug = slugify(name)
+        base = slug
+        counter = 2
+        while slug in slugs and slugs[slug] != name:
+            logger.warning(
+                "Slug collision: %r and %r share slug %r — disambiguating",
+                slugs[slug],
+                name,
+                base,
+            )
+            slug = f"{base}-{counter}"
+            counter += 1
+        slugs[slug] = name
+    _TEAM_SLUGS_BY_NAME.clear()
+    for slug_key, name_val in slugs.items():
+        _TEAM_SLUGS_BY_NAME[name_val] = slug_key
     return slugs
 
 
-def _parse_ergebnis_game(raw: dict[str, Any]) -> ErgebnisGame:
-    """Parse a single raw ergebnis dict into an ErgebnisGame."""
+def _coerce_score(value: Any) -> int | None:
+    """Coerce an external score to int; None when malformed.
+
+    Upstream may emit "-", empty strings or other non-numeric
+    placeholders for cancelled/aborted games.
+    """
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_ergebnis_game(raw: dict[str, Any]) -> ErgebnisGame | None:
+    """Parse a single raw ergebnis dict into an ErgebnisGame.
+
+    Returns None for rows with malformed scores instead of crashing
+    the whole results page.
+    """
     raw_date = raw.get("date", "")
     if " " in raw_date:
         raw_date = raw_date.split(" ", 1)[0]
-    home_score = raw["home_score"]
-    away_score = raw["away_score"]
+    home_score = _coerce_score(raw.get("home_score"))
+    away_score = _coerce_score(raw.get("away_score"))
+    if home_score is None or away_score is None:
+        logger.warning(
+            "Skipping result row with malformed score: %r vs %r (%r:%r)",
+            raw.get("home"),
+            raw.get("away"),
+            raw.get("home_score"),
+            raw.get("away_score"),
+        )
+        return None
     diff = home_score - away_score
     winner = "home" if diff > 0 else ("away" if diff < 0 else "draw")
     home_primary, home_secondary = _split_compact_team_name(raw["home"])
@@ -356,11 +430,11 @@ def _parse_ergebnis_game(raw: dict[str, Any]) -> ErgebnisGame:
     return ErgebnisGame(
         date=raw_date,
         home=raw["home"],
-        home_slug=slugify(raw["home"]),
+        home_slug=team_slug(raw["home"]),
         home_display_primary=home_primary,
         home_display_secondary=home_secondary,
         away=raw["away"],
-        away_slug=slugify(raw["away"]),
+        away_slug=team_slug(raw["away"]),
         away_display_primary=away_primary,
         away_display_secondary=away_secondary,
         home_score=home_score,
@@ -395,7 +469,7 @@ def _parse_game_result(raw: dict[str, Any]) -> GameResult:
 
     return GameResult(
         opponent=raw["opponent"],
-        opponent_slug=slugify(raw["opponent"]),
+        opponent_slug=team_slug(raw["opponent"]),
         home_away=_home_away_to_german(raw["home_away"]),
         date=raw_date,
         our_score=raw["our_score"],
@@ -662,6 +736,10 @@ def _present_upcoming_fixtures(
 def _is_season_finished(schedule_games: list[ScheduleGame]) -> bool:
     """Detect if season is finished (no future non-cancelled games).
 
+    Strict like the scheduler variant: any game with an unparseable
+    date counts as "not finished" rather than silently ignored, so
+    placeholder dates or format drift can't mark a live season over.
+
     Args:
         schedule_games: List of scheduled games
 
@@ -673,7 +751,9 @@ def _is_season_finished(schedule_games: list[ScheduleGame]) -> bool:
         if game.cancelled:
             continue
         game_date = _parse_game_date(game.date)
-        if game_date is not None and game_date > now:
+        if game_date is None:
+            return False
+        if game_date > now:
             return False
     return True
 
@@ -791,6 +871,7 @@ def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
+    _hydrate_team_slugs(meta)
     data = cache.read_json("standings.json")
 
     rows: list[StandingsRow] = []
@@ -801,7 +882,7 @@ def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView
             StandingsRow(
                 rank=rank,
                 name=team["name"],
-                slug=slugify(team["name"]),
+                slug=team_slug(team["name"]),
                 gp=team["gp"],
                 w=team["w"],
                 losses=team["l"],
@@ -831,7 +912,11 @@ def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView
     try:
         ergebnisse_data = cache.read_json("ergebnisse.json")
         raw_games = ergebnisse_data.get("ergebnisse", [])
-        last_four = [_parse_ergebnis_game(raw) for raw in raw_games[-4:]]
+        last_four = [
+            g
+            for g in (_parse_ergebnis_game(raw) for raw in raw_games[-4:])
+            if g is not None
+        ]
         latest_games = last_four[::-1]
     except (CacheMiss, FileNotFoundError):
         pass
@@ -915,6 +1000,7 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
+    _hydrate_team_slugs(meta)
 
     team_name = meta.team_slugs.get(team_slug)
     if not team_name:
@@ -984,6 +1070,7 @@ def present_schedule(ligaid: str) -> ScheduleView:
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
+    _hydrate_team_slugs(meta)
     data = cache.read_json("schedule.json")
 
     games = [_parse_schedule_game(g) for g in data.get("schedule", [])]
@@ -1049,6 +1136,7 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
+    _hydrate_team_slugs(meta)
     data = cache.read_json("predict.json")
 
     # Load schedule once for both is_finished and eligibility
@@ -1063,16 +1151,36 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
     )
 
     # Build predictions
-    predictions = [
-        PredictionGame(
-            home=p["home"],
-            away=p["away"],
-            home_score=p["home_score"],
-            away_score=p["away_score"],
-            winner=p["winner"],
+    predictions: list[PredictionGame] = []
+    for p in data.get("predictions", []):
+        home_score = _coerce_score(p.get("home_score"))
+        away_score = _coerce_score(p.get("away_score"))
+        if home_score is None or away_score is None:
+            logger.warning(
+                "Skipping prediction row with malformed score: %r vs %r",
+                p.get("home"),
+                p.get("away"),
+            )
+            continue
+        winner = p.get("winner")
+        if winner not in ("home", "away"):
+            # Normalize missing/odd values ("draw", "", None) from the scoreline
+            winner = (
+                "home"
+                if home_score > away_score
+                else "away"
+                if away_score > home_score
+                else "draw"
+            )
+        predictions.append(
+            PredictionGame(
+                home=p["home"],
+                away=p["away"],
+                home_score=home_score,
+                away_score=away_score,
+                winner=winner,
+            )
         )
-        for p in data.get("predictions", [])
-    ]
 
     # Build predicted standings
     standings = [
@@ -1130,9 +1238,14 @@ def present_ergebnisse(ligaid: str) -> ErgebnisseView:
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
+    _hydrate_team_slugs(meta)
     data = cache.read_json("ergebnisse.json")
 
-    games = [_parse_ergebnis_game(raw) for raw in data.get("ergebnisse", [])]
+    games = [
+        g
+        for g in (_parse_ergebnis_game(raw) for raw in data.get("ergebnisse", []))
+        if g is not None
+    ]
     games.reverse()  # newest results first
 
     # Load schedule for is_finished and eligibility
@@ -1175,7 +1288,7 @@ def _find_standings_row(
             return StandingsRow(
                 rank=rank,
                 name=team["name"],
-                slug=slugify(team["name"]),
+                slug=team_slug(team["name"]),
                 gp=team["gp"],
                 w=team["w"],
                 losses=team["l"],
@@ -1211,7 +1324,10 @@ def _head_to_head(
     for raw in ergebnisse_data.get("ergebnisse", []):
         h, a = raw.get("home", ""), raw.get("away", "")
         if {h, a} == pair:
-            head_to_head.append(_parse_ergebnis_game(raw))
+            game = _parse_ergebnis_game(raw)
+            if game is None:
+                continue
+            head_to_head.append(game)
             if h == home_name and a == away_name:
                 is_played = True
 
@@ -1242,6 +1358,7 @@ def present_matchup(
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
+    _hydrate_team_slugs(meta)
 
     home_name = meta.team_slugs.get(home_slug)
     away_name = meta.team_slugs.get(away_slug)

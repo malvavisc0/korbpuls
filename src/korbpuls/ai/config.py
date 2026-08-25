@@ -47,3 +47,14 @@ class AppConfig:
         if not sentry_dsn:
             return None
         return cls(sentry_dsn=sentry_dsn)
+
+
+def telemetry_enabled() -> bool:
+    """Whether analytics/telemetry is enabled.
+
+    Opt-in and disabled by default: reads ``DISABLE_TELEMETRY``
+    (default "true"), so local and staging never load analytics.
+    Set ``DISABLE_TELEMETRY=false`` in the production deployment.
+    """
+    value = os.environ.get("DISABLE_TELEMETRY", "true").strip().lower()
+    return value not in ("1", "true", "yes", "on")
