@@ -123,7 +123,7 @@
         <p class="ai-teaser">Vor dem Tip-off: Form, Vergleich und mögliche Vorteile beider Teams auf einen Blick.</p>
         {% if ai_analysis %}
         <div class="ai-panel__body">
-            {{ ai_analysis | safe }}
+            {{ ai_analysis | ai_html }}
         </div>
         <div class="ai-panel__footer">
             <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>

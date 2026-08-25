@@ -15,11 +15,7 @@
         <p class="eyebrow">Liga</p>
         <h1>Tabelle</h1>
         <p class="page-meta">Stand: <strong>{{ cached_at }}</strong></p>
-        <p>
-            Verfolge den aktuellen Tabellenstand der {{ liga_name }} mit allen wichtigen
-            Kennzahlen: Punkte, Bilanz, Korbdifferenz und erzielte/kassierte Punkte
-            für den schnellen Basketball-Teamvergleich.
-        </p>
+        <p>Aktuelle Tabelle der {{ liga_name }} mit Punkten, Bilanz und Korbdifferenz.</p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">
@@ -42,7 +38,7 @@
 
     {% if prediction_eligible %}
     <section class="ai-teaser-strip">
-        <p>Sieh dir die KI-Prognose für offene Spiele und den möglichen Endstand an.</p>
+        <p>Wie geht es weiter? Prognosen für offene Spiele und den möglichen Endstand.</p>
         <a href="/liga/{{ ligaid }}/{{ liga_slug }}/prognose" class="ai-teaser-cta">KI-Prognose öffnen</a>
     </section>
     {% endif %}
@@ -89,27 +85,6 @@
     </section>
     {% endif %}
 
-    <section class="surface">
-        <div class="section-heading">
-            <div>
-                <p class="eyebrow">Schnellüberblick</p>
-                <h2>Was jetzt wichtig ist</h2>
-            </div>
-        </div>
-        <div class="metric-grid">
-            <article class="metric-card">
-                <p class="metric-card__label">Tabellenführer</p>
-                <p class="metric-card__value">{{ rows[0].name if rows else '—' }}</p>
-                <p class="metric-card__detail">{{ rows[0].pts if rows else '—' }} Punkte aktuell an der Spitze.</p>
-            </article>
-            <article class="metric-card">
-                <p class="metric-card__label">Letzte Aktualisierung</p>
-                <p class="metric-card__value">{{ cached_at }}</p>
-                <p class="metric-card__detail">Die Tabelle ist auf schnellen Überblick für Eltern und Trainer reduziert.</p>
-            </article>
-        </div>
-    </section>
-
     {% if ai_enabled and standings_eligible %}
     <section class="ai-panel">
         <div class="ai-panel__header">
@@ -121,7 +96,7 @@
         <p class="ai-teaser">Eine kurze Einordnung zur aktuellen Lage: Spitze, Verfolgerfeld und auffällige Tendenzen.</p>
         {% if ai_narrative %}
         <div class="ai-panel__body">
-            {{ ai_narrative | safe }}
+            {{ ai_narrative | ai_html }}
         </div>
         <div class="ai-panel__footer">
             <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
@@ -179,7 +154,7 @@
     {% else %}
     <section class="surface">
         <p>Die Saison hat noch nicht begonnen — die Tabelle erscheint, sobald das erste Spiel gespielt wurde.</p>
-        <p>Spielplan ansehen: <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan →</a></p>
+        <p><a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan ansehen →</a></p>
     </section>
     {% endif %}
 </article>

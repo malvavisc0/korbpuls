@@ -11,13 +11,10 @@
 {% block main %}
 <article class="page">
     <header class="page-intro">
-        <p class="eyebrow">Ergebnisse</p>
+        <p class="eyebrow">Liga</p>
         <h1>Ergebnisse</h1>
         <p class="page-meta">Stand: <strong>{{ cached_at }}</strong></p>
-        <p>
-            Alle absolvierten Spiele der {{ liga_name }} mit Endständen
-            und Korbdifferenz in einer kompakten Übersicht.
-        </p>
+        <p>Alle gespielten Partien der {{ liga_name }} mit Endstand und Korbdifferenz.</p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">
@@ -37,27 +34,6 @@
         </form>
         {% endif %}
     </nav>
-
-    <section class="surface">
-        <div class="section-heading">
-            <div>
-                <p class="eyebrow">Schnellüberblick</p>
-                <h2>Was die Ergebnisse zeigen</h2>
-            </div>
-        </div>
-        <div class="metric-grid">
-            <article class="metric-card">
-                <p class="metric-card__label">Absolvierte Spiele</p>
-                <p class="metric-card__value">{{ games|length }}</p>
-                <p class="metric-card__detail">Alle bisherigen Partien dieser Liga mit Endständen und Korbdifferenz.</p>
-            </article>
-            <article class="metric-card">
-                <p class="metric-card__label">Sortierung</p>
-                <p class="metric-card__value">Neueste zuerst</p>
-                <p class="metric-card__detail">Die jüngsten Ergebnisse stehen oben für den schnellsten Überblick.</p>
-            </article>
-        </div>
-    </section>
 
     {% if games %}
     <section class="table-shell">
@@ -103,7 +79,7 @@
     {% else %}
     <section class="surface">
         <p>Noch keine Ergebnisse — die Saison hat noch nicht begonnen.</p>
-        <p>Spielplan ansehen: <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan →</a></p>
+        <p><a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan ansehen →</a></p>
     </section>
     {% endif %}
 </article>

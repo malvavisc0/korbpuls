@@ -11,14 +11,10 @@
 {% block main %}
 <article class="page">
     <header class="page-intro">
-        <p class="eyebrow">Spieltage</p>
+        <p class="eyebrow">Liga</p>
         <h1>Spielplan</h1>
         <p class="page-meta">{{ liga_name }}</p>
-        <p>
-            Im Spielplan der {{ liga_name }} findest du alle kommenden Basketball-Spiele,
-            Paarungen und Hallen in einer kompakten Übersicht. So planst du Spieltage schneller
-            und behältst jede Ansetzung im Blick.
-        </p>
+        <p>Alle anstehenden Spiele der {{ liga_name }} mit Termin, Halle und Status.</p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">
@@ -37,34 +33,13 @@
         {% endif %}
     </nav>
 
-    <section class="surface">
-        <div class="section-heading">
-            <div>
-                <p class="eyebrow">Schnellüberblick</p>
-                <h2>Was im Spielplan zählt</h2>
-            </div>
-        </div>
-        <div class="metric-grid">
-            <article class="metric-card">
-                <p class="metric-card__label">Anstehende Spiele</p>
-                <p class="metric-card__value">{{ games|length }}</p>
-                <p class="metric-card__detail">Alle offenen Partien dieser Liga in einer reduzierten Planungsansicht.</p>
-            </article>
-            <article class="metric-card">
-                <p class="metric-card__label">Planungsfokus</p>
-                <p class="metric-card__value">Halle + Status</p>
-                <p class="metric-card__detail">Ort und Spielstatus bleiben getrennt, damit der Spielplan schneller scanbar ist.</p>
-            </article>
-        </div>
-    </section>
-
     <section class="table-shell">
         <div class="section-heading">
             <div>
                 <p class="eyebrow">Planung</p>
                 <h2>Nächste Spiele</h2>
             </div>
-            <p class="section-meta">Kompakt, klar und auf die wichtigsten Spieltagsinfos reduziert.</p>
+            <p class="section-meta">{{ games|length }} Spiele</p>
         </div>
         <div class="table-scroll">
             <table>

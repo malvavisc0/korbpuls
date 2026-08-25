@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Basketball Liga Analyse, Tabelle & KI-Prognosen | korbPuls{% endblock %}
-{% block og_title %}Basketball Liga Analyse mit Tabelle, Spielplan & KI-Prognosen | korbPuls{% endblock %}
+{% block title %}korbPuls · Deine Basketball-Liga auf einen Blick{% endblock %}
+{% block og_title %}korbPuls · Deine Basketball-Liga auf einen Blick{% endblock %}
 
-{% block meta_description %}Analysiere deine Basketball-Liga von basketball-bund.net in Sekunden: Tabelle, Spielplan, Teamvergleich, Formkurven, Teamstatistiken und KI-gestützte Saisonprognosen auf einer Seite.{% endblock %}
-{% block og_description %}korbPuls analysiert Basketball-Ligen von basketball-bund.net mit Tabelle, Spielplan, Teamvergleich, Formkurven und KI-Prognosen in einer schnellen, übersichtlichen Oberfläche.{% endblock %}
+{% block meta_description %}Liga-ID eingeben und loslegen: korbPuls zeigt dir Tabelle, Spielplan, Formkurven, Teamvergleich und KI-Prognosen für deine Liga auf basketball-bund.net.{% endblock %}
+{% block og_description %}Tabelle, Spielplan, Formkurven und KI-Prognosen für deine Basketball-Liga von basketball-bund.net — alles auf einer Seite.{% endblock %}
 
 {% block meta_keywords %}Basketball Liga Analyse, Basketball Tabelle, Basketball Spielplan, Teamvergleich Basketball, Teamstatistiken Basketball, Saisonprognose Basketball, basketball-bund.net Liga{% endblock %}
 
@@ -12,17 +12,15 @@
 <section class="hero">
     <div class="hero-grid">
         <div class="hero__content">
-            <p class="eyebrow">Basketball-Ligaanalyse</p>
-            <h1>Verstehe deine Basketball-Liga in wenigen Sekunden</h1>
+            <p class="eyebrow">Für Ligen auf basketball-bund.net</p>
+            <h1>Deine ganze Liga auf einer Seite</h1>
             <p class="hero__lead">
-                korbPuls macht aus deiner Liga-ID eine klare Basketball-Liga-Analyse
-                mit Tabelle, Spielplan, Teamvergleich, Formkurven und KI-gestützten
-                Einschätzungen für Ligen von basketball-bund.net.
+                Gib deine Liga-ID ein — den Rest erledigt korbPuls.
             </p>
             <ul class="benefit-list">
-                <li>Aktuelle Basketball-Tabelle und Form sofort prüfen</li>
-                <li>Teams über Punkte, Differenzen und Trends vergleichen</li>
-                <li>Spielplan und KI-Prognosen ohne lange Suche abrufen</li>
+                <li>Tabelle mit Formkurven: wer läuft heiß, wer fällt zurück</li>
+                <li>Spielplan und Ergebnisse, ohne sich durchzuklicken</li>
+                <li>Zwei Teams direkt vergleichen — inklusive KI-Prognose</li>
             </ul>
             <p class="hero__trust">Unabhängiges Hobbyprojekt für deutsche Basketball-Ligen — keine Verbindung zum DBB.</p>
         </div>
@@ -43,8 +41,8 @@
                 </div>
             </form>
             <div class="liga-id-helper">
-                <p class="liga-id-helper__title">So findest du die Liga-ID</p>
-                <p>Die Liga-ID steht in der URL auf basketball-bund.net:</p>
+                <p class="liga-id-helper__title">Wo steht die Liga-ID?</p>
+                <p>In der Adresszeile, wenn du deine Liga auf basketball-bund.net öffnest:</p>
                 <p><code>liga_id=12345</code></p>
             </div>
         </div>

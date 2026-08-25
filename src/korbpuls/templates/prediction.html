@@ -15,10 +15,7 @@
         <p class="eyebrow">Prognose</p>
         <h1>Saisonprognose</h1>
         <p class="page-meta">Stand: <strong>{{ cached_at }}</strong></p>
-        <p>
-            Die Saisonprognose kombiniert offene Spiele mit einer hochgerechneten Tabelle,
-            damit du mögliche Entwicklungen in der {{ liga_name }} schneller einordnen kannst.
-        </p>
+        <p>Erwartete Ergebnisse der offenen Spiele und die daraus hochgerechnete Tabelle der {{ liga_name }}.</p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">
@@ -39,9 +36,8 @@
 
     {% if is_finished %}
     <section class="surface finished-note">
-        <p>Saison beendet.</p>
-        <p>Prognose nicht mehr nötig.</p>
-        <p>Endstand auf der <a href="/liga/{{ ligaid }}/{{ liga_slug }}">Tabellenseite</a>.</p>
+        <p>Die Saison ist beendet — eine Prognose gibt es nicht mehr.</p>
+        <p>Den Endstand findest du auf der <a href="/liga/{{ ligaid }}/{{ liga_slug }}">Tabellenseite</a>.</p>
     </section>
     {% else %}
 
@@ -56,11 +52,11 @@
         <p class="ai-teaser">Ein kompakter Blick auf Favoriten, offene Rennen und mögliche Verschiebungen bis zum Saisonende.</p>
         {% if ai_explanation %}
             <div class="ai-panel__body">
-                {{ ai_explanation | safe }}
+                {{ ai_explanation | ai_html }}
             </div>
             {% if ai_table %}
             <div class="ai-panel__body table-scroll">
-                {{ ai_table | safe }}
+                {{ ai_table | ai_html }}
             </div>
             {% endif %}
             <div class="ai-panel__footer">
@@ -79,41 +75,19 @@
     </section>
     {% endif %}
 
-    <section class="surface">
-        <div class="section-heading">
-            <div>
-                <p class="eyebrow">Schnellüberblick</p>
-                <h2>Was die Prognose zeigt</h2>
-            </div>
-        </div>
-        <div class="metric-grid">
-            <article class="metric-card">
-                <p class="metric-card__label">Offene Spiele</p>
-                <p class="metric-card__value">{{ predictions|length }}</p>
-                <p class="metric-card__detail">Noch nicht gespielte Partien mit prognostiziertem Ausgang.</p>
-            </article>
-            <article class="metric-card">
-                <p class="metric-card__label">Prognose-Stand</p>
-                <p class="metric-card__value">{{ cached_at }}</p>
-                <p class="metric-card__detail">Verdichtete Projektion für einen schnellen Überblick über den Saisonverlauf.</p>
-            </article>
-        </div>
-    </section>
-
     <section class="table-shell">
         <div class="section-heading">
             <div>
                 <p class="eyebrow">Vorhersage</p>
                 <h2>Offene Spiele</h2>
             </div>
-            <p class="section-meta">Tipp = erwarteter Sieger</p>
+            <p class="section-meta">{{ predictions|length }} Spiele · Tipp = erwarteter Sieger</p>
         </div>
-        <p class="note">Diese Vorhersagen zeigen erwartete Sieger und prognostizierte Ergebnisse der noch offenen Partien.</p>
         <div class="table-scroll">
             <table>
                 <thead>
                     <tr>
-                        <th>Spiel</th>
+                        <th class="col-short">#</th>
                         <th>Heim</th>
                         <th class="col-score">Ergebnis</th>
                         <th>Gast</th>
@@ -145,9 +119,11 @@
                         </td>
                         <td class="col-short">
                             {% if game.winner == 'home' %}
-                            <span class="winner-badge">← Heim</span>
+                            <span class="status-badge">← Heim</span>
+                            {% elif game.winner == 'away' %}
+                            <span class="status-badge">Gast →</span>
                             {% else %}
-                            <span class="winner-badge">Gast →</span>
+                            <span class="status-badge">Remis</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -164,7 +140,7 @@
                 <h2>Hochgerechnete Tabelle</h2>
             </div>
         </div>
-        <p class="note">Die Projektion zeigt, wie die Basketball-Tabelle am Saisonende aussehen könnte, wenn die prognostizierten Ergebnisse eintreffen.</p>
+        <p class="note">So könnte die Tabelle am Saisonende aussehen, wenn die prognostizierten Ergebnisse eintreffen.</p>
         <div class="table-scroll">
             <table>
                 <thead>

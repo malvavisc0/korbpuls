@@ -10,22 +10,38 @@
     --kp-border-subtle: #E4E6EA;
     --kp-text: #0B0C0F;
     --kp-text-secondary: #5A5F6A;
-    --kp-text-tertiary: #7A7F8A;
+    --kp-text-tertiary: #666B76;
     --kp-accent: #FF5A1F;
     --kp-accent-hover: #E04D15;
+    /* Darker accent roles for WCAG AA text contrast:
+       accent-text for orange text on light surfaces (4.9:1),
+       accent-strong as button/tab background under white text (5.3:1). */
+    --kp-accent-text: #CC3E06;
+    --kp-accent-strong: #C23B08;
+    --kp-accent-strong-hover: #A83306;
     --kp-accent-soft: rgba(255, 90, 31, 0.10);
     --kp-on-accent: #FFFFFF;
-    --kp-positive: #1B8A4E;
+    --kp-positive: #17804E;
     --kp-positive-soft: rgba(27, 138, 78, 0.10);
     --kp-negative: #C9353E;
     --kp-negative-soft: rgba(201, 53, 62, 0.10);
-    --kp-ai: #7C6FE0;
+    --kp-ai: #6A55D6;
     --kp-ai-soft: rgba(124, 111, 224, 0.08);
     --kp-radius: 0.5rem;
     --kp-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
     --kp-font-display: 'Teko', sans-serif;
     --kp-font-body: 'Inter', sans-serif;
     --kp-font-mono: 'JetBrains Mono', monospace;
+
+    /* Type scale — 6 steps, fluid at the top.
+       Teko renders ~20% smaller than Inter at equal size:
+       multiply by 1.2 when the element uses the display font. */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-md: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: clamp(1.2rem, 1vw + 0.95rem, 1.5rem);
+    --text-2xl: clamp(2.25rem, 4vw + 1rem, 3.5rem);
 
     /* Pico overrides — light theme */
     --pico-font-size: 16px;
@@ -50,7 +66,7 @@
     --pico-form-element-placeholder-color: var(--kp-text-tertiary);
     --pico-table-border-color: var(--kp-border-subtle);
     --pico-code-background-color: var(--kp-surface-elevated);
-    --pico-code-color: var(--kp-accent);
+    --pico-code-color: var(--kp-accent-text);
     --pico-del-color: var(--kp-text-secondary);
     --pico-mark-background-color: var(--kp-accent-soft);
     --pico-card-sectioning-background-color: var(--kp-surface-elevated);
@@ -62,6 +78,11 @@ html { background: var(--kp-base); }
 
 body.app-shell {
     min-height: 100vh;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    /* hidden fallback for Safari < 16 (no overflow-x: clip) */
+    overflow-x: hidden;
     overflow-x: clip;
     color: var(--kp-text);
     background: var(--kp-base);
@@ -76,6 +97,18 @@ h1, h2, .brand__mark, .stat-card__label, .metric-card__label,
 .eyebrow, .ai-panel__eyebrow {
     font-family: var(--kp-font-display);
     letter-spacing: 0.02em;
+}
+
+/* Fluid heading sizes — replace Pico defaults (Teko: ×1.2 optical).
+   Explicit line-height: Teko's compact metrics clip umlauts at
+   Pico's inherited 1.125 on large sizes. */
+h1 {
+    font-size: var(--text-2xl);
+    line-height: 1.1;
+}
+h2 {
+    font-size: calc(var(--text-xl) * 1.2);
+    line-height: 1.15;
 }
 
 body, p, td, th, input, button, select, textarea, .stat-card__detail,
@@ -101,6 +134,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     top: 0;
     z-index: 20;
     background: rgba(248, 249, 250, 0.92);
+    background: color-mix(in srgb, var(--kp-base) 92%, transparent);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--kp-border-subtle);
@@ -132,30 +166,23 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .brand__mark {
     font-weight: 600;
-    font-size: 1.35rem;
+    font-size: var(--text-xl);
     letter-spacing: -0.02em;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
 }
 
-.brand__svg {
-    width: 26px;
-    height: 26px;
-    color: var(--kp-accent);
-    flex-shrink: 0;
-}
-
 .brand__tagline {
     color: var(--kp-text-secondary);
-    font-size: 1rem;
+    font-size: var(--text-sm);
 }
 
 .league-pill {
     background: var(--kp-surface-elevated);
     border: 1px solid var(--kp-border-subtle);
     color: var(--kp-text-secondary);
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     padding: 0.35rem 0.75rem;
     max-width: 100%;
     overflow-wrap: anywhere;
@@ -168,7 +195,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     gap: 0.3rem;
     padding: 0.25rem 0.55rem;
     border-radius: 0.25rem;
-    font-size: 0.7rem;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -193,6 +220,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .page--centered {
     min-height: calc(100vh - 14rem);
+    min-height: calc(100svh - 14rem);
     display: grid;
     align-content: center;
 }
@@ -215,10 +243,10 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 .page-intro .eyebrow,
 .section-heading .eyebrow,
 .hero .eyebrow {
-    color: var(--kp-accent);
+    color: var(--kp-accent-text);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    font-size: 0.78rem;
+    font-size: calc(var(--text-xs) * 1.2);
     font-weight: 500;
 }
 
@@ -226,7 +254,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     color: var(--kp-ai);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    font-size: 0.78rem;
+    font-size: calc(var(--text-xs) * 1.2);
     font-weight: 500;
 }
 
@@ -238,7 +266,6 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .surface,
 .table-shell,
-.hero-card,
 .loading-card,
 .error-card,
 .ai-panel,
@@ -251,8 +278,16 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     box-shadow: var(--kp-shadow);
 }
 
-.surface, .hero-card, .loading-card, .error-card, .ai-panel, .form-panel {
+.surface, .loading-card, .error-card, .ai-panel, .form-panel {
     padding: 1.35rem;
+}
+
+/* Loading screen floats free — no card chrome */
+.loading-card {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    padding: 0;
 }
 
 .page > *,
@@ -267,6 +302,8 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .hero {
     min-height: calc(100vh - 12rem);
+    /* svh: mobile browsers with dynamic toolbars report inflated vh */
+    min-height: calc(100svh - 12rem);
     display: grid;
     align-items: center;
     padding: 2rem 0;
@@ -280,6 +317,10 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 }
 
 @media (max-width: 768px) {
+    .hero {
+        min-height: auto;
+    }
+
     .hero-grid {
         grid-template-columns: 1fr;
         gap: 2rem;
@@ -289,7 +330,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 .hero__content { display: grid; gap: 1rem; }
 
 .hero__lead {
-    font-size: 1.1rem;
+    font-size: var(--text-lg);
     color: var(--kp-text-secondary);
     max-width: 40ch;
 }
@@ -312,7 +353,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 }
 
 .hero__trust {
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     color: var(--kp-text-secondary);
     margin-top: 0.5rem;
 }
@@ -345,7 +386,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     border: 1px solid var(--kp-border-subtle);
     border-radius: var(--kp-radius);
     padding: 1rem;
-    font-size: 0.9rem;
+    font-size: var(--text-sm);
 }
 
 .liga-id-helper__title {
@@ -361,13 +402,11 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     padding: 0.15rem 0.4rem;
     background: var(--kp-surface);
     border-radius: 4px;
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     border: 1px solid var(--kp-border-subtle);
 }
 
 .hero-form button,
-.action-bar a,
-.action-bar button,
 .inline-form button,
 .ai-panel__header form button,
 .footer-actions button {
@@ -386,17 +425,8 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .section-heading h2, .section-heading p { margin-bottom: 0; }
 
-/* ── Action Bar ─────────────────────────────────────────────── */
+/* ── Footer Actions ─────────────────────────────────────────── */
 
-.action-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    align-items: center;
-}
-
-.action-bar a,
-.action-bar .inline-form button,
 .footer-actions a,
 .footer-actions button {
     display: inline-flex;
@@ -414,17 +444,9 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.action-bar a:hover,
-.action-bar .inline-form button:hover,
 .footer-actions a:hover,
 .footer-actions button:hover {
     background: var(--kp-surface-soft);
-}
-
-.action-bar a[aria-current="page"] {
-    background: var(--kp-accent);
-    border-color: var(--kp-accent);
-    color: var(--kp-on-accent);
 }
 
 .inline-form { margin: 0; }
@@ -434,6 +456,12 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     --pico-background-color: var(--kp-surface-elevated);
     --pico-border-color: var(--kp-border);
     --pico-color: var(--kp-text);
+}
+
+/* Kill only the resting shadow — never the :focus ring
+   (Pico paints the keyboard focus indicator via this variable). */
+.inline-form button:not(:focus):not(:active),
+.secondary-button:not(:focus):not(:active) {
     --pico-box-shadow: none;
 }
 
@@ -474,7 +502,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     color: var(--kp-text-secondary);
     text-decoration: none;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: var(--text-sm);
     transition: background 0.15s, color 0.15s;
     min-width: 0;
     text-align: center;
@@ -486,12 +514,12 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 }
 
 .segmented-nav__tab--active {
-    background: var(--kp-accent);
+    background: var(--kp-accent-strong);
     color: var(--kp-on-accent);
 }
 
 .segmented-nav__tab--active:hover {
-    background: var(--kp-accent-hover);
+    background: var(--kp-accent-strong-hover);
     color: var(--kp-on-accent);
 }
 
@@ -500,14 +528,14 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    min-height: 2.25rem;
+    min-height: 2.75rem;
     padding: 0.5rem 0.85rem;
     border-radius: var(--kp-radius);
     border: 1px solid var(--kp-border);
     background: transparent;
     color: var(--kp-text-secondary);
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: var(--text-sm);
     transition: background 0.15s, color 0.15s;
 }
 
@@ -527,15 +555,15 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     padding: 0.7rem 1.5rem;
     border-radius: var(--kp-radius);
     border: none;
-    background: var(--kp-accent);
+    background: var(--kp-accent-strong);
     color: var(--kp-on-accent);
     font-weight: 500;
-    font-size: 1rem;
+    font-size: var(--text-md);
     transition: background 0.15s, border-color 0.15s;
 }
 
 .primary-cta:hover {
-    background: var(--kp-accent-hover);
+    background: var(--kp-accent-strong-hover);
 }
 
 /* ── AI Teaser Strip ──────────────────────────────────────── */
@@ -594,15 +622,15 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .latest-results__title {
     font-family: var(--kp-font-display);
-    font-size: 1rem;
+    font-size: calc(var(--text-md) * 1.2);
     font-weight: 600;
     margin: 0;
     letter-spacing: -0.01em;
 }
 
 .latest-results__link {
-    color: var(--kp-accent);
-    font-size: 0.85rem;
+    color: var(--kp-accent-text);
+    font-size: var(--text-sm);
     text-decoration: none;
     white-space: nowrap;
 }
@@ -634,7 +662,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 }
 
 .result-card__date {
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     color: var(--kp-text-secondary);
 }
 
@@ -653,7 +681,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 .result-card__name {
     display: grid;
     min-width: 0;
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     color: var(--kp-text);
     text-decoration: none;
 }
@@ -664,10 +692,10 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    padding: 0.25rem 0;
 }
 
 .result-card__name-primary {
-    font-size: 0.72rem;
     font-weight: 500;
     letter-spacing: 0.01em;
 }
@@ -675,17 +703,16 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 .result-card__name-secondary {
     font-weight: 500;
     color: var(--kp-text-secondary);
-    font-size: 0.9rem;
     line-height: 1.2;
 }
 
 .result-card__name:hover {
-    color: var(--kp-accent);
+    color: var(--kp-accent-text);
 }
 
 .result-card__name:hover .result-card__name-primary,
 .result-card__name:hover .result-card__name-secondary {
-    color: var(--kp-accent);
+    color: var(--kp-accent-text);
 }
 
 .result-card__name--winner {
@@ -698,7 +725,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 }
 
 .result-card__score {
-    font-size: 0.9rem;
+    font-size: var(--text-sm);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
     color: var(--kp-text-secondary);
@@ -713,7 +740,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     color: var(--kp-text-secondary);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 720px) {
     .latest-results__grid {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -722,10 +749,6 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 @media (max-width: 480px) {
     .result-card {
         padding: 0.6rem 0.75rem;
-    }
-
-    .result-card__name {
-        font-size: 0.8rem;
     }
 }
 
@@ -758,8 +781,8 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     padding: 0.35rem 0.75rem;
     border-radius: var(--kp-radius);
     background: var(--kp-accent-soft);
-    color: var(--kp-accent);
-    font-size: 0.85rem;
+    color: var(--kp-accent-text);
+    font-size: var(--text-sm);
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -783,14 +806,14 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .record-col__value {
     font-family: var(--kp-font-display);
-    font-size: 1.6rem;
+    font-size: calc(var(--text-xl) * 1.25);
     font-weight: 600;
     letter-spacing: -0.02em;
 }
 
 .record-col__label {
     color: var(--kp-text-secondary);
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-weight: 500;
@@ -815,7 +838,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     border-radius: var(--kp-radius);
     background: var(--kp-positive-soft);
     color: var(--kp-positive);
-    font-size: 0.78rem;
+    font-size: var(--text-xs);
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -830,15 +853,20 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 .section-meta {
     color: var(--kp-text-secondary);
-    font-size: 0.9rem;
+    font-size: var(--text-sm);
     margin: 0;
+}
+
+/* Small annotation inside table cells (e.g. home/away marker) */
+.table-meta {
+    font-size: var(--text-sm);
 }
 
 /* ── AI Teaser Text ───────────────────────────────────────── */
 
 .ai-teaser {
     color: var(--kp-text-secondary);
-    font-size: 0.95rem;
+    font-size: var(--text-md);
     margin: 0;
 }
 
@@ -866,43 +894,10 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
     font-style: italic;
 }
 
-/* ── Feature Chips ────────────────────────────────────────── */
-
-.feature-chips {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.35rem 0.75rem;
-    border-radius: var(--kp-radius);
-    background: var(--kp-surface-elevated);
-    border: 1px solid var(--kp-border);
-    color: var(--kp-text-secondary);
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-/* ── Benefit Bullets ──────────────────────────────────────── */
-
-.benefit-bullets {
-    display: grid;
-    gap: 0.4rem;
-}
-
-.benefit-bullets p {
-    margin: 0;
-    color: var(--kp-text-secondary);
-    font-size: 0.9rem;
-}
-
 /* ── Disclaimer ───────────────────────────────────────────── */
 
 .disclaimer {
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     color: var(--kp-text-secondary);
     margin: 0;
     padding-top: 0.75rem;
@@ -920,17 +915,7 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 }
 
 .table-scroll table {
-    border-collapse: collapse;
     width: 100%;
-}
-
-.table-scroll th {
-    background: var(--kp-surface-elevated);
-    font-weight: 500;
-    text-transform: uppercase;
-    font-size: 0.72rem;
-    letter-spacing: 0.06em;
-    color: var(--kp-text-secondary);
 }
 
 .table-shell > .section-heading {
@@ -969,10 +954,10 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 table thead th {
     white-space: nowrap;
-    color: var(--kp-text);
-    font-size: 0.82rem;
+    color: var(--kp-text-secondary);
+    font-size: var(--text-xs);
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.06em;
     background: var(--kp-surface-elevated);
     font-family: var(--kp-font-body);
     font-weight: 500;
@@ -1020,7 +1005,7 @@ table tbody td {
     border: 1px solid var(--kp-border-subtle);
     color: var(--kp-text-secondary);
     font-family: var(--kp-font-mono);
-    font-size: 0.68rem;
+    font-size: var(--text-xs);
     white-space: nowrap;
 }
 
@@ -1029,7 +1014,7 @@ table tbody td {
     width: fit-content;
     margin-top: 0.2rem;
     color: var(--kp-ai);
-    font-size: 0.78rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     text-decoration: none;
 }
@@ -1059,7 +1044,7 @@ table tbody td {
     transition: width 0.2s ease;
 }
 
-.team-link:hover { color: var(--kp-accent); }
+.team-link:hover { color: var(--kp-accent-text); }
 
 .team-link:hover::after { width: 100%; }
 
@@ -1089,14 +1074,14 @@ table tbody td {
 
 .stat-card__label, .metric-card__label {
     color: var(--kp-text-secondary);
-    font-size: 0.75rem;
+    font-size: calc(var(--text-xs) * 1.2);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-weight: 500;
 }
 
 .stat-card__value, .metric-card__value {
-    font-size: 1.2rem;
+    font-size: var(--text-xl);
     font-weight: 600;
     letter-spacing: -0.02em;
     /* font-family set to body font at line 93 for legibility */
@@ -1161,17 +1146,7 @@ table tbody td {
     gap: 0.75rem;
 }
 
-.ai-output-raw {
-    margin: 0;
-    padding: 1rem;
-    border-radius: var(--kp-radius);
-    background: var(--kp-surface-elevated);
-    color: var(--kp-text-secondary);
-    overflow-x: auto;
-    font-size: 0.88rem;
-}
-
-.disclosure { font-size: 0.88rem; color: var(--kp-text-secondary); }
+.disclosure { font-size: var(--text-sm); color: var(--kp-text-secondary); }
 
 .table-action-link {
     display: inline-flex;
@@ -1183,7 +1158,7 @@ table tbody td {
     background: rgba(124, 111, 224, 0.08);
     color: var(--kp-ai);
     text-decoration: none;
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     line-height: 1.2;
     white-space: nowrap;
@@ -1205,7 +1180,7 @@ table tbody td {
     gap: 0.35rem;
     padding: 0.25rem 0.65rem;
     border-radius: 0.25rem;
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     font-weight: 600;
     white-space: nowrap;
     letter-spacing: 0.04em;
@@ -1259,7 +1234,6 @@ table tbody td {
     gap: 1rem;
     justify-items: center;
     text-align: center;
-    padding: 3rem 2rem;
 }
 
 .loading-card h1 {
@@ -1309,33 +1283,18 @@ table tbody td {
     margin-top: 1.5rem;
     padding-top: 1rem;
     border-top: 1px solid var(--kp-border-subtle);
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     color: var(--kp-text-secondary);
     text-align: center;
 }
 
 .site-credit a {
-    color: var(--kp-accent);
+    color: var(--kp-accent-text);
     text-decoration: none;
 }
 
 .site-credit a:hover {
     text-decoration: underline;
-}
-
-/* ── AI Details ─────────────────────────────────────────────── */
-
-details.ai-details {
-    background: var(--kp-surface-elevated);
-    border: 1px solid var(--kp-border);
-    border-radius: var(--kp-radius);
-    padding: 0.9rem 1rem;
-}
-
-details.ai-details summary {
-    cursor: pointer;
-    font-weight: 500;
-    color: var(--kp-text);
 }
 
 /* ── Animations ─────────────────────────────────────────────── */
@@ -1359,7 +1318,6 @@ details.ai-details summary {
 .page > section,
 .page > .stats-grid,
 .page > .ai-panel,
-.hero-card,
 .loading-card,
 .error-card {
     animation: fadeSlideUp 0.28s ease-out both;
@@ -1424,12 +1382,8 @@ details.ai-details summary {
         align-items: flex-start;
     }
 
-    .hero { min-height: auto; }
-    .hero::before { display: none; }
-    .hero-card { padding: 1.35rem; }
     .hero-form .form-row { grid-template-columns: 1fr; }
 
-    .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .metric-grid { grid-template-columns: 1fr; }
 
     .ai-teaser-strip {
@@ -1456,7 +1410,6 @@ details.ai-details summary {
     }
 
     .surface,
-    .hero-card,
     .loading-card,
     .error-card,
     .ai-panel,
@@ -1510,23 +1463,6 @@ details.ai-details summary {
 
     .site-nav {
         min-height: auto;
-    }
-
-    h1 { font-size: 1.5rem; }
-    .page-intro h1, .hero h1 { font-size: 1.6rem; }
-    .team-hero__name-row h1 { font-size: 1.85rem; }
-    .record-col__value { font-size: 1.3rem; }
-
-    .eyebrow, .ai-panel__eyebrow { font-size: 0.82rem; }
-    .stat-card__label, .metric-card__label { font-size: 0.85rem; }
-    .stat-card__value, .metric-card__value { font-size: 1.05rem; }
-    .ai-panel__body {
-        font-size: 0.98rem;
-        line-height: 1.6;
-    }
-    .section-heading h2,
-    .ai-panel__header h2 {
-        font-size: 1.2rem;
     }
 
     .table-scroll table { min-width: 480px; }

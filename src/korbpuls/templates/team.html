@@ -40,9 +40,8 @@
         </p>
         {% endif %}
         <p>
-            Analysiere {{ team_name }} in der {{ liga_name }} mit den wichtigsten
-            Basketball-Teamstatistiken: Ergebnisse, Siegquote, Punkteschnitt,
-            Korbdifferenz, aktuelle Form und nächste Spiele.
+            {{ team_name }} in der {{ liga_name }} — Ergebnisse,
+            Formkurve und alle Kennzahlen im Überblick.
         </p>
     </header>
 
@@ -53,7 +52,6 @@
                 <h2>Weitere Zahlen</h2>
             </div>
         </div>
-        <p class="note">Zusätzliche Kennzahlen helfen dir, enge Spiele, klare Siege und das Leistungsprofil des Teams schneller einzuordnen.</p>
         <div class="metric-grid">
             <article class="metric-card">
                 <span class="metric-card__label">Ø Siegmarge</span>
@@ -106,10 +104,10 @@
             </form>
             {% endif %}
         </div>
-        <p class="ai-teaser">Stärken, aktuelle Form und mögliche Entwicklung dieses Teams in einer kompakten Einordnung.</p>
+        <p class="ai-teaser">Stärken, Schwächen und aktuelle Form dieses Teams.</p>
         {% if ai_analysis %}
             <div class="ai-panel__body">
-                {{ ai_analysis | safe }}
+                {{ ai_analysis | ai_html }}
             </div>
             <div class="ai-panel__footer">
                 <p class="disclosure">Maschinell erstellt — kann Ungenauigkeiten enthalten.</p>
@@ -133,11 +131,7 @@
                 <p class="muted">{{ ai_analysis_ineligible_reason }}</p>
             </div>
         {% else %}
-            <ul class="benefit-list">
-                <li>Team-Identität erkennen</li>
-                <li>Stärken und Schwächen ehrlich benennen</li>
-                <li>Vergleich mit Peer-Teams</li>
-            </ul>
+            <p>Eine ehrliche Einschätzung auf Basis der bisherigen Spiele.</p>
             <form class="inline-form"
                   method="POST"
                   action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
@@ -153,7 +147,7 @@
                 <p class="eyebrow">Ergebnisse</p>
                 <h2>Letzte Spiele</h2>
             </div>
-            <p class="section-meta">Letzte 5: {{ metrics.last_5 }}</p>
+            <p class="section-meta">Letzte 5 Spiele: {{ metrics.last_5 }}</p>
         </div>
         <div class="table-scroll">
             <table>
@@ -174,7 +168,7 @@
                             <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.opponent_slug }}">
                                 {{ game.opponent }}
                             </a>
-                            <span class="muted" style="font-size:0.78rem"> {{ game.home_away }}</span>
+                            <span class="muted table-meta"> {{ game.home_away }}</span>
                         </td>
                         <td class="col-score">
                             <span class="prediction-score">
