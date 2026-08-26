@@ -205,8 +205,8 @@ overhead. Get the keys from your Langfuse project settings. See
 | Variable | Default | Description |
 |---|---|---|
 | `DISABLE_TELEMETRY` | `true` | Set to `false` in production to load the Rybbit analytics script |
-| `RYBBIT_SCRIPT_URL` | `https://analytics.dextopia.de/api/script.js` | URL of your Rybbit instance's tracking script |
-| `RYBBIT_SITE_ID` | `9feb491675c0` | Rybbit site ID; empty disables the tag regardless of telemetry |
+| `RYBBIT_SCRIPT_URL` | `` | URL of your Rybbit instance's tracking script |
+| `RYBBIT_SITE_ID` | `` | Rybbit site ID; empty disables the tag regardless of telemetry |
 
 Telemetry is **disabled by default**, so local development and staging never
 load the analytics script. Only the production deployment should set
