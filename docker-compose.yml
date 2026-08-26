@@ -3,8 +3,8 @@ name: korbpuls
 services:
   web:
     image: ghcr.io/malvavisc0/korbpuls:latest
-    ports:
-      - "8000:8000"
+    expose:
+      - 8000
     environment:
       KORBPULS_API_KEY: ${KORBPULS_API_KEY}
       KORB_CMD: korb
