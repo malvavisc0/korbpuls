@@ -20,7 +20,7 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
-COPY run.sh ./
+COPY run.sh logging.yaml ./
 RUN chmod +x run.sh
 
 ENV PATH="/app/.venv/bin:$PATH"
