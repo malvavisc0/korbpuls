@@ -18,4 +18,4 @@ else
     ARGS+=(--workers "$WORKERS")
 fi
 
-exec $RUNNER uvicorn korbpuls.main:app "${ARGS[@]}" "$@"
+exec $RUNNER uvicorn korbpuls.main:app "${ARGS[@]}" --log-config "$(dirname "$0")/logging.yaml" "$@"

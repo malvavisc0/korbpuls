@@ -1,0 +1,42 @@
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  default:
+    format: "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+    datefmt: "%Y-%m-%dT%H:%M:%S%z"
+  access:
+    format: "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+    datefmt: "%Y-%m-%dT%H:%M:%S%z"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: default
+    stream: ext://sys.stdout
+  access:
+    class: logging.StreamHandler
+    formatter: access
+    stream: ext://sys.stdout
+
+loggers:
+  uvicorn:
+    level: INFO
+    handlers: [console]
+    propagate: false
+  uvicorn.error:
+    level: INFO
+    handlers: [console]
+    propagate: false
+  uvicorn.access:
+    level: INFO
+    handlers: [access]
+    propagate: false
+  korbpuls:
+    level: INFO
+    handlers: [console]
+    propagate: false
+
+root:
+  level: WARNING
+  handlers: [console]
