@@ -8,7 +8,26 @@ import shlex
 import subprocess
 from typing import Any, cast
 
+from korbpuls.cache import CACHE_ROOT
+
 _KORB_CMD = shlex.split(os.environ.get("KORB_CMD", "uv run korb"))
+
+
+def _korb_cwd() -> str:
+    """Working directory for korb subprocesses.
+
+    korb resolves its HTML files relative to CWD as
+    ``files/<ligaid>/{ergebnisse,spielplan}.html``.  Pointing CWD at
+    the cache root (the persistent volume in production) keeps those
+    downloads on the volume so AI agent tool calls still find them
+    after container restarts.  Locally the cache root *is* the
+    ``files/`` dir, so CWD must be its parent for the paths to line
+    up with the pre-existing layout.
+    """
+    root = CACHE_ROOT
+    if root.name == "files":
+        return str(root.parent)
+    return str(root)
 
 
 class KorbError(Exception):
@@ -34,6 +53,7 @@ def _run_korb(args: list[str]) -> dict[str, Any]:
             capture_output=True,
             text=True,
             check=True,
+            cwd=_korb_cwd(),
         )
     except subprocess.CalledProcessError as e:
         raise KorbError(f"korb command failed: {e.stderr}") from e
@@ -55,7 +75,13 @@ def run_download(ligaid: str) -> None:
     """
     cmd = [*_KORB_CMD, "--ligaid", ligaid, "download"]
     try:
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
+        subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=_korb_cwd(),
+        )
     except subprocess.CalledProcessError as e:
         raise KorbError(f"korb download failed: {e.stderr}") from e
 

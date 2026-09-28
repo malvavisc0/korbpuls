@@ -8,6 +8,8 @@ import shlex
 import subprocess
 from typing import Any
 
+from korbpuls.korb_client import _korb_cwd
+
 _KORB_CMD = shlex.split(os.environ.get("KORB_CMD", "uv run korb"))
 
 
@@ -21,6 +23,7 @@ def run_korb_command(args: str, timeout: int = 60) -> dict[str, Any]:
             capture_output=True,
             text=True,
             timeout=timeout,
+            cwd=_korb_cwd(),
         )
 
         stdout = result.stdout.strip()
