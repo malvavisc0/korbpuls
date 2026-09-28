@@ -34,9 +34,14 @@ run_korb_command('--json --ligaid <LIGA_ID> predict')
 - Predictions exist → note any interesting differences from current standings
 - Command fails → skip, work from standings only
 
+> **Predictions are simulations, never facts.** Never state predicted
+> records, points, differentials, or "Nach X Spieltagen" from the
+> prediction output as if they were the current standings. The
+> narrative must describe only the real standings from Step 1.
+
 ### Early season handling
 
-If very few games played (1–3 per team): acknowledge limited sample, write a season-opening snapshot, avoid overinterpreting, use hedging ("nach den ersten Spieltagen", "bisher").
+If very few games played (1–3 per team): acknowledge limited sample, write a season-opening snapshot, avoid overinterpreting, use hedging ("nach den ersten Spieltagen", "bisher"). **Ignore the prediction output entirely** — simulated final tables are meaningless this early.
 
 ---
 

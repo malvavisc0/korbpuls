@@ -36,6 +36,11 @@ run_korb_command('--json --ligaid <LIGA_ID> predict')
 
 Internal state: `predicted_finish` / `season_finalized` / `prediction_unavailable`
 
+> **Early season caution:** if teams have played only 1–3 games, the
+> prediction is built on a tiny sample. Frame the explanation as a
+> tentative projection ("nach nur einem Spieltag", "mit Vorbehalt"),
+> and never declare the title race or relegation decided that early.
+
 ---
 
 ## Step 3 — Choose the league story

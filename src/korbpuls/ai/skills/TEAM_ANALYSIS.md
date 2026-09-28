@@ -56,6 +56,11 @@ run_korb_command('--json --ligaid <LIGA_ID> predict')
 - Otherwise note predicted rank
 - Command fails → skip (optional)
 
+> **Predictions are simulations, never facts.** Reference the predicted
+> rank only as an explicit projection ("laut Prognose", "projiziert"),
+> never as the team's current standing. With few games played
+> (1–3 per team), treat the prediction with clear reservation.
+
 ---
 
 ## Step 4 — Internal worksheet (do NOT include in output)
