@@ -16,16 +16,24 @@
 
 {% block main %}
 <article class="page">
-    <header class="team-hero">
+    <nav class="page-back-row" aria-label="Zurück">
+        <a class="page-back" href="/liga/{{ ligaid }}/{{ liga_slug }}">
+            <svg class="page-back__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 12H5M11 18l-6-6 6-6"/>
+            </svg>
+            Zurück zur Tabelle
+        </a>
+    </nav>
+
+    <header class="team-hero" data-rank="{{ rank if rank > 0 else '–' }}">
         <div class="team-hero__name-row">
             <h1>{{ team_name }}</h1>
             {% if rank > 0 %}
             <span class="rank-badge">Platz {{ rank }} von {{ total_teams }}</span>
             {% endif %}
         </div>
-        <p class="team-hero__league">{{ liga_name }}</p>
         <div class="team-hero__record">
-            <div class="record-col record-col--wins">
+            <div class="record-col record-col--wins{% if wins == 0 %} record-col--zero{% endif %}">
                 <span class="record-col__value">{{ wins }}</span>
                 <span class="record-col__label">Siege</span>
             </div>
@@ -39,56 +47,59 @@
             <span class="streak-badge {% if 'Niederlage' in metrics.current_streak %}streak-badge--loss{% endif %}">{{ metrics.current_streak }}</span>
         </p>
         {% endif %}
-        <p>
-            {{ team_name }} in der {{ liga_name }} — Ergebnisse,
-            Formkurve und alle Kennzahlen im Überblick.
-        </p>
     </header>
 
-    <section class="surface">
-        <div class="section-heading">
+    <section class="team-dashboard" aria-label="Saisonprofil">
+        {% set next_fixture = upcoming_fixture_months[0].fixtures[0] if upcoming_fixture_months and upcoming_fixture_months[0].fixtures else none %}
+        <div class="team-dashboard__head">
             <div>
-                <p class="eyebrow">Leistung</p>
-                <h2>Weitere Zahlen</h2>
+                <p class="eyebrow">Saisonprofil</p>
+                <h2>So spielt {{ team_name }}</h2>
             </div>
         </div>
-        <div class="metric-grid">
-            <article class="metric-card">
-                <span class="metric-card__label">Ø Siegmarge</span>
-                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_win_margin) }}</span>
+
+        <div class="team-kpi-grid">
+            <article class="team-kpi team-kpi--record">
+                <span class="team-kpi__label">Bilanz</span>
+                <span class="team-kpi__value team-kpi__value--record">{{ wins }}<small>–</small>{{ losses }}</span>
+                <div class="form-strip" aria-label="Form der letzten Spiele">
+                    {% for game in results[:5] %}
+                    <span class="form-chip {% if game.result == 'Sieg' %}form-chip--win{% else %}form-chip--loss{% endif %}"
+                          title="{{ game.date }} · {{ game.opponent }} · {{ game.our_score }}:{{ game.opp_score }}"
+                          aria-label="{{ game.result }} am {{ game.date }} gegen {{ game.opponent }}, {{ game.our_score }} zu {{ game.opp_score }}">
+                        {% if game.result == 'Sieg' %}S{% elif game.result == 'Niederlage' %}N{% else %}U{% endif %}
+                    </span>
+                    {% endfor %}
+                </div>
+                <span class="team-kpi__detail">{{ results|length }} Spiele</span>
             </article>
-            <article class="metric-card">
-                <span class="metric-card__label">Ø Niederlagemarge</span>
-                <span class="metric-card__value">{{ "%.1f"|format(metrics.avg_loss_margin) }}</span>
+
+            <article class="team-kpi">
+                <span class="team-kpi__label">Korbverhältnis</span>
+                <span class="team-kpi__value team-kpi__value--ratio">{{ avg_pf }}<small> : </small><span class="team-kpi__allowed">{{ avg_pa }}</span></span>
+                <span class="team-kpi__detail">erzielt : kassiert</span>
             </article>
-            <article class="metric-card">
-                <span class="metric-card__label">Klare Siege (≥15 Punkte)</span>
-                <span class="metric-card__value">{{ metrics.blowouts }}</span>
-            </article>
-            <article class="metric-card">
-                <span class="metric-card__label">Knappe Spiele (≤5 Punkte)</span>
-                <span class="metric-card__value">{{ metrics.close_games }}</span>
+
+            <article class="team-kpi team-kpi--next">
+                <span class="team-kpi__label">Nächstes Spiel</span>
+                {% if next_fixture %}
+                <a class="team-kpi__value team-kpi__value--next" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ next_fixture.opponent_slug }}">{{ next_fixture.opponent }}</a>
+                <span class="team-kpi__detail">{{ next_fixture.date_label }}</span>
+                <span class="team-kpi__detail">{{ next_fixture.location }} · {{ next_fixture.venue }}</span>
+                {% elif is_finished %}
+                <span class="team-kpi__detail">Saison beendet.</span>
+                {% else %}
+                <span class="team-kpi__detail">Kein Spiel geplant.</span>
+                {% endif %}
             </article>
         </div>
-    </section>
 
-    <section class="stats-grid" aria-label="Kennzahlen">
-        <article class="stat-card">
-            <span class="stat-card__label">Siegquote</span>
-            <span class="stat-card__value">{{ "%.1f"|format(metrics.win_rate) }}%</span>
-        </article>
-        <article class="stat-card">
-            <span class="stat-card__label">Ø Erzielt</span>
-            <span class="stat-card__value">{{ avg_pf }}</span>
-        </article>
-        <article class="stat-card">
-            <span class="stat-card__label">Ø Kassiert</span>
-            <span class="stat-card__value">{{ avg_pa }}</span>
-        </article>
-        <article class="stat-card">
-            <span class="stat-card__label">Differenz</span>
-            <span class="stat-card__value">{{ "%+d"|format(total_diff) }}</span>
-        </article>
+        {% if wins > 0 %}
+        <aside class="team-insight">
+            <span class="team-insight__label">Was auffällt</span>
+            <p>Die Siege fallen im Schnitt mit <strong>{{ "%.1f"|format(metrics.avg_win_margin) }} Punkten</strong> Vorsprung aus.</p>
+        </aside>
+        {% endif %}
     </section>
 
     {% if ai_enabled %}
@@ -98,11 +109,6 @@
                 <p class="ai-panel__eyebrow">KI-gestützt</p>
                 <h2>KI-Teamprofil</h2>
             </div>
-            {% if ai_analysis and not is_finished %}
-            <form class="inline-form" method="POST" action="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ team_slug }}/ki-analyse">
-                <button class="secondary-button" type="submit">Aktualisieren</button>
-            </form>
-            {% endif %}
         </div>
         <p class="ai-teaser">Stärken, Schwächen und aktuelle Form dieses Teams.</p>
         {% if ai_analysis %}
@@ -147,17 +153,15 @@
                 <p class="eyebrow">Ergebnisse</p>
                 <h2>Letzte Spiele</h2>
             </div>
-            <p class="section-meta">Letzte 5 Spiele: {{ metrics.last_5 }}</p>
         </div>
         <div class="table-scroll">
-            <table>
+            <table class="data-table team-results-table table-cards">
                 <thead>
                     <tr>
                         <th class="col-date">Datum</th>
                         <th>Gegner</th>
                         <th class="col-score">Ergebnis</th>
-                        <th class="col-diff">Diff</th>
-                        <th class="col-outcome">W/L</th>
+                        <th class="col-outcome">Ausgang</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -168,17 +172,18 @@
                             <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.opponent_slug }}">
                                 {{ game.opponent }}
                             </a>
-                            <span class="muted table-meta"> {{ game.home_away }}</span>
+                            <span class="table-meta">· {{ game.home_away }}</span>
                         </td>
                         <td class="col-score">
-                            <span class="prediction-score">
-                                {{ game.our_score }} : {{ game.opp_score }}
+                            <span class="result-score">
+                                <span class="result-score__value{% if game.diff > 0 %} is-winner{% endif %}">{{ game.our_score }}</span>
+                                <span class="result-score__sep">:</span>
+                                <span class="result-score__value{% if game.diff < 0 %} is-winner{% endif %}">{{ game.opp_score }}</span>
                             </span>
                         </td>
-                        <td class="col-diff {% if game.diff > 0 %}diff-positive{% elif game.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ game.diff }}</td>
                         <td class="col-outcome">
-                            <span class="status-badge {% if game.result == 'Sieg' %}status-badge--win{% else %}status-badge--loss{% endif %}">
-                                {% if game.result == 'Sieg' %}W{% else %}L{% endif %}
+                            <span class="status-badge{% if game.result == 'Sieg' %} status-badge--win{% elif game.result == 'Niederlage' %} status-badge--loss{% endif %}">
+                                {% if game.result == 'Sieg' %}Sieg{% elif game.result == 'Niederlage' %}Niederlage{% else %}Unentschieden{% endif %}
                             </span>
                         </td>
                     </tr>
@@ -197,7 +202,7 @@
             </div>
         </div>
         <div class="table-scroll">
-            <table class="team-fixtures-table">
+            <table class="data-table team-fixtures-table table-cards">
                 <thead>
                     <tr>
                         <th class="col-date">Datum</th>
@@ -214,7 +219,7 @@
                         <td>
                             <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ fixture.opponent_slug }}">{{ fixture.opponent }}</a>
                             {% if not is_finished and fixture.matchup_eligible %}
-                            <a class="fixture-preview-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ fixture.home_slug }}/{{ fixture.away_slug }}">KI-Vorschau</a>
+                            <a class="table-action-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan/vorschau/{{ fixture.home_slug }}/{{ fixture.away_slug }}">KI-Vorschau</a>
                             {% endif %}
                         </td>
                         <td><span class="fixture-location">{{ fixture.location }}</span></td>
@@ -229,14 +234,4 @@
     {% endif %}
 
 </article>
-{% endblock %}
-
-{% block footer %}
-<div class="footer-actions">
-    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Tabelle</a>
-    {% if not is_finished %}
-    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Spielplan</a>
-    {% endif %}
-    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/ergebnisse">Ergebnisse</a>
-</div>
 {% endblock %}

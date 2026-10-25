@@ -15,7 +15,6 @@
         <p class="eyebrow">Liga</p>
         <h1>Tabelle</h1>
         <p class="page-meta">Stand: <strong>{{ cached_at }}</strong></p>
-        <p>Aktuelle Tabelle der {{ liga_name }} mit Punkten, Bilanz und Korbdifferenz.</p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">
@@ -36,6 +35,28 @@
         {% endif %}
     </nav>
 
+    {% if standings_eligible and rows %}
+    {% set total_games = (rows | sum(attribute='gp')) // 2 %}
+    <section class="league-strip" aria-label="Liga-Kennzahlen">
+        <div class="league-strip__item league-strip__item--lead">
+            <span class="league-strip__label">Tabellenführer</span>
+            <span class="league-strip__value league-strip__value--accent">{{ rows[0].name }}</span>
+        </div>
+        <div class="league-strip__item">
+            <span class="league-strip__label">Teams</span>
+            <span class="league-strip__value">{{ rows|length }}</span>
+        </div>
+        <div class="league-strip__item">
+            <span class="league-strip__label">Gespielte Partien</span>
+            <span class="league-strip__value">{{ total_games }}</span>
+        </div>
+        <div class="league-strip__item">
+            <span class="league-strip__label">Punkte Spitze</span>
+            <span class="league-strip__value">{{ rows[0].pts }}</span>
+        </div>
+    </section>
+    {% endif %}
+
     {% if prediction_eligible %}
     <section class="ai-teaser-strip">
         <p>Wie geht es weiter? Prognosen für offene Spiele und den möglichen Endstand.</p>
@@ -47,18 +68,18 @@
     <section class="today-games">
         <div class="latest-results__header">
             <h2 class="latest-results__title">Heute</h2>
-            <span class="section-meta">{{ today_games|length }} Spiele</span>
+            <span class="section-meta">{{ today_games|length }} Spiel{% if today_games|length != 1 %}e{% endif %}</span>
         </div>
         <div class="table-shell">
             <div class="table-scroll">
-                <table>
+                <table class="data-table today-table">
                     <thead>
                         <tr>
                             <th class="col-short">Zeit</th>
                             <th>Heim</th>
                             <th>Gast</th>
                             <th class="hide-mobile">Halle</th>
-                            <th class="col-short">Status</th>
+                            <th class="col-score">Ergebnis</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -86,11 +107,15 @@
                             <td class="hide-mobile">
                                 <span class="muted">{{ game.venue or 'Wird noch bestätigt' }}</span>
                             </td>
-                            <td class="col-short">
+                            <td class="col-score">
                                 {% if game.cancelled %}
                                 <span class="cancelled-badge">Abgesagt</span>
                                 {% elif game.played %}
-                                <strong class="today-score">{{ game.home_score }}:{{ game.away_score }}</strong>
+                                <span class="result-score">
+                                    <span class="result-score__value{% if game.home_score > game.away_score %} is-winner{% endif %}">{{ game.home_score }}</span>
+                                    <span class="result-score__sep">:</span>
+                                    <span class="result-score__value{% if game.away_score > game.home_score %} is-winner{% endif %}">{{ game.away_score }}</span>
+                                </span>
                                 {% else %}
                                 <span class="status-badge">Geplant</span>
                                 {% endif %}
@@ -178,13 +203,13 @@
     {% if standings_eligible %}
     <section class="table-shell">
         <div class="table-scroll">
-            <table>
+            <table class="data-table standings-table">
                 <thead>
                     <tr>
                         <th class="col-short">#</th>
                         <th>Team</th>
                         <th class="col-points">Pkt</th>
-                        <th class="col-number">Bilanz</th>
+                        <th class="col-number hide-mobile">Bilanz</th>
                         <th class="col-diff">Diff</th>
                         <th class="col-number hide-mobile">PF</th>
                         <th class="col-number hide-mobile">PA</th>
@@ -200,7 +225,7 @@
                             </a>
                         </td>
                         <td class="col-points"><strong>{{ row.pts }}</strong></td>
-                        <td class="col-number">{{ row.w }}-{{ row.losses }}</td>
+                        <td class="col-number hide-mobile">{{ row.w }}-{{ row.losses }}</td>
                         <td class="col-diff {% if row.diff > 0 %}diff-positive{% elif row.diff < 0 %}diff-negative{% else %}diff-neutral{% endif %}">{{ row.diff }}</td>
                         <td class="col-number hide-mobile">{{ row.pf }}</td>
                         <td class="col-number hide-mobile">{{ row.pa }}</td>

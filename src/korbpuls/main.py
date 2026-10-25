@@ -9,9 +9,8 @@ import re
 import threading
 import time
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager, nullcontext, suppress
+from contextlib import asynccontextmanager, suppress
 from datetime import datetime
-from functools import cache
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -23,23 +22,18 @@ from fastapi import Path as URLPath
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from langfuse import Langfuse
-from llama_index.core.agent.workflow import FunctionAgent
 from markupsafe import Markup
 from pydantic import BaseModel
 
 from korbpuls import presenters
 from korbpuls.ai import AIConfig, AppConfig, telemetry_enabled
-from korbpuls.ai.agents import (
-    LeaguePrediction,
-    MatchupPreview,
-    StandingsNarrative,
-    TeamAnalysis,
-    get_analyst,
-    get_commentator,
-    get_oracle,
-    get_scout,
+from korbpuls.ai.generation import (
+    run_matchup_preview,
+    run_prediction_narrative,
+    run_standings_narrative,
+    run_team_analysis,
 )
+from korbpuls.ai.runtime import get_langfuse
 from korbpuls.auth import validate_api_key
 from korbpuls.cache import CACHE_ROOT, CacheDir, CacheMiss, LigaMeta
 from korbpuls.korb_client import (
@@ -61,23 +55,6 @@ from korbpuls.slugify import slugify
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
-
-
-@cache
-def get_langfuse() -> Langfuse | None:
-    """Return the shared Langfuse client, created once on first use.
-
-    Returns None when ``LANGFUSE_SECRET_KEY`` is unset, so tracing is
-    fully opt-in with zero overhead.  The client is built once (cached
-    via ``functools.cache``) and reused for every agent call.
-    """
-    if not os.environ.get("LANGFUSE_SECRET_KEY"):
-        return None
-    return Langfuse(
-        secret_key=os.environ["LANGFUSE_SECRET_KEY"],
-        public_key=os.environ.get("LANGFUSE_PUBLIC_KEY"),
-        base_url=os.environ.get("LANGFUSE_BASE_URL"),
-    )
 
 
 async def _recover_ai_analyses() -> None:
@@ -136,7 +113,7 @@ async def _recover_standings_narrative(config: AIConfig, cache: CacheDir) -> boo
             "Startup recovery: clearing standings narrative failure marker for liga %s",
             cache.ligaid,
         )
-    await _run_standings_narrative(config, cache.ligaid)
+    await run_standings_narrative(config, cache.ligaid)
     return True
 
 
@@ -158,7 +135,7 @@ async def _recover_prediction_narrative(config: AIConfig, cache: CacheDir) -> bo
             "failure marker for liga %s",
             cache.ligaid,
         )
-    await _run_prediction_narrative(config, cache.ligaid)
+    await run_prediction_narrative(config, cache.ligaid)
     return True
 
 
@@ -408,7 +385,7 @@ def _remove_orphaned_team_files(
     for path in cache_dir.teams_path.iterdir():
         if (
             path.suffix == ".json"
-            and not cache_dir._is_ai_file(path)
+            and not cache_dir.is_ai_file(path)
             and path.stem not in team_slugs
         ):
             path.unlink(missing_ok=True)
@@ -511,117 +488,6 @@ def _fetch_and_cache_locked(ligaid: str, cache_dir: CacheDir) -> bool:
     except Exception as exc:
         cache_dir.write_status("error", f"Unerwarteter Fehler: {exc}")
         return False
-
-
-async def _run_agent_once(
-    agent: FunctionAgent,
-    prompt: str,
-    output_cls: type,
-) -> Any:
-    """Run an AI agent once and parse its structured output.
-
-    Raises if the agent call fails or the LLM returns no valid
-    structured output.  When Langfuse is configured, the call is
-    wrapped in a trace observation that records input, output and
-    any failure.
-    """
-    lf = get_langfuse()
-    cm = (
-        lf.start_as_current_observation(
-            name=agent.name,
-            as_type="chain",
-            input=prompt,
-            metadata={"agent": agent.name},
-        )
-        if lf is not None
-        else nullcontext()
-    )
-    with cm as observation:
-        try:
-            response = await agent.run(
-                user_msg=prompt,
-                max_iterations=50,
-                debug=True,
-            )
-        except Exception as exc:
-            if observation is not None:
-                observation.update(level="ERROR", status_message=str(exc))
-            raise
-        result = response.get_pydantic_model(output_cls)  # type: ignore[attr-defined]
-        if result is None:
-            exc = RuntimeError(
-                "LLM returned no valid structured output"
-                f" (structured_response="
-                f"{response.structured_response!r})"  # type: ignore[attr-defined]
-            )
-            if observation is not None:
-                observation.update(level="ERROR", status_message=str(exc))
-            raise exc
-        if observation is not None:
-            observation.update(
-                output=response.structured_response  # type: ignore[attr-defined]
-            )
-    return result
-
-
-async def _run_team_analysis(
-    config: AIConfig, ligaid: str, team_slug: str, team_name: str
-) -> None:
-    """Background task: generate AI team analysis."""
-    cache = CacheDir(ligaid)
-    try:
-        analyst = get_analyst(
-            api_base=config.api_base,
-            api_key=config.api_key,
-            model=config.model,
-        )
-        prompt = (
-            f"TEAM_NAME={team_name}\n"
-            f"LIGA_ID={ligaid}\n"
-            f"LANGUAGE=de\n\n"
-            f"Analyze the team '{team_name}' following the skill steps."
-        )
-        result: TeamAnalysis = await _run_agent_once(
-            analyst,
-            prompt,
-            TeamAnalysis,
-        )
-        cache.write_ai_analysis(team_slug, result.conclusion)
-    except Exception:
-        logger.exception(
-            "AI team analysis failed for %s/%s",
-            ligaid,
-            team_slug,
-        )
-        cache.write_ai_analysis_failed(team_slug)
-
-
-async def _run_prediction_narrative(config: AIConfig, ligaid: str) -> None:
-    """Background task: generate AI prediction narrative."""
-    cache = CacheDir(ligaid)
-    try:
-        oracle = get_oracle(
-            api_base=config.api_base,
-            api_key=config.api_key,
-            model=config.model,
-        )
-        prompt = (
-            f"LIGA_ID={ligaid}\n"
-            f"LANGUAGE=de\n\n"
-            "Analyze this league following the skill steps."
-        )
-        result: LeaguePrediction = await _run_agent_once(
-            oracle,
-            prompt,
-            LeaguePrediction,
-        )
-        cache.write_ai_prediction(result.table, result.explanation)
-    except Exception:
-        logger.exception(
-            "AI prediction narrative failed for %s",
-            ligaid,
-        )
-        cache.write_ai_prediction_failed()
 
 
 @app.get("/healthz")
@@ -1011,6 +877,9 @@ async def generate_team_ai(
     if cache.is_ai_analysis_fresh(team_slug):
         return RedirectResponse(url=team_url, status_code=302)
 
+    if cache.is_ai_generation_pending("analysis", team_slug):
+        return RedirectResponse(url=f"{team_url}?generating=1", status_code=302)
+
     # Resolve team name from meta
     meta = cache.read_meta()
     team_name = meta.team_slugs.get(team_slug)
@@ -1022,7 +891,7 @@ async def generate_team_ai(
 
     cache.clear_ai_analysis_failed(team_slug)
     background_tasks.add_task(
-        _run_team_analysis,
+        run_team_analysis,
         config,
         ligaid,
         team_slug,
@@ -1071,7 +940,7 @@ async def _fetch_and_auto_generate(ligaid: str) -> None:
         cache.clear_standings_narrative_failed()
 
     # Auto-generate standings narrative
-    await _run_standings_narrative(config, ligaid)
+    await run_standings_narrative(config, ligaid)
 
     # Auto-generate prediction narrative (if eligible)
     try:
@@ -1079,84 +948,9 @@ async def _fetch_and_auto_generate(ligaid: str) -> None:
         if view.prediction_eligible:
             if cache.read_ai_prediction_failed():
                 cache.clear_ai_prediction_failed()
-            await _run_prediction_narrative(config, ligaid)
+            await run_prediction_narrative(config, ligaid)
     except CacheMiss:
         pass
-
-
-async def _run_standings_narrative(config: AIConfig, ligaid: str) -> None:
-    """Background task: generate AI standings narrative.
-
-    No-ops during off-season (no games played yet) so an empty
-    standings table never triggers an LLM call.
-    """
-    if not presenters.standings_ai_eligible(ligaid):
-        return
-    cache = CacheDir(ligaid)
-    try:
-        commentator = get_commentator(
-            api_base=config.api_base,
-            api_key=config.api_key,
-            model=config.model,
-        )
-        prompt = (
-            f"LIGA_ID={ligaid}\n"
-            f"LANGUAGE=de\n\n"
-            "Describe the current league standings following "
-            "the skill steps."
-        )
-        result: StandingsNarrative = await _run_agent_once(
-            commentator,
-            prompt,
-            StandingsNarrative,
-        )
-        cache.write_standings_narrative(result.narrative)
-    except Exception:
-        logger.exception(
-            "AI standings narrative failed for %s",
-            ligaid,
-        )
-        cache.write_standings_narrative_failed()
-
-
-async def _run_matchup_preview(
-    config: AIConfig,
-    ligaid: str,
-    home_slug: str,
-    away_slug: str,
-    home_name: str,
-    away_name: str,
-) -> None:
-    """Background task: generate AI matchup preview."""
-    cache = CacheDir(ligaid)
-    try:
-        scout = get_scout(
-            api_base=config.api_base,
-            api_key=config.api_key,
-            model=config.model,
-        )
-        prompt = (
-            f"HOME_TEAM={home_name}\n"
-            f"AWAY_TEAM={away_name}\n"
-            f"LIGA_ID={ligaid}\n"
-            f"LANGUAGE=de\n\n"
-            f"Analyze the matchup between '{home_name}' (home) "
-            f"and '{away_name}' (away) following the skill steps."
-        )
-        result: MatchupPreview = await _run_agent_once(
-            scout,
-            prompt,
-            MatchupPreview,
-        )
-        cache.write_matchup_preview(home_slug, away_slug, result.analysis)
-    except Exception:
-        logger.exception(
-            "AI matchup preview failed for %s/%s vs %s",
-            ligaid,
-            home_slug,
-            away_slug,
-        )
-        cache.write_matchup_preview_failed(home_slug, away_slug)
 
 
 @app.get(
@@ -1194,6 +988,24 @@ async def matchup_preview_page(
         "matchup.html",
         ctx,
     )
+
+
+def _matchup_generation_redirect(
+    cache: CacheDir,
+    home_slug: str,
+    away_slug: str,
+    matchup_url: str,
+) -> RedirectResponse | None:
+    """Return a redirect when a preview exists or is already generating."""
+    if cache.is_matchup_preview_fresh(home_slug, away_slug):
+        return RedirectResponse(url=matchup_url, status_code=302)
+    preview_key = f"{home_slug}_vs_{away_slug}_preview"
+    if cache.is_ai_generation_pending("preview", preview_key):
+        return RedirectResponse(
+            url=f"{matchup_url}?generating=1",
+            status_code=302,
+        )
+    return None
 
 
 @app.post(
@@ -1254,12 +1066,18 @@ async def generate_matchup_preview(
     except CacheMiss:
         pass
 
-    if cache.is_matchup_preview_fresh(home_slug, away_slug):
-        return RedirectResponse(url=matchup_url, status_code=302)
+    redirect = _matchup_generation_redirect(
+        cache,
+        home_slug,
+        away_slug,
+        matchup_url,
+    )
+    if redirect is not None:
+        return redirect
 
     cache.clear_matchup_preview_failed(home_slug, away_slug)
     background_tasks.add_task(
-        _run_matchup_preview,
+        run_matchup_preview,
         config,
         ligaid,
         home_slug,

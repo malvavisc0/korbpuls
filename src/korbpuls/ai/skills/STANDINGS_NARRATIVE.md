@@ -57,6 +57,13 @@ Mention only the 2–3 teams that matter to the story.
 
 **One `<p>` element** (3–5 sentences):
 
+Return only the final `<p>…</p>` element. Do not add any text outside it.
+Never mention tools, missing data, drafts, instructions, or your process.
+
+Use only facts in `STANDINGS_JSON`. Mention at most three teams. Never
+name an opponent from a game, describe a specific matchup, or state a
+scoreline — use only rank, points, record, and differential.
+
 1. **Open with the headline takeaway** — the most interesting thing about this league right now
 2. **Support with 1–2 concrete data points** — points gap, differential, recent form
 3. **Close with** a forward-looking sentence or retrospective verdict if finished

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" data-theme="light">
+<html lang="de" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +7,9 @@
     <meta name="description" content="{% block meta_description %}korbPuls analysiert Basketball-Ligen von basketball-bund.net mit Tabelle, Spielplan, Teamstatistiken und KI-gestützten Prognosen auf einen Blick.{% endblock %}">
     <meta name="keywords" content="{% block meta_keywords %}Basketball Liga Analyse, Basketball Tabelle, Spielplan, Teamstatistiken, Saisonprognose, basketball-bund.net, korbPuls{% endblock %}">
     <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
-    <meta name="theme-color" content="#F8F9FA">
-    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#07080A">
+    <meta name="color-scheme" content="dark">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='17' fill='%2307080a' stroke='%23ff6a2a' stroke-width='3'/%3E%3Cpath d='M6 24h7l3-7 5 13 3-6h10' fill='none' stroke='%23ff6a2a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
     <meta name="application-name" content="korbPuls">
     <meta property="og:type" content="website">
     <meta property="og:title" content="{% block og_title %}{% block title %}korbPuls{% endblock %}{% endblock %}">
@@ -20,7 +21,7 @@
     <meta name="twitter:description" content="{% block twitter_description %}{{ self.og_description() }}{% endblock %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
@@ -36,8 +37,15 @@
     <header class="site-header">
         <div class="container site-header__inner">
             <nav class="site-nav">
-                <a class="brand" href="/">
-                    <span class="brand__mark">korbPuls <span class="brand__icon" aria-hidden="true">🏀</span></span>
+                <a class="brand" href="/" aria-label="korbPuls Startseite">
+                    <span class="brand__mark">
+                        <svg class="brand__logo" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+                            <circle cx="20" cy="20" r="16.5" stroke="currentColor" stroke-width="2.4"/>
+                            <path d="M20 3.5c-6.5 5.2-6.5 27.8 0 33M3.5 20c5.2-6.5 27.8-6.5 33 0" stroke="currentColor" stroke-width="2"/>
+                            <path d="M7.5 27.5h6l3-6 4 11 3-5h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span class="brand__text">korb<span>Puls</span></span>
+                    </span>
                     <span class="brand__tagline">Deine Liga. Deine Zahlen.</span>
                 </a>
                 {% if liga_name %}
@@ -58,9 +66,7 @@
 
     <footer class="site-footer">
         <div class="container site-footer__inner">
-            {% block footer %}
-            
-            {% endblock %}
+            {% block footer %}{% endblock %}
             <p class="site-credit">
                 Made with ❤️ · Powered by <a href="https://github.com/malvavisc0/korb" target="_blank" rel="noopener">korb</a>
                 · <span class="site-version">v{{ app_version }}</span>

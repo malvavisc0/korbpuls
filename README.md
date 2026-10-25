@@ -44,7 +44,7 @@ the app works without them.
 - **Mobile-first responsive design** — optimised layouts for phones (360px+), tablets, and desktops
 - **API endpoints** — JSON API with token-based access control for programmatic access
 - **Health check** — `/healthz` endpoint for monitoring and Docker healthchecks
-- **Dark theme** — "Court Night" design with custom typography (Syne + Source Serif 4)
+- **Dark theme** — "Court Night" broadcast-inspired design with custom typography (Barlow Condensed + Inter)
 
 ## 🚀 Quickstart
 
@@ -183,8 +183,10 @@ WORKERS=4 ./run.sh
 | `OPENAILIKE_API_BASE` | — | Base URL for an OpenAI-compatible API |
 | `OPENAILIKE_API_KEY` | — | API key for the LLM provider |
 | `OPENAILIKE_LLM` | — | Model name (e.g., `gpt-4o-mini`, `qwen/qwen-turbo`) |
+| `KORBPULS_AI_DEBUG` | `false` | Enable verbose LlamaIndex agent debug logs |
 
-Set all three to enable AI features. Leave any empty to disable.
+Set all three `OPENAILIKE_*` variables to enable AI features. Leave any empty
+to disable.
 
 ### Langfuse tracing (optional)
 
@@ -233,14 +235,20 @@ src/korbpuls/
 ├── __init__.py        # version
 ├── main.py            # FastAPI routes (HTML + API), lifespan, AI recovery
 ├── auth.py            # API key validation, .env loading
+├── atomic_json.py     # atomic JSON writes
 ├── cache.py           # disk-based league data cache
 ├── korb_client.py     # korb CLI wrapper
 ├── presenters.py      # data → view model transformation
 ├── slugify.py         # URL-safe slug generation
 ├── ai/
+│   ├── cache.py       # AI artifact cache + generation locks
 │   ├── config.py      # AI env-var configuration
 │   ├── agents.py      # LlamaIndex AI agents (Analyst, Oracle, Commentator, Scout)
+│   ├── generation.py  # AI background generation tasks
+│   ├── prompts.py     # prompt builders
+│   ├── runtime.py     # agent runner + Langfuse client
 │   ├── tools.py       # korb tool bindings for agents
+│   ├── validation.py  # HTML output validation + cache repair
 │   └── skills/        # AI prompt templates (markdown)
 ├── templates/         # Jinja2 HTML templates
 └── static/            # CSS and static assets

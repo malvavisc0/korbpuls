@@ -13,8 +13,7 @@
     <header class="page-intro">
         <p class="eyebrow">Liga</p>
         <h1>Spielplan</h1>
-        <p class="page-meta">{{ liga_name }}</p>
-        <p>Alle anstehenden Spiele der {{ liga_name }} mit Termin, Halle und Status.</p>
+        <p class="page-meta">Stand: <strong>{{ cached_at }}</strong></p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">
@@ -42,21 +41,25 @@
             <p class="section-meta">{{ games|length }} Spiele</p>
         </div>
         <div class="table-scroll">
-            <table>
+            <table class="data-table schedule-table table-cards">
                 <thead>
                     <tr>
-                        <th>Datum</th>
+                        <th class="col-date">Datum</th>
                         <th>Heim</th>
                         <th>Gast</th>
-                        <th class="hide-mobile">Halle</th>
-                        <th class="col-short">Status</th>
-                        <th class="col-short hide-mobile">KI</th>
+                        <th>Halle</th>
+                        <th class="col-short hide-mobile">Vorschau</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for game in games %}
                     <tr>
-                        <td>{{ game.date }}</td>
+                        <td class="col-date">
+                            {{ game.date_label }}
+                            {% if game.cancelled %}
+                            <span class="cancelled-badge">Abgesagt</span>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if game.cancelled %}
                             <del>{{ game.home }}</del>
@@ -75,15 +78,8 @@
                             </a>
                             {% endif %}
                         </td>
-                        <td class="hide-mobile">
+                        <td>
                             <span class="muted">{{ game.venue or 'Wird noch bestätigt' }}</span>
-                        </td>
-                        <td class="col-short">
-                            {% if game.cancelled %}
-                            <span class="cancelled-badge">Abgesagt</span>
-                            {% else %}
-                            <span class="status-badge">Geplant</span>
-                            {% endif %}
                         </td>
                         <td class="col-short hide-mobile">
                             {% if not game.cancelled and not is_finished and game.matchup_eligible %}
@@ -101,11 +97,4 @@
         </div>
     </section>
 </article>
-{% endblock %}
-
-{% block footer %}
-<div class="footer-actions">
-    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Tabelle</a>
-    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/ergebnisse">Ergebnisse</a>
-</div>
 {% endblock %}

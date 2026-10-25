@@ -15,7 +15,7 @@
         <p class="eyebrow">Prognose</p>
         <h1>Saisonprognose</h1>
         <p class="page-meta">Stand: <strong>{{ cached_at }}</strong></p>
-        <p>Erwartete Ergebnisse der offenen Spiele und die daraus hochgerechnete Tabelle der {{ liga_name }}.</p>
+        <p>Erwartete Ergebnisse der offenen Spiele und die daraus hochgerechnete Tabelle.</p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">
@@ -84,14 +84,14 @@
             <p class="section-meta">{{ predictions|length }} Spiele · Tipp = erwarteter Sieger</p>
         </div>
         <div class="table-scroll">
-            <table>
+            <table class="data-table prediction-table table-cards">
                 <thead>
                     <tr>
                         <th class="col-short">#</th>
                         <th>Heim</th>
                         <th class="col-score">Ergebnis</th>
                         <th>Gast</th>
-                        <th class="col-short">Status</th>
+                        <th class="col-short">Tipp</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -106,8 +106,10 @@
                             {% endif %}
                         </td>
                         <td class="col-score">
-                            <span class="prediction-score">
-                                <span>{{ game.home_score }} : {{ game.away_score }}</span>
+                            <span class="result-score">
+                                <span class="result-score__value{% if game.winner == 'home' %} is-winner{% endif %}">{{ game.home_score }}</span>
+                                <span class="result-score__sep">:</span>
+                                <span class="result-score__value{% if game.winner == 'away' %} is-winner{% endif %}">{{ game.away_score }}</span>
                             </span>
                         </td>
                         <td>
@@ -142,7 +144,7 @@
         </div>
         <p class="note">So könnte die Tabelle am Saisonende aussehen, wenn die prognostizierten Ergebnisse eintreffen.</p>
         <div class="table-scroll">
-            <table>
+            <table class="data-table standings-table">
                 <thead>
                     <tr>
                         <th class="col-short">#</th>
@@ -177,10 +179,4 @@
 
     {% endif %}
 </article>
-{% endblock %}
-
-{% block footer %}
-<div class="footer-actions">
-    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Tabelle</a>
-</div>
 {% endblock %}

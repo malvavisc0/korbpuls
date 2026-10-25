@@ -101,6 +101,7 @@ class ScheduleGame(BaseModel):
     """A single game in the schedule."""
 
     date: str
+    date_label: str
     home: str
     home_slug: str
     away: str
@@ -137,6 +138,7 @@ class ScheduleView(BaseModel):
     liga_name: str
     liga_slug: str
     ligaid: str
+    cached_at: str
     games: list[ScheduleGame]
     is_finished: bool = False
     archived: bool = False
@@ -353,8 +355,14 @@ def _parse_schedule_game(
     Returns:
         ScheduleGame model
     """
+    game_date = _parse_game_date(game["date"])
     return ScheduleGame(
         date=game["date"],
+        date_label=(
+            _game_date_label(game_date, include_year=True)
+            if game_date
+            else game["date"]
+        ),
         home=game["home"],
         home_slug=slugs.slug_for(game["home"]),
         away=game["away"],
@@ -793,11 +801,12 @@ def _fixture_time_label(game_date: datetime) -> str:
     return game_date.strftime("%H:%M")
 
 
-def _fixture_date_label(game_date: datetime) -> str:
-    """Human-readable fixture date label for the team page."""
+def _game_date_label(game_date: datetime, *, include_year: bool = False) -> str:
+    """Human-readable game date label with weekday and kickoff time."""
+    year = f" {game_date.year}" if include_year else ""
     return (
         f"{_WEEKDAYS[game_date.weekday()]}, "
-        f"{game_date.day:02d}. {_MONTHS[game_date.month - 1][:3]}."
+        f"{game_date.day:02d}. {_MONTHS[game_date.month - 1][:3]}.{year}"
         f" · {_fixture_time_label(game_date)}"
     )
 
@@ -810,7 +819,7 @@ def _team_fixture(
     """Build a compact team-page fixture from a schedule game."""
     is_home = game.home == team_name
     return TeamFixture(
-        date_label=_fixture_date_label(game_date),
+        date_label=_game_date_label(game_date, include_year=True),
         opponent=game.away if is_home else game.home,
         opponent_slug=game.away_slug if is_home else game.home_slug,
         location="Heimspiel" if is_home else "Auswärts",
@@ -1240,6 +1249,7 @@ def present_schedule(ligaid: str) -> ScheduleView:
         liga_name=meta.league_name,
         liga_slug=meta.liga_slug,
         ligaid=meta.ligaid,
+        cached_at=meta.cached_at,
         games=games,
         is_finished=is_finished,
         archived=meta.archived,

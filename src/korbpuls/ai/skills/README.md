@@ -16,19 +16,28 @@ Developer documentation for the four AI agents in korbPuls. Each agent is a
 graph LR
     subgraph Prompt
         CM[Common Instructions] --> SK[Skill Markdown]
+        DJ[Injected standings data] --> SK
     end
     SK --> AG[FunctionAgent]
-    TO[run_korb_command tool] --> AG
-    AG -->|structured output| PY[Pydantic Model]
+    TO[run_korb_command tool<br/>Analyst / Oracle / Scout] --> AG
+    AG -->|validated structured output| PY[Pydantic Model]
 ```
 
 - **Common instructions** (`agents.py` → `_COMMON_INSTRUCTIONS`): shared
   constraints (exact team names, German output, HTML only, no jargon).
 - **Skill markdown**: step-by-step analysis workflow loaded per agent.
 - **Tool**: `run_korb_command` — scoped access to the `korb` CLI for fetching
-  standings, schedules, results, and predictions.
-- **Agent run** (`main.py` → `_run_agent_once`): single attempt; raises on
-  exceptions or `None` structured output.
+  standings, schedules, results, and predictions. The **Commentator does not
+  use tools**: its standings data is injected as `STANDINGS_JSON`.
+- **Agent run** (`ai/runtime.py` → `run_agent_once`): single attempt; raises on
+  exceptions, invalid HTML, or `None` structured output.
+- **Generation lock** (`CacheDir.try_begin_ai_generation`): atomic per-artifact
+  lock prevents duplicate LLM calls from double clicks or concurrent requests;
+  stale locks expire after 10 minutes.
+- **Output validation** (`ai/validation.py`): every HTML field must contain
+  only non-empty `<p>` elements. Plain text, drafts, tool/process chatter, and
+  malformed cache entries are rejected. Invalid cached artifacts are removed
+  and marked failed so the UI never renders leaked model output.
 
 ### Trigger Modes
 
@@ -92,9 +101,9 @@ graph TD
 
 ```mermaid
 graph TD
-    A["Input: LIGA_ID"] --> B["Step 1: Read standings<br/><code>--json standings</code>"]
+    A["Input: LIGA_ID + STANDINGS_JSON"] --> B["Step 1: Read provided standings<br/>(no tool call)"]
     B --> B1["Extract: leader, chasers, bottom,<br/>league shape, notable stats"]
-    B1 --> C["Step 2: Check predictions (optional)<br/><code>--json predict</code>"]
+    B1 --> C["Step 2: Ignore predictions<br/>(current standings only)"]
     C --> D{"Very few games played?<br/>(1–3 per team)"}
     D -->|"Yes"| E["Early season: hedge, use 'bisher'"]
     D -->|"No"| F["Step 3: Choose one storyline<br/>tight race? runaway? compressed middle?"]

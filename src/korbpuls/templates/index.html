@@ -13,10 +13,15 @@
     <div class="hero-grid">
         <div class="hero__content">
             <p class="eyebrow">Für Ligen auf basketball-bund.net</p>
-            <h1>Deine ganze Liga auf einer Seite</h1>
+            <h1>Deine ganze <span class="hero__title-accent">Liga</span> auf einer Seite</h1>
             <p class="hero__lead">
-                Gib deine Liga-ID ein — den Rest erledigt korbPuls.
+                Tabelle, Spielplan, Form und KI-Prognose — ein Scan deiner Liga-ID und du siehst das ganze Bild.
             </p>
+            <div class="hero__chips" aria-hidden="true">
+                <span class="hero-chip">Live-Tabelle</span>
+                <span class="hero-chip">Formkurve</span>
+                <span class="hero-chip hero-chip--ai">KI-Prognose</span>
+            </div>
             <ul class="benefit-list">
                 <li>Tabelle mit Formkurven: wer läuft heiß, wer fällt zurück</li>
                 <li>Spielplan und Ergebnisse, ohne sich durchzuklicken</li>
@@ -26,6 +31,10 @@
         </div>
 
         <div class="hero__form-panel">
+            <div class="form-panel__head">
+                <span class="form-panel__status"><span class="live-dot" aria-hidden="true"></span>Liga-Scan</span>
+                <span class="form-panel__source">basketball-bund.net</span>
+            </div>
             <form class="hero-form" method="POST" action="/">
                 <label for="ligaid">Liga-ID</label>
                 <div class="form-row">
@@ -37,7 +46,7 @@
                         placeholder="12345"
                         inputmode="numeric"
                     >
-                    <button type="submit" class="primary-cta">Liga analysieren</button>
+                    <button type="submit" class="primary-cta">Analysieren</button>
                 </div>
             </form>
             <div class="liga-id-helper">
@@ -45,8 +54,42 @@
                 <p>In der Adresszeile, wenn du deine Liga auf basketball-bund.net öffnest:</p>
                 <p><code>liga_id=12345</code></p>
             </div>
+            <p class="form-panel__fineprint">Kostenlos · Kein Login · Direkt im Browser</p>
         </div>
     </div>
+</section>
+
+<section class="feature-strip" aria-label="Was korbPuls zeigt">
+    <article class="feature-card">
+        <span class="feature-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <rect x="3" y="4" width="18" height="16" rx="2"/>
+                <path d="M3 9h18M9 9v11M15 9v11"/>
+            </svg>
+        </span>
+        <h2 class="feature-card__title">Live-Tabelle</h2>
+        <p>Platzierungen, Punkte, Bilanz und Korbdifferenz — immer auf dem aktuellen Stand.</p>
+    </article>
+    <article class="feature-card">
+        <span class="feature-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 17l5-6 4 3 5-7 4 4"/>
+                <path d="M3 21h18"/>
+            </svg>
+        </span>
+        <h2 class="feature-card__title">Formkurve</h2>
+        <p>Ergebnisse, Serien und Teamstatistiken zeigen, wer gerade wirklich in Form ist.</p>
+    </article>
+    <article class="feature-card feature-card--ai">
+        <span class="feature-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3l2.1 5.4L20 10.5l-5.9 2.1L12 18l-2.1-5.4L4 10.5l5.9-2.1L12 3z"/>
+                <path d="M19 17l.9 2.1L22 20l-2.1.9L19 23l-.9-2.1L16 20l2.1-.9L19 17z"/>
+            </svg>
+        </span>
+        <h2 class="feature-card__title">KI-Prognose</h2>
+        <p>Einordnung, Teamvergleich und Prognose für offene Spiele — verständlich zusammengefasst.</p>
+    </article>
 </section>
 
 {% endblock %}

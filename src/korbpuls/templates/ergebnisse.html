@@ -14,7 +14,6 @@
         <p class="eyebrow">Liga</p>
         <h1>Ergebnisse</h1>
         <p class="page-meta">Stand: <strong>{{ cached_at }}</strong></p>
-        <p>Alle gespielten Partien der {{ liga_name }} mit Endstand und Korbdifferenz.</p>
     </header>
 
     <nav class="segmented-nav" aria-label="Seitennavigation">
@@ -38,7 +37,7 @@
     {% if games %}
     <section class="table-shell">
         <div class="table-scroll">
-            <table>
+            <table class="data-table results-table table-cards">
                 <thead>
                     <tr>
                         <th>Datum</th>
@@ -51,7 +50,7 @@
                 <tbody>
                     {% for game in games %}
                     <tr>
-                        <td>{{ game.date }}</td>
+                        <td class="col-date">{{ game.date }}</td>
                         <td>
                             <a class="team-link {% if game.winner == 'home' %}team-link--winner{% endif %}"
                                href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.home_slug }}">
@@ -59,8 +58,10 @@
                             </a>
                         </td>
                         <td class="col-score">
-                            <span class="prediction-score">
-                                {{ game.home_score }} : {{ game.away_score }}
+                            <span class="result-score">
+                                <span class="result-score__value{% if game.winner == 'home' %} is-winner{% endif %}">{{ game.home_score }}</span>
+                                <span class="result-score__sep">:</span>
+                                <span class="result-score__value{% if game.winner == 'away' %} is-winner{% endif %}">{{ game.away_score }}</span>
                             </span>
                         </td>
                         <td>
@@ -83,13 +84,4 @@
     </section>
     {% endif %}
 </article>
-{% endblock %}
-
-{% block footer %}
-<div class="footer-actions">
-    <a href="/liga/{{ ligaid }}/{{ liga_slug }}">← Tabelle</a>
-    {% if not is_finished %}
-    <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">Zum Spielplan →</a>
-    {% endif %}
-</div>
 {% endblock %}

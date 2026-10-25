@@ -12,21 +12,39 @@
 
 {% block main %}
 <article class="page">
+    <nav class="page-back-row" aria-label="Zurück">
+        <a class="page-back" href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">
+            <svg class="page-back__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 12H5M11 18l-6-6 6-6"/>
+            </svg>
+            Zurück zum Spielplan
+        </a>
+    </nav>
+
     <header class="page-intro">
         <p class="eyebrow">KI-Vorschau</p>
         <h1>{{ home_name }} <span class="muted">vs</span> {{ away_name }}</h1>
-        <p class="page-meta">{{ liga_name }}</p>
     </header>
 
-    <nav class="segmented-nav" aria-label="Seitennavigation">
-        <div class="segmented-nav__tabs">
-            <a href="/liga/{{ ligaid }}/{{ liga_slug }}" class="segmented-nav__tab">Tabelle</a>
-            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/ergebnisse" class="segmented-nav__tab">Ergebnisse</a>
-            <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan" class="segmented-nav__tab">Spielplan</a>
+    <section class="matchup-hero" aria-label="Teamvergleich">
+        <div class="matchup-side">
+            <span class="matchup-side__label">Heim</span>
+            <span class="matchup-side__name">{{ home_name }}</span>
+            {% if home_row %}
+            <span class="matchup-side__meta">#{{ home_row.rank }} · {{ home_row.w }}-{{ home_row.losses }} · {{ home_row.pts }} Pkt</span>
+            {% endif %}
         </div>
-    </nav>
+        <span class="matchup-vs" aria-hidden="true">VS</span>
+        <div class="matchup-side matchup-side--away">
+            <span class="matchup-side__label">Gast</span>
+            <span class="matchup-side__name">{{ away_name }}</span>
+            {% if away_row %}
+            <span class="matchup-side__meta">#{{ away_row.rank }} · {{ away_row.w }}-{{ away_row.losses }} · {{ away_row.pts }} Pkt</span>
+            {% endif %}
+        </div>
+    </section>
 
-    <section class="surface">
+    <section class="table-shell">
         <div class="section-heading">
             <div>
                 <p class="eyebrow">Vergleich</p>
@@ -34,7 +52,7 @@
             </div>
         </div>
         <div class="table-scroll">
-            <table>
+            <table class="data-table matchup-table table-cards">
                 <thead>
                     <tr>
                         <th>Team</th>
@@ -42,31 +60,31 @@
                         <th class="col-points">Pkt</th>
                         <th class="col-number">Bilanz</th>
                         <th class="col-diff">Diff</th>
-                        <th class="col-number hide-mobile">Ø PF</th>
-                        <th class="col-number hide-mobile">Ø PA</th>
+                        <th class="col-number">Ø PF</th>
+                        <th class="col-number">Ø PA</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% if home_row %}
                     <tr>
                         <td><strong>{{ home_row.name }}</strong></td>
-                        <td class="col-short">{{ home_row.rank }}</td>
-                        <td class="col-points"><strong>{{ home_row.pts }}</strong></td>
-                        <td class="col-number">{{ home_row.w }}-{{ home_row.losses }}</td>
-                        <td class="col-diff {% if home_row.diff > 0 %}diff-positive{% elif home_row.diff < 0 %}diff-negative{% endif %}">{{ home_row.diff }}</td>
-                        <td class="col-number hide-mobile">{{ home_row.avg_pf }}</td>
-                        <td class="col-number hide-mobile">{{ home_row.avg_pa }}</td>
+                        <td class="col-short" data-label="Platz">{{ home_row.rank }}</td>
+                        <td class="col-points" data-label="Punkte"><strong>{{ home_row.pts }}</strong></td>
+                        <td class="col-number" data-label="Bilanz">{{ home_row.w }}-{{ home_row.losses }}</td>
+                        <td class="col-diff {% if home_row.diff > 0 %}diff-positive{% elif home_row.diff < 0 %}diff-negative{% endif %}" data-label="Diff">{{ home_row.diff }}</td>
+                        <td class="col-number" data-label="Ø PF">{{ home_row.avg_pf }}</td>
+                        <td class="col-number" data-label="Ø PA">{{ home_row.avg_pa }}</td>
                     </tr>
                     {% endif %}
                     {% if away_row %}
                     <tr>
                         <td><strong>{{ away_row.name }}</strong></td>
-                        <td class="col-short">{{ away_row.rank }}</td>
-                        <td class="col-points"><strong>{{ away_row.pts }}</strong></td>
-                        <td class="col-number">{{ away_row.w }}-{{ away_row.losses }}</td>
-                        <td class="col-diff {% if away_row.diff > 0 %}diff-positive{% elif away_row.diff < 0 %}diff-negative{% endif %}">{{ away_row.diff }}</td>
-                        <td class="col-number hide-mobile">{{ away_row.avg_pf }}</td>
-                        <td class="col-number hide-mobile">{{ away_row.avg_pa }}</td>
+                        <td class="col-short" data-label="Platz">{{ away_row.rank }}</td>
+                        <td class="col-points" data-label="Punkte"><strong>{{ away_row.pts }}</strong></td>
+                        <td class="col-number" data-label="Bilanz">{{ away_row.w }}-{{ away_row.losses }}</td>
+                        <td class="col-diff {% if away_row.diff > 0 %}diff-positive{% elif away_row.diff < 0 %}diff-negative{% endif %}" data-label="Diff">{{ away_row.diff }}</td>
+                        <td class="col-number" data-label="Ø PF">{{ away_row.avg_pf }}</td>
+                        <td class="col-number" data-label="Ø PA">{{ away_row.avg_pa }}</td>
                     </tr>
                     {% endif %}
                 </tbody>
@@ -160,9 +178,5 @@
         {% endif %}
     </section>
     {% endif %}
-
-    <p class="note">
-        <a href="/liga/{{ ligaid }}/{{ liga_slug }}/spielplan">← Zurück zum Spielplan</a>
-    </p>
 </article>
 {% endblock %}
