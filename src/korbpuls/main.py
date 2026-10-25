@@ -51,7 +51,11 @@ from korbpuls.korb_client import (
 )
 from korbpuls.korb_client import run_standings as korb_standings
 from korbpuls.korb_client import run_team as korb_team
-from korbpuls.scheduler import daily_refresh_loop, is_season_finished
+from korbpuls.scheduler import (
+    daily_refresh_loop,
+    is_season_finished,
+    schedule_has_results,
+)
 from korbpuls.slugify import slugify
 
 logger = logging.getLogger(__name__)
@@ -323,6 +327,14 @@ def _fetch_and_cache_locked(ligaid: str, cache_dir: CacheDir) -> bool:
     with suppress(CacheMiss, FileNotFoundError):
         old_archived = cache_dir.read_meta().archived
 
+    # Snapshot the previous schedule before it is overwritten.  The
+    # upstream schedule drops past games, so after the final match day
+    # a refresh may return an empty schedule; the previous one is the
+    # only proof that the season was complete.
+    previous_schedule: dict[str, Any] = {}
+    with suppress(CacheMiss, FileNotFoundError):
+        previous_schedule = cache_dir.read_json("schedule.json")
+
     try:
         run_download(ligaid)
 
@@ -372,6 +384,17 @@ def _fetch_and_cache_locked(ligaid: str, cache_dir: CacheDir) -> bool:
                 ):
                     f.unlink(missing_ok=True)
 
+        previous_season_complete = (
+            bool(previous_schedule.get("schedule"))
+            and is_season_finished(previous_schedule)
+            and schedule_has_results(previous_schedule, ergebnisse_data)
+        )
+        current_season_complete = (
+            bool(schedule_data.get("schedule"))
+            and is_season_finished(schedule_data)
+            and schedule_has_results(schedule_data, ergebnisse_data)
+        )
+
         meta = LigaMeta(
             ligaid=ligaid,
             league_name=league_name,
@@ -379,10 +402,8 @@ def _fetch_and_cache_locked(ligaid: str, cache_dir: CacheDir) -> bool:
             cached_at=format_datetime(datetime.now(ZoneInfo("Europe/Berlin"))),
             team_slugs=team_slugs,
             archived=old_archived
-            or (
-                bool(schedule_data.get("schedule"))
-                and is_season_finished(schedule_data)
-            ),
+            or previous_season_complete
+            or current_season_complete,
         )
         cache_dir.write_meta(meta)
 

@@ -51,10 +51,11 @@ def is_season_finished(schedule_data: dict[str, Any]) -> bool:
         schedule_data: Raw schedule.json content
 
     Returns:
-        True if no future non-cancelled games remain AND every
+        True if no games remain today or later AND every
         non-cancelled game has a parseable date.
     """
-    now = datetime.now(UTC)
+    now = datetime.now(_REFRESH_TZ)
+    today = now.date()
     for game in schedule_data.get("schedule", []):
         if game.get("cancelled", False):
             continue
@@ -65,7 +66,7 @@ def is_season_finished(schedule_data: dict[str, Any]) -> bool:
                 game.get("date"),
             )
             return False
-        if game_date > now:
+        if game_date.date() >= today:
             return False
     return True
 
@@ -94,37 +95,79 @@ def _last_game_date(schedule_data: dict[str, Any]) -> datetime | None:
 _GRACE_DAYS = 7
 
 
+def schedule_has_results(
+    schedule_data: dict[str, Any],
+    ergebnisse_data: dict[str, Any],
+) -> bool:
+    """Whether every non-cancelled scheduled game has a result.
+
+    The upstream schedule only contains pending games (today and
+    later), so comparing raw result counts with schedule counts is
+    wrong: past results make the count look complete while a final
+    game is still missing.  Match each scheduled fixture instead.
+    """
+    games = [
+        game
+        for game in schedule_data.get("schedule", [])
+        if not game.get("cancelled", False)
+    ]
+    if not games:
+        return False
+
+    results = {
+        (game.get("home", ""), game.get("away", ""))
+        for game in ergebnisse_data.get("ergebnisse", [])
+    }
+    return all(
+        (game.get("home", ""), game.get("away", "")) in results for game in games
+    )
+
+
 def _has_all_results(cache: CacheDir, schedule_data: dict[str, Any]) -> bool:
     """Check whether all non-cancelled games have results recorded.
-
-    Compares the number of non-cancelled games in the schedule
-    against the number of entries in ergebnisse.json.
 
     Args:
         cache: CacheDir for the league
         schedule_data: Raw schedule.json content
 
     Returns:
-        True if ergebnisse count >= non-cancelled game count.
+        True if every scheduled fixture has a matching result.
     """
     try:
         ergebnisse_data = cache.read_json("ergebnisse.json")
     except CacheMiss:
         return False
 
-    expected = sum(
-        1 for g in schedule_data.get("schedule", []) if not g.get("cancelled", False)
-    )
-    actual = len(ergebnisse_data.get("ergebnisse", []))
-    return actual >= expected
+    return schedule_has_results(schedule_data, ergebnisse_data)
+
+
+def _mark_archived(cache: CacheDir) -> None:
+    """Set the sticky archived flag once a finished season is complete.
+
+    The flag is normally written during the final fetch, but a game
+    played earlier on the last day is still "today" at that point and
+    therefore not considered finished.  The next daily run is then the
+    one that can archive the league — without re-fetching (which would
+    overwrite the final schedule with an empty one and invalidate AI
+    analyses).
+    """
+    try:
+        meta = cache.read_meta()
+    except CacheMiss:
+        return
+    if meta.archived:
+        return
+    meta.archived = True
+    cache.write_meta(meta)
+    logger.info("Archived finished league %s", cache.ligaid)
 
 
 def _should_refresh_league(cache: CacheDir) -> bool:
     """Determine whether a cached league needs a daily refresh.
 
     Decision logic:
-    - Active season (future games exist): always refresh.
-    - Finished season, all results collected: stop.
+    - Active season (games today or later): always refresh.
+    - Finished season, all results collected: archive and stop.
     - Finished season, missing results, within 7-day grace
       window after last scheduled game: keep refreshing.
     - Finished season, past grace window: stop (give up).
@@ -153,6 +196,11 @@ def _should_refresh_league(cache: CacheDir) -> bool:
 
     # Season dates are all past — check if results are complete
     if _has_all_results(cache, schedule_data):
+        # An empty schedule is not proof of a finished season; only
+        # archive when the final scheduled games are still present and
+        # their results have arrived.
+        if schedule_data.get("schedule"):
+            _mark_archived(cache)
         return False  # nothing more to collect
 
     # Missing results — are we still within the grace period?

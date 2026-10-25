@@ -5,12 +5,12 @@ from __future__ import annotations
 import logging
 import statistics
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from pydantic import BaseModel
 
-from korbpuls.bbtime import parse_bb_datetime
+from korbpuls.bbtime import BB_TZ, parse_bb_datetime
 from korbpuls.cache import CacheDir, CacheMiss
 from korbpuls.slugify import slugify
 
@@ -69,6 +69,7 @@ class StandingsView(BaseModel):
     prediction_eligible: bool = True
     standings_eligible: bool = False
     latest_games: list[ErgebnisGame] = []
+    today_games: list[TodayGame] = []
     ai_narrative: str | None = None
     ai_enabled: bool = False
 
@@ -230,6 +231,21 @@ class ErgebnisGame(BaseModel):
     winner: str  # "home", "away", or "draw"
 
 
+class TodayGame(BaseModel):
+    """A game scheduled for today, with its result when available."""
+
+    time: str
+    home: str
+    home_slug: str
+    away: str
+    away_slug: str
+    venue: str
+    home_score: int | None = None
+    away_score: int | None = None
+    played: bool = False
+    cancelled: bool = False
+
+
 class ErgebnisseView(BaseModel):
     """View model for the ergebnisse page."""
 
@@ -295,6 +311,11 @@ def _parse_game_date(date: str) -> datetime | None:
         when the string cannot be parsed (e.g. placeholder dates).
     """
     return parse_bb_datetime(date)
+
+
+def _today_bb() -> date:
+    """Return today's date in the league's Europe/Berlin timezone."""
+    return datetime.now(BB_TZ).date()
 
 
 def _result_to_german(result: str) -> str:
@@ -645,6 +666,49 @@ def _played_matchups(
     }
 
 
+def _today_games(
+    schedule_data: dict[str, Any],
+    ergebnisse_data: dict[str, Any] | None,
+) -> list[TodayGame]:
+    """Build today's fixtures, attaching scores when results exist.
+
+    Today is evaluated in Europe/Berlin so games stay on the correct
+    calendar day regardless of the server's timezone.
+    """
+    today = _today_bb()
+    results: dict[tuple[str, str], ErgebnisGame] = {}
+    if ergebnisse_data:
+        for raw in ergebnisse_data.get("ergebnisse", []):
+            parsed = _parse_ergebnis_game(raw)
+            if parsed is not None:
+                results[(parsed.home, parsed.away)] = parsed
+
+    games: list[TodayGame] = []
+    for raw in schedule_data.get("schedule", []):
+        game_date = _parse_game_date(raw.get("date", ""))
+        if game_date is None or game_date.date() != today:
+            continue
+        result = results.get((raw.get("home", ""), raw.get("away", "")))
+        has_time = game_date.hour != 0 or game_date.minute != 0
+        games.append(
+            TodayGame(
+                time=game_date.strftime("%H:%M") if has_time else "",
+                home=raw["home"],
+                home_slug=team_slug(raw["home"]),
+                away=raw["away"],
+                away_slug=team_slug(raw["away"]),
+                venue=raw.get("venue", ""),
+                home_score=result.home_score if result else None,
+                away_score=result.away_score if result else None,
+                played=result is not None,
+                cancelled=raw.get("cancelled", False),
+            )
+        )
+
+    games.sort(key=lambda game: game.time or "24:00")
+    return games
+
+
 def _is_upcoming_for(
     game: dict[str, Any],
     team_name: str,
@@ -667,7 +731,9 @@ def _get_upcoming_games(
 
     Cross-references against ergebnisse (results) data so that
     games already played are excluded even if their scheduled
-    date hasn't technically passed yet.
+    date hasn't technically passed yet.  Games scheduled for
+    today stay visible until their result arrives — comparing
+    against the start time instead would drop them mid-game-day.
 
     Args:
         schedule_data: Raw schedule JSON
@@ -679,7 +745,7 @@ def _get_upcoming_games(
     Returns:
         Sorted list of upcoming ScheduleGame entries
     """
-    now = datetime.now(UTC)
+    today = _today_bb()
     played = _played_matchups(ergebnisse_data)
 
     upcoming: list[tuple[datetime, ScheduleGame]] = []
@@ -687,7 +753,7 @@ def _get_upcoming_games(
         game_date = _parse_game_date(game["date"])
         if (
             game_date is not None
-            and game_date > now
+            and game_date.date() >= today
             and _is_upcoming_for(game, team_name, played)
         ):
             upcoming.append((game_date, _parse_schedule_game(game)))
@@ -734,11 +800,14 @@ def _present_upcoming_fixtures(
 
 
 def _is_season_finished(schedule_games: list[ScheduleGame]) -> bool:
-    """Detect if season is finished (no future non-cancelled games).
+    """Detect if season is finished (no games left today or later).
 
-    Strict like the scheduler variant: any game with an unparseable
-    date counts as "not finished" rather than silently ignored, so
-    placeholder dates or format drift can't mark a live season over.
+    Games scheduled for today count as remaining until the day is
+    over, so a live game day never makes the season look finished
+    before its results are collected.  Strict like the scheduler
+    variant: any game with an unparseable date counts as "not
+    finished" rather than silently ignored, so placeholder dates or
+    format drift can't mark a live season over.
 
     Args:
         schedule_games: List of scheduled games
@@ -746,33 +815,33 @@ def _is_season_finished(schedule_games: list[ScheduleGame]) -> bool:
     Returns:
         True if season is finished, False if still running
     """
-    now = datetime.now(UTC)
+    today = _today_bb()
     for game in schedule_games:
         if game.cancelled:
             continue
         game_date = _parse_game_date(game.date)
         if game_date is None:
             return False
-        if game_date > now:
+        if game_date.date() >= today:
             return False
     return True
 
 
 def _count_remaining_games(schedule_games: list[ScheduleGame]) -> int:
-    """Count remaining fixtures: future, non-cancelled, valid dates.
+    """Count remaining fixtures: today or later, non-cancelled.
 
-    Counting only future games keeps the result consistent whether the
+    Counting from today keeps the result consistent whether the
     caller passes the full schedule or a list already filtered to
     upcoming fixtures, and it ignores placeholder dates so they do not
     inflate the season total.
     """
-    now = datetime.now(UTC)
+    today = _today_bb()
     count = 0
     for game in schedule_games:
         if game.cancelled:
             continue
         game_date = _parse_game_date(game.date)
-        if game_date is not None and game_date > now:
+        if game_date is not None and game_date.date() >= today:
             count += 1
     return count
 
@@ -828,9 +897,15 @@ def _check_prediction_eligible(
 
     games_played = total_gp // 2
     # Derive the season total from real data — games already played
-    # plus remaining future fixtures — instead of assuming a specific
-    # round-robin format.
-    total_season_games = games_played + _count_remaining_games(schedule_games)
+    # plus remaining unplayed fixtures — instead of assuming a specific
+    # round-robin format.  Games that already have a result must not be
+    # counted twice, otherwise today's completed games inflate the
+    # season total and the half-season threshold.
+    played = _played_matchups(_read_ergebnisse(cache))
+    remaining = [
+        game for game in schedule_games if (game.home, game.away) not in played
+    ]
+    total_season_games = games_played + _count_remaining_games(remaining)
     half = total_season_games // 2
 
     if games_played < half:
@@ -907,19 +982,31 @@ def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView
         schedule_games=schedule_games,
     )
 
-    # Latest 4 results for the standings page summary
-    latest_games: list[ErgebnisGame] = []
+    # Latest results and today's fixtures share the ergebnisse cache
+    ergebnisse_data: dict[str, Any] | None
     try:
         ergebnisse_data = cache.read_json("ergebnisse.json")
-        raw_games = ergebnisse_data.get("ergebnisse", [])
+    except (CacheMiss, FileNotFoundError):
+        ergebnisse_data = None
+
+    today_games = _today_games(schedule_data, ergebnisse_data)
+
+    # Latest 4 results for the standings page summary.  Games already
+    # shown in the "Heute" section are not repeated below.
+    latest_games: list[ErgebnisGame] = []
+    if ergebnisse_data:
+        today_matchups = {(game.home, game.away) for game in today_games}
+        raw_games = [
+            raw
+            for raw in ergebnisse_data.get("ergebnisse", [])
+            if (raw.get("home", ""), raw.get("away", "")) not in today_matchups
+        ]
         last_four = [
             g
             for g in (_parse_ergebnis_game(raw) for raw in raw_games[-4:])
             if g is not None
         ]
         latest_games = last_four[::-1]
-    except (CacheMiss, FileNotFoundError):
-        pass
 
     ai_narrative = None
     if ai_enabled:
@@ -936,6 +1023,7 @@ def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView
         prediction_eligible=eligible,
         standings_eligible=total_gp > 0,
         latest_games=latest_games,
+        today_games=today_games,
         ai_narrative=ai_narrative,
         ai_enabled=ai_enabled,
     )
@@ -1073,7 +1161,7 @@ def present_schedule(ligaid: str) -> ScheduleView:
     _hydrate_team_slugs(meta)
     data = cache.read_json("schedule.json")
 
-    games = [_parse_schedule_game(g) for g in data.get("schedule", [])]
+    all_games = [_parse_schedule_game(g) for g in data.get("schedule", [])]
 
     # Load ergebnisse to cross-reference already-played games
     try:
@@ -1087,7 +1175,7 @@ def present_schedule(ligaid: str) -> ScheduleView:
             played.add((raw.get("home", ""), raw.get("away", "")))
 
     # Filter out games that have already been played or are in the past
-    games = [g for g in games if (g.home, g.away) not in played and not g.cancelled]
+    games = [g for g in all_games if (g.home, g.away) not in played and not g.cancelled]
 
     gp_map = _standings_gp_map(cache.read_json("standings.json"))
     for game in games:
@@ -1104,10 +1192,10 @@ def present_schedule(ligaid: str) -> ScheduleView:
 
     games.sort(key=_sort_key)
 
-    is_finished = _is_season_finished(games)
+    is_finished = _is_season_finished(all_games)
     eligible, _ = _check_prediction_eligible(
         cache,
-        schedule_games=games,
+        schedule_games=all_games,
     )
 
     return ScheduleView(

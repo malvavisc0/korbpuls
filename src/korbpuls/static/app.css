@@ -608,6 +608,16 @@ body, p, td, th, input, button, select, textarea, .stat-card__detail,
 
 /* ── Latest Results Strip ──────────────────────────────── */
 
+.today-games {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.today-score {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
 .latest-results {
     display: grid;
     gap: 0.75rem;

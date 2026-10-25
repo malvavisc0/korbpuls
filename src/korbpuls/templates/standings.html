@@ -43,6 +43,67 @@
     </section>
     {% endif %}
 
+    {% if today_games %}
+    <section class="today-games">
+        <div class="latest-results__header">
+            <h2 class="latest-results__title">Heute</h2>
+            <span class="section-meta">{{ today_games|length }} Spiele</span>
+        </div>
+        <div class="table-shell">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-short">Zeit</th>
+                            <th>Heim</th>
+                            <th>Gast</th>
+                            <th class="hide-mobile">Halle</th>
+                            <th class="col-short">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for game in today_games %}
+                        <tr>
+                            <td class="col-short">{{ game.time or '—' }}</td>
+                            <td>
+                                {% if game.cancelled %}
+                                <del>{{ game.home }}</del>
+                                {% else %}
+                                <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.home_slug }}">
+                                    {{ game.home }}
+                                </a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if game.cancelled %}
+                                <del>{{ game.away }}</del>
+                                {% else %}
+                                <a class="team-link" href="/liga/{{ ligaid }}/{{ liga_slug }}/team/{{ game.away_slug }}">
+                                    {{ game.away }}
+                                </a>
+                                {% endif %}
+                            </td>
+                            <td class="hide-mobile">
+                                <span class="muted">{{ game.venue or 'Wird noch bestätigt' }}</span>
+                            </td>
+                            <td class="col-short">
+                                {% if game.cancelled %}
+                                <span class="cancelled-badge">Abgesagt</span>
+                                {% elif game.played %}
+                                <strong class="today-score">{{ game.home_score }}:{{ game.away_score }}</strong>
+                                {% else %}
+                                <span class="status-badge">Geplant</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
     {% if latest_games %}
     <section class="latest-results">
         <div class="latest-results__header">
