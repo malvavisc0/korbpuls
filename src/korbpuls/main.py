@@ -206,9 +206,28 @@ templates.env.globals["app_version"] = __import__("korbpuls").__version__
 # externally-controlled text (team names, scraped data).  Sanitize to
 # a strict allowlist before it ever reaches a browser.
 _AI_ALLOWED_TAGS = {
-    "p", "br", "strong", "em", "b", "i", "ul", "ol", "li",
-    "table", "thead", "tbody", "tr", "th", "td",
-    "h3", "h4", "h5", "a", "span", "code", "blockquote",
+    "p",
+    "br",
+    "strong",
+    "em",
+    "b",
+    "i",
+    "ul",
+    "ol",
+    "li",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "h3",
+    "h4",
+    "h5",
+    "a",
+    "span",
+    "code",
+    "blockquote",
 }
 _AI_ALLOWED_ATTRS = {"a": {"href", "title"}}
 
@@ -222,16 +241,10 @@ def ai_html(value: str) -> Markup:
 
 templates.env.filters["ai_html"] = ai_html
 
-_rybbit_script_url = os.environ.get(
-    "RYBBIT_SCRIPT_URL", "https://analytics.dextopia.de/api/script.js"
-)
-_rybbit_site_id = os.environ.get("RYBBIT_SITE_ID", "9feb491675c0")
-templates.env.globals["analytics_tag"] = (
-    f'<script src="{_rybbit_script_url}"'
-    f' data-site-id="{_rybbit_site_id}" defer></script>'
-    if telemetry_enabled() and _rybbit_site_id
-    else ""
-)
+_analytics_url = os.environ.get("RYBBIT_SCRIPT_URL", "") if telemetry_enabled() else ""
+_analytics_site_id = os.environ.get("RYBBIT_SITE_ID", "") if _analytics_url else ""
+templates.env.globals["analytics_script_url"] = _analytics_url
+templates.env.globals["analytics_site_id"] = _analytics_site_id
 
 
 def validate_ligaid_format(ligaid: str) -> bool:
@@ -311,6 +324,151 @@ def fetch_and_cache_league(ligaid: str) -> bool:
         _release_fetch(ligaid)
 
 
+def _old_fetch_state(
+    cache_dir: CacheDir,
+) -> tuple[str, bool, dict[str, Any]]:
+    """Read the previous hash, archive flag, and schedule before overwrite."""
+    old_hash = cache_dir.compute_data_hash()
+    old_archived = False
+    with suppress(CacheMiss, FileNotFoundError):
+        old_archived = cache_dir.read_meta().archived
+    previous_schedule: dict[str, Any] = {}
+    with suppress(CacheMiss, FileNotFoundError):
+        previous_schedule = cache_dir.read_json("schedule.json")
+    return old_hash, old_archived, previous_schedule
+
+
+def _download_standings(
+    ligaid: str,
+    cache_dir: CacheDir,
+) -> tuple[dict[str, Any], str, str]:
+    """Fetch and cache standings, returning data, name, and slug."""
+    data = korb_standings(ligaid)
+    cache_dir.write_json("standings.json", data)
+    league_name: str = data.get("liga_name", "")
+    return data, league_name, slugify(league_name)
+
+
+def _download_schedule(ligaid: str, cache_dir: CacheDir) -> dict[str, Any]:
+    """Fetch and cache the schedule."""
+    data = run_schedule(ligaid)
+    cache_dir.write_json("schedule.json", data)
+    return data
+
+
+def _download_ergebnisse(ligaid: str, cache_dir: CacheDir) -> dict[str, Any]:
+    """Fetch and cache game results."""
+    data = run_ergebnisse(ligaid)
+    cache_dir.write_json("ergebnisse.json", data)
+    return data
+
+
+def _download_predict(
+    ligaid: str,
+    cache_dir: CacheDir,
+    league_name: str,
+    standings_data: dict[str, Any],
+) -> dict[str, Any]:
+    """Fetch and cache predictions, tolerating finalized seasons."""
+    try:
+        data = run_predict(ligaid)
+    except KorbError:
+        data = {
+            "liga_name": league_name,
+            "liga_number": standings_data.get("liga_number", 0),
+            "ligaid": int(ligaid),
+            "predictions": [],
+            "standings": [],
+            "finalized": True,
+        }
+    cache_dir.write_json("predict.json", data)
+    return data
+
+
+def _download_teams(
+    ligaid: str,
+    cache_dir: CacheDir,
+    team_slugs: dict[str, str],
+) -> None:
+    """Fetch and cache per-team results, skipping individual failures."""
+    for slug, team_name in team_slugs.items():
+        try:
+            cache_dir.write_team_json(slug, korb_team(ligaid, team_name))
+        except KorbError:
+            logger.warning("Could not fetch team data for %s", team_name)
+
+
+def _remove_orphaned_team_files(
+    cache_dir: CacheDir,
+    team_slugs: dict[str, str],
+) -> None:
+    """Remove cached team files for teams that left the league."""
+    if not cache_dir.teams_path.exists():
+        return
+    for path in cache_dir.teams_path.iterdir():
+        if (
+            path.suffix == ".json"
+            and not cache_dir._is_ai_file(path)
+            and path.stem not in team_slugs
+        ):
+            path.unlink(missing_ok=True)
+
+
+def _season_complete(
+    schedule_data: dict[str, Any],
+    ergebnisse_data: dict[str, Any],
+) -> bool:
+    """Whether a schedule is finished and every fixture has a result."""
+    return (
+        bool(schedule_data.get("schedule"))
+        and is_season_finished(schedule_data)
+        and schedule_has_results(schedule_data, ergebnisse_data)
+    )
+
+
+def _build_league_meta(
+    *,
+    ligaid: str,
+    league_name: str,
+    liga_slug: str,
+    team_slugs: dict[str, str],
+    old_archived: bool,
+    previous_schedule: dict[str, Any],
+    schedule_data: dict[str, Any],
+    ergebnisse_data: dict[str, Any],
+) -> LigaMeta:
+    """Build league metadata, preserving the sticky archived flag."""
+    return LigaMeta(
+        ligaid=ligaid,
+        league_name=league_name,
+        liga_slug=liga_slug,
+        cached_at=format_datetime(datetime.now(ZoneInfo("Europe/Berlin"))),
+        team_slugs=team_slugs,
+        archived=old_archived
+        or _season_complete(previous_schedule, ergebnisse_data)
+        or _season_complete(schedule_data, ergebnisse_data),
+    )
+
+
+def _sync_ai_files(cache_dir: CacheDir, old_hash: str) -> bool:
+    """Preserve AI files when data is unchanged, otherwise clear them."""
+    data_changed = not (old_hash and old_hash == cache_dir.compute_data_hash())
+    if not data_changed:
+        cache_dir.touch_ai_files()
+        logger.info(
+            "Data unchanged for liga %s — AI analyses preserved",
+            cache_dir.ligaid,
+        )
+        return False
+    cache_dir.clear_ai_files()
+    if old_hash:
+        logger.info(
+            "Data changed for liga %s — AI analyses invalidated",
+            cache_dir.ligaid,
+        )
+    return True
+
+
 def _fetch_and_cache_locked(ligaid: str, cache_dir: CacheDir) -> bool:
     """Run the actual league fetch (caller holds the fetch claim).
 
@@ -318,119 +476,40 @@ def _fetch_and_cache_locked(ligaid: str, cache_dir: CacheDir) -> bool:
     place rather than deleted up front, so readers keep seeing the
     previous complete dataset while a refresh is running.
     """
-    # Snapshot old data hash before overwriting
-    old_hash = cache_dir.compute_data_hash()
-
-    # Archived is sticky: once a season finished it stays archived
-    # even if upstream later returns an empty/partial schedule.
-    old_archived = False
-    with suppress(CacheMiss, FileNotFoundError):
-        old_archived = cache_dir.read_meta().archived
-
-    # Snapshot the previous schedule before it is overwritten.  The
-    # upstream schedule drops past games, so after the final match day
-    # a refresh may return an empty schedule; the previous one is the
-    # only proof that the season was complete.
-    previous_schedule: dict[str, Any] = {}
-    with suppress(CacheMiss, FileNotFoundError):
-        previous_schedule = cache_dir.read_json("schedule.json")
+    old_hash, old_archived, previous_schedule = _old_fetch_state(cache_dir)
 
     try:
         run_download(ligaid)
-
-        standings_data = korb_standings(ligaid)
-        cache_dir.write_json("standings.json", standings_data)
-
-        league_name: str = standings_data.get("liga_name", "")
-        liga_slug = slugify(league_name)
-
-        schedule_data = run_schedule(ligaid)
-        cache_dir.write_json("schedule.json", schedule_data)
-
+        standings_data, league_name, liga_slug = _download_standings(
+            ligaid,
+            cache_dir,
+        )
+        schedule_data = _download_schedule(ligaid, cache_dir)
         team_slugs = presenters.collect_team_slugs(standings_data, schedule_data)
+        ergebnisse_data = _download_ergebnisse(ligaid, cache_dir)
+        _download_predict(ligaid, cache_dir, league_name, standings_data)
+        _download_teams(ligaid, cache_dir, team_slugs)
+        _remove_orphaned_team_files(cache_dir, team_slugs)
 
-        ergebnisse_data = run_ergebnisse(ligaid)
-        cache_dir.write_json("ergebnisse.json", ergebnisse_data)
-
-        # Prediction may fail for finalized seasons — non-fatal
-        try:
-            predict_data = run_predict(ligaid)
-        except KorbError:
-            predict_data = {
-                "liga_name": league_name,
-                "liga_number": standings_data.get("liga_number", 0),
-                "ligaid": int(ligaid),
-                "predictions": [],
-                "standings": [],
-                "finalized": True,
-            }
-        cache_dir.write_json("predict.json", predict_data)
-
-        for ts, team_name in team_slugs.items():
-            try:
-                team_data = korb_team(ligaid, team_name)
-                cache_dir.write_team_json(ts, team_data)
-            except KorbError:
-                pass
-
-        # Remove orphaned team files (teams that left the league)
-        if cache_dir.teams_path.exists():
-            for f in cache_dir.teams_path.iterdir():
-                stem = f.stem
-                if (
-                    f.suffix == ".json"
-                    and not cache_dir._is_ai_file(f)
-                    and stem not in team_slugs
-                ):
-                    f.unlink(missing_ok=True)
-
-        previous_season_complete = (
-            bool(previous_schedule.get("schedule"))
-            and is_season_finished(previous_schedule)
-            and schedule_has_results(previous_schedule, ergebnisse_data)
-        )
-        current_season_complete = (
-            bool(schedule_data.get("schedule"))
-            and is_season_finished(schedule_data)
-            and schedule_has_results(schedule_data, ergebnisse_data)
-        )
-
-        meta = LigaMeta(
+        meta = _build_league_meta(
             ligaid=ligaid,
             league_name=league_name,
             liga_slug=liga_slug,
-            cached_at=format_datetime(datetime.now(ZoneInfo("Europe/Berlin"))),
             team_slugs=team_slugs,
-            archived=old_archived
-            or previous_season_complete
-            or current_season_complete,
+            old_archived=old_archived,
+            previous_schedule=previous_schedule,
+            schedule_data=schedule_data,
+            ergebnisse_data=ergebnisse_data,
         )
         cache_dir.write_meta(meta)
-
-        # Compare new data with old — preserve AI work if unchanged
-        new_hash = cache_dir.compute_data_hash()
-        data_changed = not (old_hash and old_hash == new_hash)
-        if not data_changed:
-            cache_dir.touch_ai_files()
-            logger.info(
-                "Data unchanged for liga %s — AI analyses preserved",
-                ligaid,
-            )
-        else:
-            cache_dir.clear_ai_files()
-            if old_hash:
-                logger.info(
-                    "Data changed for liga %s — AI analyses invalidated",
-                    ligaid,
-                )
-
+        data_changed = _sync_ai_files(cache_dir, old_hash)
         cache_dir.write_status("ready")
         return data_changed
-    except KorbError as e:
-        cache_dir.write_status("error", str(e))
+    except KorbError as exc:
+        cache_dir.write_status("error", str(exc))
         return False
-    except Exception as e:
-        cache_dir.write_status("error", f"Unerwarteter Fehler: {e}")
+    except Exception as exc:
+        cache_dir.write_status("error", f"Unerwarteter Fehler: {exc}")
         return False
 
 

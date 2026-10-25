@@ -21,8 +21,8 @@ services:
       # Rybbit analytics: disabled by default. The production deployment
       # sets DISABLE_TELEMETRY=false to load the analytics script.
       DISABLE_TELEMETRY: ${DISABLE_TELEMETRY:-true}
-      RYBBIT_SCRIPT_URL: ${RYBBIT_SCRIPT_URL}
-      RYBBIT_SITE_ID: ${RYBBIT_SITE_ID}
+      RYBBIT_SCRIPT_URL: ${RYBBIT_SCRIPT_URL:-}
+      RYBBIT_SITE_ID: ${RYBBIT_SITE_ID:-}
     volumes:
       - data:/data
     restart: unless-stopped

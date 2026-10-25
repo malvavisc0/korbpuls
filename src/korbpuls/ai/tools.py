@@ -3,58 +3,49 @@
 from __future__ import annotations
 
 import json
-import os
 import shlex
 import subprocess
 from typing import Any
 
-from korbpuls.korb_client import _korb_cwd
-
-_KORB_CMD = shlex.split(os.environ.get("KORB_CMD", "uv run korb"))
+from korbpuls.korb_client import KORB_TIMEOUT_SECONDS, run_korb
 
 
-def run_korb_command(args: str, timeout: int = 60) -> dict[str, Any]:
+def run_korb_command(
+    args: str,
+    timeout: float = KORB_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
     """Run `korb <args>` and return {success, stdout, stderr, error}."""
-    cmd = [*_KORB_CMD, *shlex.split(args)]
-
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=_korb_cwd(),
-        )
-
-        stdout = result.stdout.strip()
-        stderr = result.stderr.strip()
-
-        if result.returncode != 0:
-            return {
-                "success": False,
-                "stdout": stdout,
-                "stderr": stderr,
-                "error": f"korb exited with code {result.returncode}",
-            }
-
-        try:
-            parsed = json.loads(stdout)
-        except json.JSONDecodeError:
-            parsed = stdout
-
-        return {"success": True, "stdout": parsed, "stderr": stderr, "error": None}
-
+        result = run_korb(shlex.split(args), timeout=timeout)
     except subprocess.TimeoutExpired:
         return {
             "success": False,
             "stdout": "",
             "stderr": "",
-            "error": f"Command timed out after {timeout} seconds",
+            "error": f"Command timed out after {timeout:g} seconds",
         }
-    except Exception as e:
+    except OSError as exc:
         return {
             "success": False,
             "stdout": "",
             "stderr": "",
-            "error": f"Unexpected error: {e}",
+            "error": f"Could not run korb: {exc}",
         }
+
+    stdout = result.stdout.strip()
+    stderr = result.stderr.strip()
+
+    if result.returncode != 0:
+        return {
+            "success": False,
+            "stdout": stdout,
+            "stderr": stderr,
+            "error": f"korb exited with code {result.returncode}",
+        }
+
+    try:
+        parsed = json.loads(stdout)
+    except json.JSONDecodeError:
+        parsed = stdout
+
+    return {"success": True, "stdout": parsed, "stderr": stderr, "error": None}

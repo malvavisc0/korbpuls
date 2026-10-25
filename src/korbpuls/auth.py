@@ -5,12 +5,13 @@ from __future__ import annotations
 import os
 import secrets
 
-from dotenv import load_dotenv
 from fastapi import Header, HTTPException
 
-load_dotenv()
+from korbpuls.settings import load_config
 
-KORBPULS_API_KEY = os.environ.get("KORBPULS_API_KEY")
+load_config()
+
+KORBPULS_API_KEY = os.environ.get("KORBPULS_API_KEY", "")
 if not KORBPULS_API_KEY:
     raise RuntimeError("KORBPULS_API_KEY environment variable not set")
 

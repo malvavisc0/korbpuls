@@ -10,10 +10,11 @@ from typing import Any, cast
 
 from korbpuls.cache import CACHE_ROOT
 
-_KORB_CMD = shlex.split(os.environ.get("KORB_CMD", "uv run korb"))
+KORB_CMD = shlex.split(os.environ.get("KORB_CMD", "uv run korb"))
+KORB_TIMEOUT_SECONDS = 60.0
 
 
-def _korb_cwd() -> str:
+def korb_cwd() -> str:
     """Working directory for korb subprocesses.
 
     korb resolves its HTML files relative to CWD as
@@ -34,6 +35,32 @@ class KorbError(Exception):
     """Raised when korb CLI invocation fails."""
 
 
+def run_korb(
+    args: list[str],
+    timeout: float = KORB_TIMEOUT_SECONDS,
+) -> subprocess.CompletedProcess[str]:
+    """Run korb with the configured command and working directory.
+
+    Args:
+        args: Arguments appended to the configured korb command
+        timeout: Maximum runtime in seconds
+
+    Returns:
+        Completed process with captured text output
+
+    Raises:
+        subprocess.TimeoutExpired: If korb exceeds *timeout*
+    """
+    return subprocess.run(
+        [*KORB_CMD, *args],
+        capture_output=True,
+        text=True,
+        cwd=korb_cwd(),
+        timeout=timeout,
+        check=False,
+    )
+
+
 def _run_korb(args: list[str]) -> dict[str, Any]:
     """Run korb CLI command and parse JSON output.
 
@@ -46,17 +73,13 @@ def _run_korb(args: list[str]) -> dict[str, Any]:
     Raises:
         KorbError: If command fails or output is not valid JSON
     """
-    cmd = [*_KORB_CMD, *args]
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=True,
-            cwd=_korb_cwd(),
-        )
-    except subprocess.CalledProcessError as e:
-        raise KorbError(f"korb command failed: {e.stderr}") from e
+        result = run_korb(args)
+    except subprocess.TimeoutExpired as exc:
+        raise KorbError(f"korb timed out after {KORB_TIMEOUT_SECONDS:g}s") from exc
+
+    if result.returncode != 0:
+        raise KorbError(f"korb command failed: {result.stderr}")
 
     try:
         return cast(dict[str, Any], json.loads(result.stdout))
@@ -73,17 +96,14 @@ def run_download(ligaid: str) -> None:
     Note:
         The download command outputs plain text, not JSON.
     """
-    cmd = [*_KORB_CMD, "--ligaid", ligaid, "download"]
     try:
-        subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=True,
-            cwd=_korb_cwd(),
-        )
-    except subprocess.CalledProcessError as e:
-        raise KorbError(f"korb download failed: {e.stderr}") from e
+        result = run_korb(["--ligaid", ligaid, "download"])
+    except subprocess.TimeoutExpired as exc:
+        raise KorbError(
+            f"korb download timed out after {KORB_TIMEOUT_SECONDS:g}s"
+        ) from exc
+    if result.returncode != 0:
+        raise KorbError(f"korb download failed: {result.stderr}")
 
 
 def run_standings(ligaid: str) -> dict[str, Any]:

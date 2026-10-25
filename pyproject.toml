@@ -1,6 +1,6 @@
 [project]
 name = "korbpuls"
-dynamic = ["version"]
+version = "0.4.7"
 description = "Basketball league dashboard — standings, schedules & predictions powered by korb"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -37,9 +37,6 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.hatch.version]
-path = "src/korbpuls/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/korbpuls"]

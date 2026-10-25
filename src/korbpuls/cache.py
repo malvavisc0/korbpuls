@@ -11,7 +11,21 @@ from typing import Any, cast
 
 from pydantic import BaseModel
 
+from korbpuls.settings import load_config
+
+load_config()
+
 CACHE_ROOT = Path(os.environ.get("CACHE_DIR", "files"))
+
+
+def _write_json_atomic(path: Path, data: dict[str, Any]) -> None:
+    """Write JSON atomically so concurrent readers never see partial data."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    os.replace(tmp, path)
 
 
 class CacheMiss(Exception):
@@ -64,32 +78,6 @@ class CacheDir:
     def ensure_exists(self) -> None:
         """Create cache directory structure if it doesn't exist."""
         self.teams_path.mkdir(parents=True, exist_ok=True)
-
-    def clear_data_files(self) -> None:
-        """Remove only data files, preserving AI analysis files.
-
-        Deletes standings, schedule, ergebnisse, predict, meta,
-        status, and per-team data files, but keeps AI analysis
-        and AI failure marker files intact.
-        """
-        data_files = [
-            "standings.json",
-            "schedule.json",
-            "ergebnisse.json",
-            "predict.json",
-            "meta.json",
-            "status.json",
-        ]
-        for name in data_files:
-            path = self.base_path / name
-            if path.exists():
-                path.unlink()
-
-        # Remove per-team data files but keep AI files
-        if self.teams_path.exists():
-            for f in self.teams_path.iterdir():
-                if f.suffix == ".json" and not self._is_ai_file(f):
-                    f.unlink()
 
     @staticmethod
     def _is_ai_file(path: Path) -> bool:
@@ -196,19 +184,13 @@ class CacheDir:
                 os.utime(path, (now, now))
 
     def write_json(self, filename: str, data: dict[str, Any]) -> None:
-        """Write JSON data to a file.
-
-        Writes atomically (temp file + os.replace) so concurrent
-        readers never observe a truncated or partially-written file.
+        """Write JSON data to a file atomically.
 
         Args:
             filename: Name of the file (e.g., 'standings.json')
             data: Dictionary to write as JSON
         """
-        path = self.base_path / filename
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False))
-        os.replace(tmp, path)
+        _write_json_atomic(self.base_path / filename, data)
 
     def read_json(self, filename: str) -> dict[str, Any]:
         """Read JSON data from a file.
@@ -286,10 +268,7 @@ class CacheDir:
             team_slug: Team slug string
             data: Team data dictionary
         """
-        path = self.teams_path / f"{team_slug}.json"
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False))
-        os.replace(tmp, path)
+        _write_json_atomic(self.teams_path / f"{team_slug}.json", data)
 
     def liga_exists(self) -> bool:
         """Check if league cache directory exists.
@@ -377,13 +356,9 @@ class CacheDir:
 
     def write_ai_analysis(self, team_slug: str, analysis: str) -> None:
         """Write AI team analysis to cache."""
-        path = self.teams_path / f"{team_slug}_analysis.json"
-        path.write_text(
-            json.dumps(
-                {"analysis": analysis},
-                indent=2,
-                ensure_ascii=False,
-            )
+        _write_json_atomic(
+            self.teams_path / f"{team_slug}_analysis.json",
+            {"analysis": analysis},
         )
 
     def is_ai_analysis_fresh(self, team_slug: str) -> bool:
@@ -412,13 +387,9 @@ class CacheDir:
 
     def write_ai_prediction(self, table: str, explanation: str) -> None:
         """Write AI prediction narrative to cache."""
-        path = self.base_path / "prediction_narrative.json"
-        path.write_text(
-            json.dumps(
-                {"table": table, "explanation": explanation},
-                indent=2,
-                ensure_ascii=False,
-            )
+        _write_json_atomic(
+            self.base_path / "prediction_narrative.json",
+            {"table": table, "explanation": explanation},
         )
 
     def is_ai_prediction_fresh(self) -> bool:
@@ -450,13 +421,9 @@ class CacheDir:
 
     def write_standings_narrative(self, narrative: str) -> None:
         """Write AI standings narrative to cache."""
-        path = self.base_path / "standings_narrative.json"
-        path.write_text(
-            json.dumps(
-                {"narrative": narrative},
-                indent=2,
-                ensure_ascii=False,
-            )
+        _write_json_atomic(
+            self.base_path / "standings_narrative.json",
+            {"narrative": narrative},
         )
 
     def is_standings_narrative_fresh(self) -> bool:
@@ -496,13 +463,9 @@ class CacheDir:
     ) -> None:
         """Write AI matchup preview to cache."""
         key = self._matchup_key(home_slug, away_slug)
-        path = self.teams_path / f"{key}.json"
-        path.write_text(
-            json.dumps(
-                {"analysis": analysis},
-                indent=2,
-                ensure_ascii=False,
-            )
+        _write_json_atomic(
+            self.teams_path / f"{key}.json",
+            {"analysis": analysis},
         )
 
     def is_matchup_preview_fresh(self, home_slug: str, away_slug: str) -> bool:
@@ -527,7 +490,7 @@ class CacheDir:
             team_slug: Team slug string
         """
         path = self.teams_path / f"{team_slug}_analysis_failed.json"
-        path.write_text(json.dumps({"failed": True}))
+        _write_json_atomic(path, {"failed": True})
 
     def read_ai_analysis_failed(self, team_slug: str) -> bool:
         """Check if AI team analysis has a failure marker.
@@ -554,7 +517,7 @@ class CacheDir:
     def write_ai_prediction_failed(self) -> None:
         """Write a failure marker for AI prediction narrative."""
         path = self.base_path / "prediction_narrative_failed.json"
-        path.write_text(json.dumps({"failed": True}))
+        _write_json_atomic(path, {"failed": True})
 
     def read_ai_prediction_failed(self) -> bool:
         """Check if AI prediction narrative has a failure marker.
@@ -574,7 +537,7 @@ class CacheDir:
     def write_standings_narrative_failed(self) -> None:
         """Write a failure marker for AI standings narrative."""
         path = self.base_path / "standings_narrative_failed.json"
-        path.write_text(json.dumps({"failed": True}))
+        _write_json_atomic(path, {"failed": True})
 
     def read_standings_narrative_failed(self) -> bool:
         """Check if AI standings narrative has a failure marker."""
@@ -591,7 +554,7 @@ class CacheDir:
         """Write a failure marker for AI matchup preview."""
         key = self._matchup_key(home_slug, away_slug)
         path = self.teams_path / f"{key}_failed.json"
-        path.write_text(json.dumps({"failed": True}))
+        _write_json_atomic(path, {"failed": True})
 
     def read_matchup_preview_failed(self, home_slug: str, away_slug: str) -> bool:
         """Check if AI matchup preview has a failure marker."""

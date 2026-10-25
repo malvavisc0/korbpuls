@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 import statistics
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime
+from types import MappingProxyType
 from typing import Any
 
 from pydantic import BaseModel
@@ -16,26 +17,23 @@ from korbpuls.slugify import slugify
 
 logger = logging.getLogger(__name__)
 
-# Reverse of LigaMeta.team_slugs: canonical (disambiguated) slug per
-# exact team name.  Hydrated from meta on every presenter read so URL
-# slugs stay stable even across process restarts.
-_TEAM_SLUGS_BY_NAME: dict[str, str] = {}
 
+class TeamSlugs:
+    """Canonical URL slug lookup for a single league."""
 
-def _hydrate_team_slugs(meta: Any) -> None:
-    """Refresh the name->slug registry from a league's meta."""
-    _TEAM_SLUGS_BY_NAME.clear()
-    for slug, name in meta.team_slugs.items():
-        _TEAM_SLUGS_BY_NAME[name] = slug
+    def __init__(self, team_slugs: Mapping[str, str]) -> None:
+        """Build a name->slug lookup from a league's slug->name map."""
+        self._by_name = MappingProxyType(
+            {name: slug for slug, name in team_slugs.items()}
+        )
 
+    def slug_for(self, name: str) -> str:
+        """Return the canonical slug for a team name.
 
-def team_slug(name: str) -> str:
-    """Canonical URL slug for a team name.
-
-    Falls back to plain slugify() for unknown names; names that
-    collide under slugify() carry their registered ``-2`` suffix.
-    """
-    return _TEAM_SLUGS_BY_NAME.get(name, "") or slugify(name)
+        Falls back to plain slugify() for unknown names; names that
+        collide under slugify() carry their registered ``-2`` suffix.
+        """
+        return self._by_name.get(name) or slugify(name)
 
 
 class StandingsRow(BaseModel):
@@ -342,11 +340,15 @@ def _home_away_to_german(home_away: str) -> str:
     return "Heim" if home_away == "Home" else "Gast"
 
 
-def _parse_schedule_game(game: dict[str, Any]) -> ScheduleGame:
+def _parse_schedule_game(
+    game: dict[str, Any],
+    slugs: TeamSlugs,
+) -> ScheduleGame:
     """Parse a raw schedule game dict into a ScheduleGame model.
 
     Args:
         game: Raw game dict from korb JSON
+        slugs: Canonical slug lookup for the league
 
     Returns:
         ScheduleGame model
@@ -354,9 +356,9 @@ def _parse_schedule_game(game: dict[str, Any]) -> ScheduleGame:
     return ScheduleGame(
         date=game["date"],
         home=game["home"],
-        home_slug=team_slug(game["home"]),
+        home_slug=slugs.slug_for(game["home"]),
         away=game["away"],
-        away_slug=team_slug(game["away"]),
+        away_slug=slugs.slug_for(game["away"]),
         venue=game["venue"],
         cancelled=game.get("cancelled", False),
     )
@@ -384,9 +386,8 @@ def collect_team_slugs(
             seen_names.add(name)
             names.append(name)
     for game in schedule_data.get("schedule", []):
-        parsed = _parse_schedule_game(game)
-        for name in (parsed.home, parsed.away):
-            if name not in seen_names:
+        for name in (game.get("home"), game.get("away")):
+            if name and name not in seen_names:
                 seen_names.add(name)
                 names.append(name)
 
@@ -406,9 +407,6 @@ def collect_team_slugs(
             slug = f"{base}-{counter}"
             counter += 1
         slugs[slug] = name
-    _TEAM_SLUGS_BY_NAME.clear()
-    for slug_key, name_val in slugs.items():
-        _TEAM_SLUGS_BY_NAME[name_val] = slug_key
     return slugs
 
 
@@ -424,7 +422,10 @@ def _coerce_score(value: Any) -> int | None:
         return None
 
 
-def _parse_ergebnis_game(raw: dict[str, Any]) -> ErgebnisGame | None:
+def _parse_ergebnis_game(
+    raw: dict[str, Any],
+    slugs: TeamSlugs,
+) -> ErgebnisGame | None:
     """Parse a single raw ergebnis dict into an ErgebnisGame.
 
     Returns None for rows with malformed scores instead of crashing
@@ -451,11 +452,11 @@ def _parse_ergebnis_game(raw: dict[str, Any]) -> ErgebnisGame | None:
     return ErgebnisGame(
         date=raw_date,
         home=raw["home"],
-        home_slug=team_slug(raw["home"]),
+        home_slug=slugs.slug_for(raw["home"]),
         home_display_primary=home_primary,
         home_display_secondary=home_secondary,
         away=raw["away"],
-        away_slug=team_slug(raw["away"]),
+        away_slug=slugs.slug_for(raw["away"]),
         away_display_primary=away_primary,
         away_display_secondary=away_secondary,
         home_score=home_score,
@@ -473,7 +474,7 @@ def _split_compact_team_name(team_name: str) -> tuple[str, str]:
     return primary, secondary
 
 
-def _parse_game_result(raw: dict[str, Any]) -> GameResult:
+def _parse_game_result(raw: dict[str, Any], slugs: TeamSlugs) -> GameResult:
     """Parse a raw result dict into a GameResult model.
 
     Args:
@@ -490,7 +491,7 @@ def _parse_game_result(raw: dict[str, Any]) -> GameResult:
 
     return GameResult(
         opponent=raw["opponent"],
-        opponent_slug=team_slug(raw["opponent"]),
+        opponent_slug=slugs.slug_for(raw["opponent"]),
         home_away=_home_away_to_german(raw["home_away"]),
         date=raw_date,
         our_score=raw["our_score"],
@@ -502,6 +503,7 @@ def _parse_game_result(raw: dict[str, Any]) -> GameResult:
 
 def _parse_results_newest_first(
     raw_results: list[dict[str, Any]],
+    slugs: TeamSlugs,
 ) -> list[GameResult]:
     """Parse raw results, sorted newest-first by game date.
 
@@ -514,7 +516,7 @@ def _parse_results_newest_first(
         key=lambda r: _parse_game_date(r.get("date", "")) or epoch,
         reverse=True,
     )
-    return [_parse_game_result(r) for r in ordered]
+    return [_parse_game_result(r, slugs) for r in ordered]
 
 
 def _compute_streak(results: list[GameResult]) -> str:
@@ -666,9 +668,52 @@ def _played_matchups(
     }
 
 
+def _today_results(
+    ergebnisse_data: dict[str, Any] | None,
+    slugs: TeamSlugs,
+) -> dict[tuple[str, str], ErgebnisGame]:
+    """Map matchups to parsed results for today's fixture lookup."""
+    if not ergebnisse_data:
+        return {}
+    results: dict[tuple[str, str], ErgebnisGame] = {}
+    for raw in ergebnisse_data.get("ergebnisse", []):
+        parsed = _parse_ergebnis_game(raw, slugs)
+        if parsed is not None:
+            results[(parsed.home, parsed.away)] = parsed
+    return results
+
+
+def _today_game(
+    raw: dict[str, Any],
+    today: date,
+    results: dict[tuple[str, str], ErgebnisGame],
+    slugs: TeamSlugs,
+) -> TodayGame | None:
+    """Build one today's fixture, or None when it is not played today."""
+    game_date = _parse_game_date(raw.get("date", ""))
+    if game_date is None or game_date.date() != today:
+        return None
+
+    result = results.get((raw.get("home", ""), raw.get("away", "")))
+    has_time = game_date.hour != 0 or game_date.minute != 0
+    return TodayGame(
+        time=game_date.strftime("%H:%M") if has_time else "",
+        home=raw["home"],
+        home_slug=slugs.slug_for(raw["home"]),
+        away=raw["away"],
+        away_slug=slugs.slug_for(raw["away"]),
+        venue=raw.get("venue", ""),
+        home_score=result.home_score if result else None,
+        away_score=result.away_score if result else None,
+        played=result is not None,
+        cancelled=raw.get("cancelled", False),
+    )
+
+
 def _today_games(
     schedule_data: dict[str, Any],
     ergebnisse_data: dict[str, Any] | None,
+    slugs: TeamSlugs,
 ) -> list[TodayGame]:
     """Build today's fixtures, attaching scores when results exist.
 
@@ -676,35 +721,12 @@ def _today_games(
     calendar day regardless of the server's timezone.
     """
     today = _today_bb()
-    results: dict[tuple[str, str], ErgebnisGame] = {}
-    if ergebnisse_data:
-        for raw in ergebnisse_data.get("ergebnisse", []):
-            parsed = _parse_ergebnis_game(raw)
-            if parsed is not None:
-                results[(parsed.home, parsed.away)] = parsed
-
-    games: list[TodayGame] = []
-    for raw in schedule_data.get("schedule", []):
-        game_date = _parse_game_date(raw.get("date", ""))
-        if game_date is None or game_date.date() != today:
-            continue
-        result = results.get((raw.get("home", ""), raw.get("away", "")))
-        has_time = game_date.hour != 0 or game_date.minute != 0
-        games.append(
-            TodayGame(
-                time=game_date.strftime("%H:%M") if has_time else "",
-                home=raw["home"],
-                home_slug=team_slug(raw["home"]),
-                away=raw["away"],
-                away_slug=team_slug(raw["away"]),
-                venue=raw.get("venue", ""),
-                home_score=result.home_score if result else None,
-                away_score=result.away_score if result else None,
-                played=result is not None,
-                cancelled=raw.get("cancelled", False),
-            )
-        )
-
+    results = _today_results(ergebnisse_data, slugs)
+    games = [
+        game
+        for raw in schedule_data.get("schedule", [])
+        if (game := _today_game(raw, today, results, slugs)) is not None
+    ]
     games.sort(key=lambda game: game.time or "24:00")
     return games
 
@@ -725,7 +747,8 @@ def _is_upcoming_for(
 def _get_upcoming_games(
     schedule_data: dict[str, Any],
     team_name: str,
-    ergebnisse_data: dict[str, Any] | None = None,
+    ergebnisse_data: dict[str, Any] | None,
+    slugs: TeamSlugs,
 ) -> list[ScheduleGame]:
     """Filter upcoming non-cancelled games for a team.
 
@@ -741,6 +764,7 @@ def _get_upcoming_games(
         ergebnisse_data: Raw ergebnisse JSON (optional).
             When provided, games already present in results
             are excluded regardless of scheduled date.
+        slugs: Canonical slug lookup for the league
 
     Returns:
         Sorted list of upcoming ScheduleGame entries
@@ -756,10 +780,45 @@ def _get_upcoming_games(
             and game_date.date() >= today
             and _is_upcoming_for(game, team_name, played)
         ):
-            upcoming.append((game_date, _parse_schedule_game(game)))
+            upcoming.append((game_date, _parse_schedule_game(game, slugs)))
 
     upcoming.sort(key=lambda pair: pair[0])
     return [game for _, game in upcoming]
+
+
+def _fixture_time_label(game_date: datetime) -> str:
+    """Human-readable kickoff time, or a placeholder when unknown."""
+    if game_date.hour == 0 and game_date.minute == 0:
+        return "Uhrzeit folgt"
+    return game_date.strftime("%H:%M")
+
+
+def _fixture_date_label(game_date: datetime) -> str:
+    """Human-readable fixture date label for the team page."""
+    return (
+        f"{_WEEKDAYS[game_date.weekday()]}, "
+        f"{game_date.day:02d}. {_MONTHS[game_date.month - 1][:3]}."
+        f" · {_fixture_time_label(game_date)}"
+    )
+
+
+def _team_fixture(
+    game: ScheduleGame,
+    game_date: datetime,
+    team_name: str,
+) -> TeamFixture:
+    """Build a compact team-page fixture from a schedule game."""
+    is_home = game.home == team_name
+    return TeamFixture(
+        date_label=_fixture_date_label(game_date),
+        opponent=game.away if is_home else game.home,
+        opponent_slug=game.away_slug if is_home else game.home_slug,
+        location="Heimspiel" if is_home else "Auswärts",
+        venue=game.venue or "Halle noch offen",
+        matchup_eligible=game.matchup_eligible,
+        home_slug=game.home_slug,
+        away_slug=game.away_slug,
+    )
 
 
 def _present_upcoming_fixtures(
@@ -774,28 +833,7 @@ def _present_upcoming_fixtures(
         month_label = f"{_MONTHS[game_date.month - 1]} {game_date.year}"
         if not months or months[-1].label != month_label:
             months.append(TeamFixtureMonth(label=month_label, fixtures=[]))
-        is_home = game.home == team_name
-        time_label = (
-            "Uhrzeit folgt"
-            if game_date.hour == 0 and game_date.minute == 0
-            else game_date.strftime("%H:%M")
-        )
-        months[-1].fixtures.append(
-            TeamFixture(
-                date_label=(
-                    f"{_WEEKDAYS[game_date.weekday()]}, "
-                    f"{game_date.day:02d}. {_MONTHS[game_date.month - 1][:3]}."
-                    f" · {time_label}"
-                ),
-                opponent=game.away if is_home else game.home,
-                opponent_slug=game.away_slug if is_home else game.home_slug,
-                location="Heimspiel" if is_home else "Auswärts",
-                venue=game.venue or "Halle noch offen",
-                matchup_eligible=game.matchup_eligible,
-                home_slug=game.home_slug,
-                away_slug=game.away_slug,
-            )
-        )
+        months[-1].fixtures.append(_team_fixture(game, game_date, team_name))
     return months
 
 
@@ -848,8 +886,7 @@ def _count_remaining_games(schedule_games: list[ScheduleGame]) -> int:
 
 def _check_prediction_eligible(
     cache: CacheDir,
-    *,
-    schedule_games: list[ScheduleGame] | None = None,
+    schedule_games: list[ScheduleGame],
 ) -> tuple[bool, str | None]:
     """Check whether predictions are available for this league.
 
@@ -860,18 +897,12 @@ def _check_prediction_eligible(
 
     Args:
         cache: CacheDir for the league
-        schedule_games: Pre-loaded schedule games to avoid
-            redundant file reads. Loaded from cache when *None*.
+        schedule_games: Schedule games for the league
 
     Returns:
         Tuple of (eligible, reason). reason is a German error
         message when not eligible, None when eligible.
     """
-    if schedule_games is None:
-        schedule_data = cache.read_json("schedule.json")
-        schedule_games = [
-            _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
-        ]
     if _is_season_finished(schedule_games):
         return False, (
             "Die Saison ist bereits beendet. "
@@ -931,6 +962,57 @@ def standings_ai_eligible(ligaid: str) -> bool:
         return False
 
 
+def _standings_rows(
+    data: dict[str, Any],
+    slugs: TeamSlugs,
+) -> tuple[list[StandingsRow], int]:
+    """Build standings rows and the total games-played count."""
+    rows: list[StandingsRow] = []
+    total_gp = 0
+    for rank, team in enumerate(data.get("standings", []), start=1):
+        total_gp += team["gp"]
+        rows.append(
+            StandingsRow(
+                rank=rank,
+                name=team["name"],
+                slug=slugs.slug_for(team["name"]),
+                gp=team["gp"],
+                w=team["w"],
+                losses=team["l"],
+                d=team["d"],
+                pf=team["pf"],
+                pa=team["pa"],
+                diff=team["diff"],
+                pts=team["pts"],
+                avg_pf=team["avg_pf"],
+                avg_pa=team["avg_pa"],
+            )
+        )
+    return rows, total_gp
+
+
+def _latest_games(
+    ergebnisse_data: dict[str, Any] | None,
+    today_games: list[TodayGame],
+    slugs: TeamSlugs,
+) -> list[ErgebnisGame]:
+    """Latest four results, excluding games already shown as today's."""
+    if not ergebnisse_data:
+        return []
+    today_matchups = {(game.home, game.away) for game in today_games}
+    raw_games = [
+        raw
+        for raw in ergebnisse_data.get("ergebnisse", [])
+        if (raw.get("home", ""), raw.get("away", "")) not in today_matchups
+    ]
+    last_four = [
+        game
+        for game in (_parse_ergebnis_game(raw, slugs) for raw in raw_games[-4:])
+        if game is not None
+    ]
+    return last_four[::-1]
+
+
 def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView:
     """Build view model for standings page.
 
@@ -946,71 +1028,26 @@ def present_standings(ligaid: str, *, ai_enabled: bool = False) -> StandingsView
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
-    _hydrate_team_slugs(meta)
+    slugs = TeamSlugs(meta.team_slugs)
     data = cache.read_json("standings.json")
+    rows, total_gp = _standings_rows(data, slugs)
 
-    rows: list[StandingsRow] = []
-    total_gp = 0
-    for rank, team in enumerate(data.get("standings", []), start=1):
-        total_gp += team["gp"]
-        rows.append(
-            StandingsRow(
-                rank=rank,
-                name=team["name"],
-                slug=team_slug(team["name"]),
-                gp=team["gp"],
-                w=team["w"],
-                losses=team["l"],
-                d=team["d"],
-                pf=team["pf"],
-                pa=team["pa"],
-                diff=team["diff"],
-                pts=team["pts"],
-                avg_pf=team["avg_pf"],
-                avg_pa=team["avg_pa"],
-            )
-        )
-
-    # Load schedule once for both is_finished and eligibility
     schedule_data = cache.read_json("schedule.json")
     schedule_games = [
-        _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
+        _parse_schedule_game(game, slugs) for game in schedule_data.get("schedule", [])
     ]
     is_finished = _is_season_finished(schedule_games)
-    eligible, _ = _check_prediction_eligible(
-        cache,
-        schedule_games=schedule_games,
-    )
+    eligible, _ = _check_prediction_eligible(cache, schedule_games)
 
-    # Latest results and today's fixtures share the ergebnisse cache
-    ergebnisse_data: dict[str, Any] | None
     try:
         ergebnisse_data = cache.read_json("ergebnisse.json")
     except (CacheMiss, FileNotFoundError):
         ergebnisse_data = None
 
-    today_games = _today_games(schedule_data, ergebnisse_data)
+    today_games = _today_games(schedule_data, ergebnisse_data, slugs)
+    latest_games = _latest_games(ergebnisse_data, today_games, slugs)
 
-    # Latest 4 results for the standings page summary.  Games already
-    # shown in the "Heute" section are not repeated below.
-    latest_games: list[ErgebnisGame] = []
-    if ergebnisse_data:
-        today_matchups = {(game.home, game.away) for game in today_games}
-        raw_games = [
-            raw
-            for raw in ergebnisse_data.get("ergebnisse", [])
-            if (raw.get("home", ""), raw.get("away", "")) not in today_matchups
-        ]
-        last_four = [
-            g
-            for g in (_parse_ergebnis_game(raw) for raw in raw_games[-4:])
-            if g is not None
-        ]
-        latest_games = last_four[::-1]
-
-    ai_narrative = None
-    if ai_enabled:
-        ai_narrative = cache.read_standings_narrative()
+    ai_narrative = cache.read_standings_narrative() if ai_enabled else None
 
     return StandingsView(
         liga_name=meta.league_name,
@@ -1088,20 +1125,25 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
-    _hydrate_team_slugs(meta)
+    slugs = TeamSlugs(meta.team_slugs)
 
     team_name = meta.team_slugs.get(team_slug)
     if not team_name:
         raise CacheMiss(f"Team slug not found: {team_slug}")
 
     team_data = cache.read_team_json(team_slug)
-    results = _parse_results_newest_first(team_data.get("results", []))
+    results = _parse_results_newest_first(team_data.get("results", []), slugs)
 
     schedule_data = cache.read_json("schedule.json")
     metrics = _compute_metrics(results)
     rank, total_teams = _get_team_rank_and_total(team_name, cache)
     avg_pf, avg_pa, total_diff = _compute_averages(results)
-    upcoming = _get_upcoming_games(schedule_data, team_name, _read_ergebnisse(cache))
+    upcoming = _get_upcoming_games(
+        schedule_data,
+        team_name,
+        _read_ergebnisse(cache),
+        slugs,
+    )
 
     gp_map = _standings_gp_map(cache.read_json("standings.json"))
     for game in upcoming:
@@ -1112,7 +1154,7 @@ def present_team(ligaid: str, team_slug: str, *, ai_enabled: bool = False) -> Te
 
     # Check if season is finished
     all_schedule_games = [
-        _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
+        _parse_schedule_game(game, slugs) for game in schedule_data.get("schedule", [])
     ]
     is_finished = _is_season_finished(all_schedule_games)
 
@@ -1158,21 +1200,17 @@ def present_schedule(ligaid: str) -> ScheduleView:
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
-    _hydrate_team_slugs(meta)
+    slugs = TeamSlugs(meta.team_slugs)
     data = cache.read_json("schedule.json")
 
-    all_games = [_parse_schedule_game(g) for g in data.get("schedule", [])]
+    all_games = [_parse_schedule_game(game, slugs) for game in data.get("schedule", [])]
 
-    # Load ergebnisse to cross-reference already-played games
     try:
         ergebnisse_data = cache.read_json("ergebnisse.json")
     except CacheMiss:
         ergebnisse_data = None
 
-    played: set[tuple[str, str]] = set()
-    if ergebnisse_data:
-        for raw in ergebnisse_data.get("ergebnisse", []):
-            played.add((raw.get("home", ""), raw.get("away", "")))
+    played = _played_matchups(ergebnisse_data)
 
     # Filter out games that have already been played or are in the past
     games = [g for g in all_games if (g.home, g.away) not in played and not g.cancelled]
@@ -1209,6 +1247,82 @@ def present_schedule(ligaid: str) -> ScheduleView:
     )
 
 
+def _prediction_winner(
+    raw_winner: Any,
+    home_score: int,
+    away_score: int,
+) -> str:
+    """Return a valid winner value, falling back to the scoreline."""
+    if raw_winner in ("home", "away"):
+        return raw_winner
+    if home_score > away_score:
+        return "home"
+    if away_score > home_score:
+        return "away"
+    return "draw"
+
+
+def _prediction_games(data: dict[str, Any]) -> list[PredictionGame]:
+    """Parse prediction rows, skipping rows with malformed scores."""
+    predictions: list[PredictionGame] = []
+    for raw in data.get("predictions", []):
+        home_score = _coerce_score(raw.get("home_score"))
+        away_score = _coerce_score(raw.get("away_score"))
+        if home_score is None or away_score is None:
+            logger.warning(
+                "Skipping prediction row with malformed score: %r vs %r",
+                raw.get("home"),
+                raw.get("away"),
+            )
+            continue
+        predictions.append(
+            PredictionGame(
+                home=raw["home"],
+                away=raw["away"],
+                home_score=home_score,
+                away_score=away_score,
+                winner=_prediction_winner(raw.get("winner"), home_score, away_score),
+            )
+        )
+    return predictions
+
+
+def _predicted_standings(
+    data: dict[str, Any],
+    slugs: TeamSlugs,
+) -> list[PredictionStandingsRow]:
+    """Build the predicted final standings table."""
+    return [
+        PredictionStandingsRow(
+            rank=rank,
+            name=team["name"],
+            slug=slugs.slug_for(team["name"]),
+            w=team["w"],
+            losses=team["l"],
+            pf=team["pf"],
+            pa=team["pa"],
+            diff=team["diff"],
+            pts=team["pts"],
+        )
+        for rank, team in enumerate(data.get("standings", []), start=1)
+    ]
+
+
+def _prediction_narrative(
+    cache: CacheDir,
+    *,
+    ai_enabled: bool,
+    eligible: bool,
+) -> tuple[str | None, str | None]:
+    """Load the cached AI prediction narrative when it is usable."""
+    if not (ai_enabled and eligible):
+        return None, None
+    narrative = cache.read_ai_prediction()
+    if not narrative:
+        return None, None
+    return narrative.get("table"), narrative.get("explanation")
+
+
 def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionView:
     """Build view model for prediction page.
 
@@ -1224,76 +1338,22 @@ def present_prediction(ligaid: str, *, ai_enabled: bool = False) -> PredictionVi
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
-    _hydrate_team_slugs(meta)
+    slugs = TeamSlugs(meta.team_slugs)
     data = cache.read_json("predict.json")
 
-    # Load schedule once for both is_finished and eligibility
     schedule_data = cache.read_json("schedule.json")
     schedule_games = [
-        _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
+        _parse_schedule_game(game, slugs) for game in schedule_data.get("schedule", [])
     ]
     is_finished = _is_season_finished(schedule_games)
-    eligible, reason = _check_prediction_eligible(
+    eligible, reason = _check_prediction_eligible(cache, schedule_games)
+    predictions = _prediction_games(data)
+    standings = _predicted_standings(data, slugs)
+    ai_table, ai_explanation = _prediction_narrative(
         cache,
-        schedule_games=schedule_games,
+        ai_enabled=ai_enabled,
+        eligible=eligible,
     )
-
-    # Build predictions
-    predictions: list[PredictionGame] = []
-    for p in data.get("predictions", []):
-        home_score = _coerce_score(p.get("home_score"))
-        away_score = _coerce_score(p.get("away_score"))
-        if home_score is None or away_score is None:
-            logger.warning(
-                "Skipping prediction row with malformed score: %r vs %r",
-                p.get("home"),
-                p.get("away"),
-            )
-            continue
-        winner = p.get("winner")
-        if winner not in ("home", "away"):
-            # Normalize missing/odd values ("draw", "", None) from the scoreline
-            winner = (
-                "home"
-                if home_score > away_score
-                else "away"
-                if away_score > home_score
-                else "draw"
-            )
-        predictions.append(
-            PredictionGame(
-                home=p["home"],
-                away=p["away"],
-                home_score=home_score,
-                away_score=away_score,
-                winner=winner,
-            )
-        )
-
-    # Build predicted standings
-    standings = [
-        PredictionStandingsRow(
-            rank=rank,
-            name=t["name"],
-            slug=slugify(t["name"]),
-            w=t["w"],
-            losses=t["l"],
-            pf=t["pf"],
-            pa=t["pa"],
-            diff=t["diff"],
-            pts=t["pts"],
-        )
-        for rank, t in enumerate(data.get("standings", []), start=1)
-    ]
-
-    ai_table = None
-    ai_explanation = None
-    # Only load AI prediction if eligible and active
-    if ai_enabled and eligible:
-        narrative = cache.read_ai_prediction()
-        if narrative:
-            ai_table = narrative.get("table")
-            ai_explanation = narrative.get("explanation")
 
     return PredictionView(
         liga_name=meta.league_name,
@@ -1326,26 +1386,24 @@ def present_ergebnisse(ligaid: str) -> ErgebnisseView:
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
-    _hydrate_team_slugs(meta)
+    slugs = TeamSlugs(meta.team_slugs)
     data = cache.read_json("ergebnisse.json")
 
     games = [
-        g
-        for g in (_parse_ergebnis_game(raw) for raw in data.get("ergebnisse", []))
-        if g is not None
+        game
+        for game in (
+            _parse_ergebnis_game(raw, slugs) for raw in data.get("ergebnisse", [])
+        )
+        if game is not None
     ]
     games.reverse()  # newest results first
 
-    # Load schedule for is_finished and eligibility
     schedule_data = cache.read_json("schedule.json")
     schedule_games = [
-        _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
+        _parse_schedule_game(game, slugs) for game in schedule_data.get("schedule", [])
     ]
     is_finished = _is_season_finished(schedule_games)
-    eligible, _ = _check_prediction_eligible(
-        cache,
-        schedule_games=schedule_games,
-    )
+    eligible, _ = _check_prediction_eligible(cache, schedule_games)
 
     return ErgebnisseView(
         liga_name=meta.league_name,
@@ -1360,13 +1418,16 @@ def present_ergebnisse(ligaid: str) -> ErgebnisseView:
 
 
 def _find_standings_row(
-    standings_data: dict[str, Any], team_name: str
+    standings_data: dict[str, Any],
+    team_name: str,
+    slugs: TeamSlugs,
 ) -> StandingsRow | None:
     """Find a team's standings row by name.
 
     Args:
         standings_data: Raw standings JSON
         team_name: Full team name to find
+        slugs: Canonical slug lookup for the league
 
     Returns:
         StandingsRow if found, None otherwise
@@ -1376,7 +1437,7 @@ def _find_standings_row(
             return StandingsRow(
                 rank=rank,
                 name=team["name"],
-                slug=team_slug(team["name"]),
+                slug=slugs.slug_for(team["name"]),
                 gp=team["gp"],
                 w=team["w"],
                 losses=team["l"],
@@ -1395,6 +1456,7 @@ def _head_to_head(
     cache: CacheDir,
     home_name: str,
     away_name: str,
+    slugs: TeamSlugs,
 ) -> tuple[list[ErgebnisGame], bool]:
     """Return (head-to-head games oldest-first, matchup already played).
 
@@ -1412,7 +1474,7 @@ def _head_to_head(
     for raw in ergebnisse_data.get("ergebnisse", []):
         h, a = raw.get("home", ""), raw.get("away", "")
         if {h, a} == pair:
-            game = _parse_ergebnis_game(raw)
+            game = _parse_ergebnis_game(raw, slugs)
             if game is None:
                 continue
             head_to_head.append(game)
@@ -1446,7 +1508,7 @@ def present_matchup(
     """
     cache = CacheDir(ligaid)
     meta = cache.read_meta()
-    _hydrate_team_slugs(meta)
+    slugs = TeamSlugs(meta.team_slugs)
 
     home_name = meta.team_slugs.get(home_slug)
     away_name = meta.team_slugs.get(away_slug)
@@ -1454,17 +1516,22 @@ def present_matchup(
         raise CacheMiss(f"Team slug not found: {home_slug} or {away_slug}")
 
     standings_data = cache.read_json("standings.json")
-    home_row = _find_standings_row(standings_data, home_name)
-    away_row = _find_standings_row(standings_data, away_name)
+    home_row = _find_standings_row(standings_data, home_name, slugs)
+    away_row = _find_standings_row(standings_data, away_name, slugs)
 
     # Find head-to-head games from ergebnisse and detect if
     # this specific matchup has already been played.
-    head_to_head, is_played = _head_to_head(cache, home_name, away_name)
+    head_to_head, is_played = _head_to_head(
+        cache,
+        home_name,
+        away_name,
+        slugs,
+    )
 
     # Check if season is finished
     schedule_data = cache.read_json("schedule.json")
     schedule_games = [
-        _parse_schedule_game(g) for g in schedule_data.get("schedule", [])
+        _parse_schedule_game(game, slugs) for game in schedule_data.get("schedule", [])
     ]
     is_finished = _is_season_finished(schedule_games)
 

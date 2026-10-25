@@ -26,7 +26,9 @@
         href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
     >
     <link rel="stylesheet" href="/static/app.css">
-    {{ analytics_tag | safe }}
+    {% if analytics_script_url and analytics_site_id %}
+    <script src="{{ analytics_script_url }}" data-site-id="{{ analytics_site_id }}" defer></script>
+    {% endif %}
     {% block head %}{% endblock %}
     <title>{{ self.title() }}</title>
 </head>
